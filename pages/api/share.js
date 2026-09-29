@@ -1,21 +1,6 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, doc, getDoc, query, where, limit } from 'firebase/firestore';
-import { decodeRepeatedly, matchesPropertySlug } from '../../lib/firestorePublic';
+import { fetchPublicPropertyRest, matchesPropertySlug } from '../../lib/firestorePublic';
 import { getPublicProperties } from '../../lib/publicDataCache';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDsEeGxKA90-URCn06F-K3U2dvlISf_2Jo",
-  authDomain: "startup-up-realestate.firebaseapp.com",
-  projectId: "startup-up-realestate",
-  storageBucket: "startup-up-realestate.firebasestorage.app",
-  messagingSenderId: "750265634166",
-  appId: "1:750265634166:web:a4f6cd0a59db8c685fbe57"
-};
-
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const appId = "startup-up-realestate";
 const SITE_URL = 'https://www.startupup-real-estate.com';
 const FALLBACK_LOGO = 'https://res.cloudinary.com/dm2wr55r5/image/upload/v1773023427/LOGO_%E0%B9%80%E0%B8%82%E0%B8%B5%E0%B8%A2%E0%B8%A7%E0%B9%82%E0%B8%9B%E0%B8%A3%E0%B9%88%E0%B8%87_vhyhyo.png';
 
@@ -40,64 +25,24 @@ const isPreviewBot = (userAgent = '') => (
     .test(userAgent)
 );
 
-const getSlugCandidates = (slug) => {
-  const decoded = decodeRepeatedly(slug).trim();
-  return Array.from(new Set([
-    slug,
-    decoded,
-    decoded.replace(/-/g, '/'),
-    slug.replace(/-/g, '/')
-  ].filter(Boolean)));
-};
-
-const withTimeout = (promise, timeoutMs, label) => Promise.race([
-  promise,
-  new Promise((_, reject) => {
-    setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
-  })
-]);
-
-const findPropertyBySlug = async (propertySlug) => {
-  const propsRef = collection(db, 'artifacts', appId, 'public', 'data', 'properties');
-  const candidates = getSlugCandidates(propertySlug);
-
-  const findWithSdk = async () => {
-    for (const candidate of candidates) {
-      if (!candidate.includes('/')) {
-        const directSnap = await getDoc(doc(propsRef, candidate));
-        if (directSnap.exists()) return { id: directSnap.id, ...directSnap.data() };
-      }
+// Native REST avoids starting the browser Firestore SDK in each serverless instance.
+const propertyLookups = new Map();
+const findPropertyBySlug = (propertySlug) => {
+  const existing = propertyLookups.get(propertySlug);
+  if (existing) return existing;
+  const lookup = (async () => {
+    try {
+      const property = await fetchPublicPropertyRest(propertySlug, { signal: AbortSignal.timeout(5000) });
+      if (property) return property;
+    } catch (error) {
+      console.warn('Direct share lookup failed, trying cached public list.', error.message);
     }
-
-    const queryValues = Array.from(new Set(candidates.flatMap((candidate) => {
-      const asNumber = Number(candidate);
-      return Number.isFinite(asNumber) && String(asNumber) === candidate ? [candidate, asNumber] : [candidate];
-    })));
-
-    for (const fieldName of ['custom_id', 'house_number']) {
-      for (const value of queryValues) {
-        const snapshot = await getDocs(query(propsRef, where(fieldName, '==', value), limit(1)));
-        if (!snapshot.empty) {
-          const found = snapshot.docs[0];
-          return { id: found.id, ...found.data() };
-        }
-      }
-    }
-
-    return null;
-  };
-
-  try {
-    const matched = await withTimeout(findWithSdk(), 5000, 'Firestore SDK share lookup');
-    if (matched) return matched;
-  } catch (error) {
-    console.warn('Firestore SDK share lookup failed, trying REST fallback.', error);
-  }
-
-  // ตกมาถึงตรงนี้แปลว่า query ตรงๆ ไม่เจอ — ใช้ลิสต์ที่แคชไว้ฝั่ง server
-  // (เดิมสแกนทั้งคอลเลกชันใหม่ทุกครั้ง = อ่านหลายร้อยครั้งต่อบอท 1 ตัวที่มาขอ preview)
-  const properties = await getPublicProperties();
-  return properties.find((item) => matchesPropertySlug(item, propertySlug));
+    const properties = await getPublicProperties();
+    return properties.find(item => matchesPropertySlug(item, propertySlug));
+  })().finally(() => propertyLookups.delete(propertySlug));
+  // Only share in-flight work, keeping existing preview freshness unchanged.
+  if (propertyLookups.size < 200) propertyLookups.set(propertySlug, lookup);
+  return lookup;
 };
 
 export default async function handler(req, res) {
