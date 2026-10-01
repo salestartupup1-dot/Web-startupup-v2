@@ -31,6 +31,13 @@ with sync_playwright() as p:
             if '/api/public-data' in route.request.url:
                 requests.append(route.request)
                 route.fulfill(status=503 if failing else 200, json={'error': 'offline'} if failing else data)
+            elif '/site_settings/popup?' in route.request.url:
+                popup = data['popup']
+                route.fulfill(status=200 if popup else 404, json={
+                    'name': 'documents/site_settings/popup', 'fields': {
+                        'imageUrl': {'stringValue': popup['imageUrl']},
+                        'isActive': {'booleanValue': popup['isActive']},
+                    }} if popup else {'error': 'not found'})
             elif 'firestore.googleapis.com' in route.request.url:
                 route.abort()
             else:

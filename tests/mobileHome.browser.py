@@ -43,6 +43,8 @@ def setup(browser, width=390, height=844, touch=True, reduced=False):
             route.fulfill(json=[{'document': DOCUMENT}])
         elif 'firestore.googleapis.com' in url and '/properties/mobile-home-test' in url:
             route.fulfill(json=DOCUMENT)
+        elif 'firestore.googleapis.com' in url:
+            route.abort()
         else:
             route.continue_()
     page.route('**/*', route_request)

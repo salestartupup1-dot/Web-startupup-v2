@@ -314,7 +314,7 @@ export default function SiteV4({ basePath = '/v4' }) {
         {showPopupModal && activeTab === 'home' && !selectedProperty && !requestedPropSlug && (
           <div className="v4-popup-backdrop">
             <div className="v4-popup">
-              <SmartImage src={getOptimizedImg(popupData.imageUrl, 900)} alt="โปรโมชั่น" className="v4-popup-img" />
+              <SmartImage src={getOptimizedImg(popupData.imageUrl, 900)} alt="โปรโมชั่น" className="v4-popup-img" priority loading="eager" />
               <div className="v4-popup-foot">
                 <label>
                   <input type="checkbox" checked={isSnoozeChecked} onChange={e => setIsSnoozeChecked(e.target.checked)} />

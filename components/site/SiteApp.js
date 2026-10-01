@@ -26,6 +26,7 @@ import { buildPageSeo, buildStructuredData, safeJsonLd } from '../../lib/seo';
 import { PROPERTY_OWNERS, DEFAULT_PROPERTY_OWNER, getPropertyOwner, selectPublicProperties } from '../../lib/propertyOwners';
 import { normalizeHouseKey, houseAliasKey } from '../../lib/masterStock';
 import usePropertyLink from './usePropertyLink';
+import usePublicPopup from './usePublicPopup';
 import { subscribeSiteSession } from '../../lib/siteSession';
 import { createPublicDataWrites } from '../../lib/publicDataWrites';
 import { subscribePublicData } from '../../lib/publicDataSubscription';
@@ -3402,7 +3403,7 @@ export default function App() {
 
   const [isVisualEditMode, setIsVisualEditMode] = useState(false);
   const [visualContent, setVisualContent] = useState(DEFAULT_VISUAL_CONTENT);
-  const [popupData, setPopupData] = useState({ imageUrl: '', isActive: false });
+  const popupData = usePublicPopup(db, appId);
   const [showPopupModal, setShowPopupModal] = useState(false);
   const [isSnoozeChecked, setIsSnoozeChecked] = useState(false);
   const hasCheckedPopup = useRef('');
@@ -3669,7 +3670,6 @@ export default function App() {
     const qProps = query(collection(db, 'artifacts', appId, 'public', 'data', 'properties'));
     const companyRef = doc(db, 'artifacts', appId, 'public', 'data', 'company_info', 'main');
     const visualRef = doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'visual');
-    const popupRef = doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'popup');
     const canManageSite = Boolean(user) && (userRole === 'host' || userRole === 'admin');
 
     const sortProperties = (items = []) => {
@@ -3745,42 +3745,25 @@ export default function App() {
         }
     };
 
-    const applyPopupData = (data) => {
-        if (data) {
-            const popup = stripRestDocumentId(data);
-            setPopupData(popup);
-        }
-    };
-
-    const applyPopupSnapshot = (docSnap) => {
-        if (docSnap.exists()) {
-            applyPopupData(docSnap.data());
-        }
-    };
-
-    const applyPublicData = ({ props, company, visual, popup }) => {
+    const applyPublicData = ({ props, company, visual }) => {
       if (!company) setCompanyInfo(DEFAULT_COMPANY_INFO);
       if (!visual) setVisualContent(DEFAULT_VISUAL_CONTENT);
-      if (!popup) setPopupData({ imageUrl: '', isActive: false });
       applyPropertiesData(props || []);
       applyCompanyData(company);
       applyVisualData(visual);
-      applyPopupData(popup);
     };
 
     const loadPublicDataFromSdk = async () => {
-      const [propsSnap, companySnap, visualSnap, popupSnap] = await Promise.all([
+      const [propsSnap, companySnap, visualSnap] = await Promise.all([
         getDocsFromServer(qProps),
         getDocFromServer(companyRef),
-        getDocFromServer(visualRef),
-        getDocFromServer(popupRef)
+        getDocFromServer(visualRef)
       ]);
 
       return {
         props: snapshotToProperties(propsSnap),
         company: companySnap.exists() ? companySnap.data() : null,
         visual: visualSnap.exists() ? visualSnap.data() : null,
-        popup: popupSnap.exists() ? popupSnap.data() : null,
       };
     };
 
@@ -3797,18 +3780,17 @@ export default function App() {
         throw new Error('Public data API returned invalid or stale data');
       }
 
-      return { props: data.properties, company: data.company, visual: data.visual, popup: data.popup };
+      return { props: data.properties, company: data.company, visual: data.visual };
     };
 
     const loadPublicDataFromRest = async () => {
-      const [props, company, visual, popup] = await Promise.all([
+      const [props, company, visual] = await Promise.all([
         fetchPublicCollectionRest('properties'),
         fetchPublicDocumentRest('company_info/main', { cache: 'no-store' }),
         fetchPublicDocumentRest('site_settings/visual', { cache: 'no-store' }),
-        fetchPublicDocumentRest('site_settings/popup', { cache: 'no-store' })
       ]);
 
-      return { props, company, visual, popup };
+      return { props, company, visual };
     };
 
     const withTimeout = (promise, timeoutMs, label) => Promise.race([
@@ -3841,7 +3823,6 @@ export default function App() {
           console.warn('Could not verify current public data.', error);
           setPublicDataError(true);
           setProperties([]);
-          setPopupData({ imageUrl: '', isActive: false });
           setLoading(false);
         },
       });
@@ -3854,7 +3835,6 @@ export default function App() {
 
     const unsubCompany = onSnapshot(companyRef, applyCompanySnapshot, (error) => console.warn(error));
     const unsubVisual = onSnapshot(visualRef, applyVisualSnapshot, (error) => console.warn(error));
-    const unsubPopup = onSnapshot(popupRef, applyPopupSnapshot, (error) => console.warn(error));
 
     let unsubUsers = () => {};
     const qUsers = query(collection(db, 'artifacts', appId, 'public', 'data', 'users'));
@@ -3866,7 +3846,7 @@ export default function App() {
       }
     }, (error) => console.warn(error));
     
-    return () => { unsubProps(); unsubCompany(); unsubVisual(); unsubPopup(); unsubUsers(); };
+    return () => { unsubProps(); unsubCompany(); unsubVisual(); unsubUsers(); };
   }, [user, userRole]);
 
   const handleLogout = async () => {
