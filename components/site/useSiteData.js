@@ -22,8 +22,8 @@ import {
   GoogleAuthProvider, signInWithPopup,
 } from 'firebase/auth';
 import {
-  collection, getDocs, doc, onSnapshot, query,
-  setDoc, getDoc, serverTimestamp,
+  collection, getDocsFromServer, doc, onSnapshot, query,
+  getDoc, getDocFromServer, serverTimestamp,
 } from 'firebase/firestore';
 
 import {
@@ -33,9 +33,10 @@ import { buildPageSeo, buildStructuredData } from '../../lib/seo';
 import { selectPublicProperties } from '../../lib/propertyOwners';
 import usePropertyLink from './usePropertyLink';
 import { subscribeSiteSession } from '../../lib/siteSession';
+import { subscribePublicData } from '../../lib/publicDataSubscription';
 
 import {
-  db, auth, appId, HOST_EMAIL, markPublicDataChanged,
+  db, auth, appId, HOST_EMAIL, setDoc,
   DEFAULT_COMPANY_INFO, DEFAULT_LOCATIONS_DATA, DEFAULT_VISUAL_CONTENT,
   uploadFileToCloudinary, validateImage, generatePropSlug,
 } from './SiteApp';
@@ -54,6 +55,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
   const [companyInfo, setCompanyInfo] = useState(DEFAULT_COMPANY_INFO);
   const [authorizedUsers, setAuthorizedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [publicDataError, setPublicDataError] = useState(false);
 
   // หน้าเว็บฝั่งลูกค้าใช้เฉพาะบ้านของ Startup Up — บ้าน Partner ยังอยู่ครบใน properties สำหรับหลังบ้าน
   const publicProperties = useMemo(() => selectPublicProperties(properties), [properties]);
@@ -76,7 +78,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
   const [popupData, setPopupData] = useState({ imageUrl: '', isActive: false });
   const [showPopupModal, setShowPopupModal] = useState(false);
   const [isSnoozeChecked, setIsSnoozeChecked] = useState(false);
-  const hasCheckedPopup = useRef(false);
+  const hasCheckedPopup = useRef('');
 
   const [lightbox, setLightbox] = useState({ isOpen: false, images: [], startIndex: 0 });
   const openLightbox = useCallback((images, startIndex = 0) => setLightbox({ isOpen: true, images, startIndex }), []);
@@ -188,16 +190,20 @@ export default function useSiteData({ basePath = '/' } = {}) {
   /* ---------- ป็อปอัปโปรโมชั่น ---------- */
   useEffect(() => {
     const isHomeView = isRouteReady && activeTab === 'home' && !selectedProperty && !requestedPropSlug;
+    if (!popupData.isActive || !popupData.imageUrl) {
+      hasCheckedPopup.current = '';
+      setShowPopupModal(false);
+      return;
+    }
     if (!isHomeView) {
       setShowPopupModal(false);
       return;
     }
-    if (popupData.imageUrl && !hasCheckedPopup.current) {
-      hasCheckedPopup.current = true;
-      if (popupData.isActive) {
-        const hideUntil = localStorage.getItem('hidePopupUntil');
-        if (!hideUntil || Date.now() > parseInt(hideUntil, 10)) setShowPopupModal(true);
-      }
+    if (hasCheckedPopup.current !== popupData.imageUrl) {
+      hasCheckedPopup.current = popupData.imageUrl;
+      let hideUntil = 0;
+      try { hideUntil = Number(localStorage.getItem('hidePopupUntil')) || 0; } catch {}
+      setShowPopupModal(Date.now() > hideUntil);
     }
   }, [popupData, isRouteReady, activeTab, selectedProperty, requestedPropSlug]);
 
@@ -238,7 +244,6 @@ export default function useSiteData({ basePath = '/' } = {}) {
       setIsSavingVisual(true);
       try {
         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'visual'), visualContent, { merge: true });
-        markPublicDataChanged();
         setIsVisualEditMode(false);
         setPastVisual([]); setFutureVisual([]);
         showGlobalAlert('สำเร็จ', 'บันทึกการแก้ไขเรียบร้อยแล้ว', 'success');
@@ -387,6 +392,9 @@ export default function useSiteData({ basePath = '/' } = {}) {
     const applyPopupSnapshot = (docSnap) => { if (docSnap.exists()) applyPopupData(docSnap.data()); };
 
     const applyPublicData = ({ props, company, visual, popup }) => {
+      if (!company) setCompanyInfo(DEFAULT_COMPANY_INFO);
+      if (!visual) setVisualContent(DEFAULT_VISUAL_CONTENT);
+      if (!popup) setPopupData({ imageUrl: '', isActive: false });
       applyPropertiesData(props || []);
       applyCompanyData(company);
       applyVisualData(visual);
@@ -395,7 +403,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
 
     const loadPublicDataFromSdk = async () => {
       const [propsSnap, companySnap, visualSnap, popupSnap] = await Promise.all([
-        getDocs(qProps), getDoc(companyRef), getDoc(visualRef), getDoc(popupRef),
+        getDocsFromServer(qProps), getDocFromServer(companyRef), getDocFromServer(visualRef), getDocFromServer(popupRef),
       ]);
       return {
         props: snapshotToProperties(propsSnap),
@@ -410,11 +418,11 @@ export default function useSiteData({ basePath = '/' } = {}) {
      * เพื่อไม่ให้เบราว์เซอร์ทุกคนยิงอ่าน Firestore ทั้งคอลเลกชัน (กินโควตาอ่านรายวันจนหมด)
      */
     const loadPublicDataFromApi = async () => {
-      const response = await fetch('/api/public-data');
+      const response = await fetch('/api/public-data', { cache: 'no-store' });
       if (!response.ok) throw new Error(`Public data API failed (${response.status})`);
       const data = await response.json();
-      if (!Array.isArray(data?.properties) || data.properties.length === 0) {
-        throw new Error('Public data API returned no properties');
+      if (!Array.isArray(data?.properties) || data.stale) {
+        throw new Error('Public data API returned invalid or stale data');
       }
       return { props: data.properties, company: data.company, visual: data.visual, popup: data.popup };
     };
@@ -422,9 +430,9 @@ export default function useSiteData({ basePath = '/' } = {}) {
     const loadPublicDataFromRest = async () => {
       const [props, company, visual, popup] = await Promise.all([
         fetchPublicCollectionRest('properties'),
-        fetchPublicDocumentRest('company_info/main'),
-        fetchPublicDocumentRest('site_settings/visual'),
-        fetchPublicDocumentRest('site_settings/popup'),
+        fetchPublicDocumentRest('company_info/main', { cache: 'no-store' }),
+        fetchPublicDocumentRest('site_settings/visual', { cache: 'no-store' }),
+        fetchPublicDocumentRest('site_settings/popup', { cache: 'no-store' }),
       ]);
       return { props, company, visual, popup };
     };
@@ -435,40 +443,32 @@ export default function useSiteData({ basePath = '/' } = {}) {
     ]);
 
     if (!canManageSite) {
-      let isCancelled = false;
-      const loadPublicData = async () => {
+      const load = async () => {
         try {
-          const publicData = await withTimeout(loadPublicDataFromApi(), 6000, 'Public data API load');
-          if (isCancelled) return;
-          applyPublicData(publicData);
-          return;
+          return await withTimeout(loadPublicDataFromApi(), 6000, 'Public data API load');
         } catch (error) {
-          console.warn('Public data API load failed, falling back to Firestore.', error);
-        }
-
-        let sdkData = null;
-        try {
-          sdkData = await withTimeout(loadPublicDataFromSdk(), 6000, 'Public data SDK load');
-          const publicData = sdkData.props.length > 0 ? sdkData : await loadPublicDataFromRest();
-          if (isCancelled) return;
-          applyPublicData(publicData);
-        } catch (error) {
-          console.warn('Public data SDK load failed, trying REST fallback.', error);
+          console.warn('Public API unavailable, checking the source.', error);
           try {
-            const publicData = await loadPublicDataFromRest();
-            if (isCancelled) return;
-            applyPublicData(publicData);
-          } catch (fallbackError) {
-            if (!isCancelled) {
-              console.warn('Public data REST fallback failed.', fallbackError);
-              if (sdkData) applyPublicData(sdkData);
-              else setLoading(false);
-            }
+            return await withTimeout(loadPublicDataFromRest(), 10000, 'Public data REST load');
+          } catch {
+            return await withTimeout(loadPublicDataFromSdk(), 6000, 'Public data server load');
           }
         }
       };
-      loadPublicData();
-      return () => { isCancelled = true; };
+      return subscribePublicData({
+        observe: (options, onValue, onError) => onSnapshot(
+          doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'public_version'),
+          options, onValue, onError),
+        load,
+        onData: data => { setPublicDataError(false); applyPublicData(data); },
+        onError: error => {
+          console.warn('Could not verify current public data.', error);
+          setPublicDataError(true);
+          setProperties([]);
+          setPopupData({ imageUrl: '', isActive: false });
+          setLoading(false);
+        },
+      });
     }
 
     const unsubProps = onSnapshot(qProps, applyPropertiesSnapshot, (error) => {
@@ -608,7 +608,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
   return {
     // ข้อมูล
     user, userRole, userEmail, authReady, properties, publicProperties, companyInfo,
-    authorizedUsers, loading, visualContent, popupData,
+    authorizedUsers, loading, publicDataError, visualContent, popupData,
     // สถานะหน้าจอ
     activeTab, setActiveTab, isRouteReady, searchParams, selectedProperty,
     requestedPropSlug, setSelectedProperty,

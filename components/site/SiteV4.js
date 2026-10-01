@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 
 import useSiteData from './useSiteData';
+import PublicDataNotice from './PublicDataNotice';
 import CinemaHero from './CinemaHero';
 import { CINEMA_STATIONS } from './CinemaNavigation';
 import MobileHome, { scrollToHomeLocations } from './MobileHome';
@@ -88,7 +89,7 @@ export default function SiteV4({ basePath = '/v4' }) {
   const site = useSiteData({ basePath });
   const {
     userRole, userEmail, authReady, properties, publicProperties, companyInfo, authorizedUsers,
-    loading, visualContent, popupData,
+    loading, publicDataError, visualContent, popupData,
     activeTab, setActiveTab, searchParams, selectedProperty, requestedPropSlug, setSelectedProperty,
     showLoginModal, setShowLoginModal, showAdminPanel, setShowAdminPanel,
     showPopupModal, isSnoozeChecked, setIsSnoozeChecked, dismissPopup,
@@ -432,6 +433,7 @@ export default function SiteV4({ basePath = '/v4' }) {
         </header>
 
         {/* ---------- เนื้อหา ---------- */}
+        {publicDataError && <PublicDataNotice />}
         <main className={`v4-main${isCinemaView ? ' is-cinema' : ''}`}>
           {selectedProperty ? (
             <SalePageV4

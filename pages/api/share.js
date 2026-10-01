@@ -46,6 +46,9 @@ const findPropertyBySlug = (propertySlug) => {
 };
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
   const propertySlug = Array.isArray(req.query.property) ? req.query.property[0] : req.query.property;
 
   if (!propertySlug) {
@@ -124,7 +127,6 @@ export default async function handler(req, res) {
 </html>`;
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400');
     res.status(200).send(html);
   } catch (error) {
     console.error("Error generating share page:", error);

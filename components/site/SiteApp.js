@@ -17,7 +17,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, useId } from 
 import { Home, MapPin, Bed, Bath, Car, Maximize, Phone, MessageCircle, Menu, X, Plus, Trash2, ShieldCheck, CheckCircle, Calculator, Users, FileText, Settings, Edit, Save, Image as ImageIcon, Layout, ChevronLeft, ChevronRight, ChevronDown, Upload, Briefcase, XCircle, Tag, Loader, Video, Check, Copy, Calendar, FolderPlus, Map as MapIcon, Search, AlertTriangle, AlertCircle, Star, ClipboardCheck, Type, LayoutTemplate, Compass, SlidersHorizontal } from 'lucide-react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, signOut, signInAnonymously, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, addDoc as sdkAddDoc, getDocsFromServer, doc, updateDoc as sdkUpdateDoc, deleteDoc as sdkDeleteDoc, onSnapshot, query, setDoc as sdkSetDoc, getDoc, getDocFromServer, serverTimestamp, writeBatch } from 'firebase/firestore';
 import Head from 'next/head';
 import Link from 'next/link';
 import { lineContactHref } from '../../lib/lineAttribution';
@@ -27,6 +27,9 @@ import { PROPERTY_OWNERS, DEFAULT_PROPERTY_OWNER, getPropertyOwner, selectPublic
 import { normalizeHouseKey, houseAliasKey } from '../../lib/masterStock';
 import usePropertyLink from './usePropertyLink';
 import { subscribeSiteSession } from '../../lib/siteSession';
+import { createPublicDataWrites } from '../../lib/publicDataWrites';
+import { subscribePublicData } from '../../lib/publicDataSubscription';
+import PublicDataNotice from './PublicDataNotice';
 import { getPendingStockHouses, groupAdminStock } from '../../lib/adminStock';
 
 
@@ -57,18 +60,10 @@ const auth = getAuth(app);
 const HOST_EMAIL = 'startup.up.real.estate@gmail.com';
 const appId = "startup-up-realestate";
 
-/**
- * ปั๊มเวลาไว้ที่ site_settings/public_version ทุกครั้งที่หลังบ้านแก้ข้อมูลที่ขึ้นหน้าเว็บ
- * ให้ /api/public-data รู้ว่าต้องอ่าน Firestore ใหม่ (ดู lib/publicDataCache.js)
- * — ยิงแบบไม่ต้องรอ ล้มเหลวก็ไม่กระทบการบันทึก เพราะแคชรีเฟรชเองตามเวลาอยู่แล้ว
- */
-const markPublicDataChanged = () => {
-  setDoc(
-    doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'public_version'),
-    { updatedAt: serverTimestamp() },
-    { merge: true }
-  ).catch((error) => console.warn('Could not bump public data version.', error));
-};
+const { setDoc, updateDoc, addDoc, deleteDoc } = createPublicDataWrites({
+  db, appId, doc, writeBatch, serverTimestamp,
+  sdk: { setDoc: sdkSetDoc, updateDoc: sdkUpdateDoc, addDoc: sdkAddDoc, deleteDoc: sdkDeleteDoc },
+});
 
 const DEFAULT_COMPANY_INFO = {
   name: 'STARTUP UP',
@@ -2584,11 +2579,11 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
     };
 
     const handleSavePopup = async () => {
+        if (isUploadingPopup || isSaving) return;
         if (!checkAccess('host')) return;
         setIsSaving(true);
         try {
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'popup'), popupForm);
-            markPublicDataChanged();
             showAlert('สำเร็จ', 'บันทึกตั้งค่าป๊อปอัปเรียบร้อย', 'success');
         } catch (e) {
             showAlert('ผิดพลาด', e.message, 'error');
@@ -2647,7 +2642,6 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
                     createdAt: serverTimestamp()
                 });
             }
-            markPublicDataChanged();
 
             showAlert('สำเร็จ', 'บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
             setIsEditing(false); setEditData(null); setFormData(initialForm); setImagesPreview([]);
@@ -2666,7 +2660,6 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
             setIsSaving(true); 
             try {
                 await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'properties', id));
-                markPublicDataChanged();
             } catch (error) {
                 showAlert('ผิดพลาด', error.message, 'error');
             } finally {
@@ -2681,7 +2674,6 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
         setIsSaving(true); 
         const { portfolio_years, ...companyDataOnly } = companyForm; 
         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'company_info', 'main'), companyDataOnly, { merge: true }); 
-        markPublicDataChanged();
         setIsSaving(false); 
         showAlert('สำเร็จ', 'บันทึกข้อมูลบริษัทเรียบร้อย', 'success'); 
     };
@@ -2697,7 +2689,6 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
         setNewPortfolioYear(''); 
         
         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'company_info', 'main'), { portfolio_years: updatedYears }, { merge: true });
-        markPublicDataChanged();
     };
 
     const handleDeleteYear = (year) => { 
@@ -2706,7 +2697,6 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
             const updatedYears = companyForm.portfolio_years.filter(y => y.year !== year);
             setCompanyForm({ ...companyForm, portfolio_years: updatedYears });
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'company_info', 'main'), { portfolio_years: updatedYears }, { merge: true });
-            markPublicDataChanged();
         });
     };
 
@@ -2719,7 +2709,6 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
             updatedYears[yearIndex].images = updatedYears[yearIndex].images.filter((_, i) => i !== imgIndex); 
             setCompanyForm({ ...companyForm, portfolio_years: updatedYears }); 
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'company_info', 'main'), { portfolio_years: updatedYears }, { merge: true });
-            markPublicDataChanged();
         }
     };
     
@@ -2737,7 +2726,6 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
             updatedYears[yearIndex] = { ...updatedYears[yearIndex], images };
             setCompanyForm({ ...companyForm, portfolio_years: updatedYears });
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'company_info', 'main'), { portfolio_years: updatedYears }, { merge: true });
-            markPublicDataChanged();
         }
     };
 
@@ -2765,7 +2753,6 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
             setCompanyForm({ ...companyForm, portfolio_years: updatedYears });
             
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'company_info', 'main'), { portfolio_years: updatedYears }, { merge: true });
-            markPublicDataChanged();
 
         } catch (error) {
             showAlert('อัปโหลดผิดพลาด', error.message, 'error');
@@ -2779,7 +2766,6 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
         if (!checkAccess('host')) return;
         setIsSaving(true); 
         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'company_info', 'main'), { portfolio_years: companyForm.portfolio_years }, { merge: true }); 
-        markPublicDataChanged();
         setIsSaving(false); 
         showAlert('สำเร็จ', 'บันทึกรูปผลงานทั้งหมดเรียบร้อย', 'success'); 
     };
@@ -3350,7 +3336,7 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
                                 )}
 
                                 <div className="pt-6 text-right border-t border-gray-100">
-                                    <button onClick={handleSavePopup} className="btn-primary w-full sm:w-auto">บันทึกการตั้งค่า</button>
+                                    <button onClick={handleSavePopup} disabled={isUploadingPopup || isSaving} className="btn-primary w-full sm:w-auto disabled:opacity-50">{isUploadingPopup ? 'กำลังอัปโหลดรูปภาพ...' : isSaving ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}</button>
                                 </div>
                             </div>
                         </div>
@@ -3404,6 +3390,7 @@ export default function App() {
   const [companyInfo, setCompanyInfo] = useState(DEFAULT_COMPANY_INFO);
   const [authorizedUsers, setAuthorizedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [publicDataError, setPublicDataError] = useState(false);
     
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home'); 
@@ -3418,7 +3405,7 @@ export default function App() {
   const [popupData, setPopupData] = useState({ imageUrl: '', isActive: false });
   const [showPopupModal, setShowPopupModal] = useState(false);
   const [isSnoozeChecked, setIsSnoozeChecked] = useState(false);
-  const hasCheckedPopup = useRef(false);
+  const hasCheckedPopup = useRef('');
 
   const [lightbox, setLightbox] = useState({ isOpen: false, images: [], startIndex: 0 });
   const openLightbox = (images, startIndex = 0) => setLightbox({ isOpen: true, images, startIndex });
@@ -3556,22 +3543,22 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-      const isHomeView = isRouteReady && activeTab === 'home' && !selectedProperty && !requestedPropSlug;
-
-      if (!isHomeView) {
-          setShowPopupModal(false);
-          return;
-      }
-
-      if (popupData.imageUrl && !hasCheckedPopup.current) {
-          hasCheckedPopup.current = true;
-          if (popupData.isActive) {
-              const hideUntil = localStorage.getItem('hidePopupUntil');
-              if (!hideUntil || Date.now() > parseInt(hideUntil, 10)) {
-                  setShowPopupModal(true);
-              }
-          }
-      }
+    const isHomeView = isRouteReady && activeTab === 'home' && !selectedProperty && !requestedPropSlug;
+    if (!popupData.isActive || !popupData.imageUrl) {
+      hasCheckedPopup.current = '';
+      setShowPopupModal(false);
+      return;
+    }
+    if (!isHomeView) {
+      setShowPopupModal(false);
+      return;
+    }
+    if (hasCheckedPopup.current !== popupData.imageUrl) {
+      hasCheckedPopup.current = popupData.imageUrl;
+      let hideUntil = 0;
+      try { hideUntil = Number(localStorage.getItem('hidePopupUntil')) || 0; } catch {}
+      setShowPopupModal(Date.now() > hideUntil);
+    }
   }, [popupData, isRouteReady, activeTab, selectedProperty, requestedPropSlug]);
 
   const updateVisualContent = useCallback((newContent) => {
@@ -3602,7 +3589,6 @@ export default function App() {
           setIsSavingVisual(true);
           try {
               await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'visual'), visualContent, { merge: true });
-              markPublicDataChanged();
               
               setIsVisualEditMode(false);
               setPastVisual([]); setFutureVisual([]);
@@ -3773,6 +3759,9 @@ export default function App() {
     };
 
     const applyPublicData = ({ props, company, visual, popup }) => {
+      if (!company) setCompanyInfo(DEFAULT_COMPANY_INFO);
+      if (!visual) setVisualContent(DEFAULT_VISUAL_CONTENT);
+      if (!popup) setPopupData({ imageUrl: '', isActive: false });
       applyPropertiesData(props || []);
       applyCompanyData(company);
       applyVisualData(visual);
@@ -3781,10 +3770,10 @@ export default function App() {
 
     const loadPublicDataFromSdk = async () => {
       const [propsSnap, companySnap, visualSnap, popupSnap] = await Promise.all([
-        getDocs(qProps),
-        getDoc(companyRef),
-        getDoc(visualRef),
-        getDoc(popupRef)
+        getDocsFromServer(qProps),
+        getDocFromServer(companyRef),
+        getDocFromServer(visualRef),
+        getDocFromServer(popupRef)
       ]);
 
       return {
@@ -3800,12 +3789,12 @@ export default function App() {
      * เพื่อไม่ให้เบราว์เซอร์ทุกคนยิงอ่าน Firestore ทั้งคอลเลกชัน (กินโควตาอ่านรายวันจนหมด)
      */
     const loadPublicDataFromApi = async () => {
-      const response = await fetch('/api/public-data');
+      const response = await fetch('/api/public-data', { cache: 'no-store' });
       if (!response.ok) throw new Error(`Public data API failed (${response.status})`);
 
       const data = await response.json();
-      if (!Array.isArray(data?.properties) || data.properties.length === 0) {
-        throw new Error('Public data API returned no properties');
+      if (!Array.isArray(data?.properties) || data.stale) {
+        throw new Error('Public data API returned invalid or stale data');
       }
 
       return { props: data.properties, company: data.company, visual: data.visual, popup: data.popup };
@@ -3814,9 +3803,9 @@ export default function App() {
     const loadPublicDataFromRest = async () => {
       const [props, company, visual, popup] = await Promise.all([
         fetchPublicCollectionRest('properties'),
-        fetchPublicDocumentRest('company_info/main'),
-        fetchPublicDocumentRest('site_settings/visual'),
-        fetchPublicDocumentRest('site_settings/popup')
+        fetchPublicDocumentRest('company_info/main', { cache: 'no-store' }),
+        fetchPublicDocumentRest('site_settings/visual', { cache: 'no-store' }),
+        fetchPublicDocumentRest('site_settings/popup', { cache: 'no-store' })
       ]);
 
       return { props, company, visual, popup };
@@ -3830,43 +3819,32 @@ export default function App() {
     ]);
 
     if (!canManageSite) {
-      let isCancelled = false;
-      const loadPublicData = async () => {
+      const load = async () => {
         try {
-          const publicData = await withTimeout(loadPublicDataFromApi(), 6000, 'Public data API load');
-          if (isCancelled) return;
-          applyPublicData(publicData);
-          return;
+          return await withTimeout(loadPublicDataFromApi(), 6000, 'Public data API load');
         } catch (error) {
-          console.warn('Public data API load failed, falling back to Firestore.', error);
-        }
-
-        let sdkData = null;
-        try {
-          sdkData = await withTimeout(loadPublicDataFromSdk(), 6000, 'Public data SDK load');
-          const publicData = sdkData.props.length > 0 ? sdkData : await loadPublicDataFromRest();
-          if (isCancelled) return;
-          applyPublicData(publicData);
-        } catch (error) {
-          console.warn('Public data SDK load failed, trying REST fallback.', error);
+          console.warn('Public API unavailable, checking the source.', error);
           try {
-            const publicData = await loadPublicDataFromRest();
-            if (isCancelled) return;
-            applyPublicData(publicData);
-          } catch (fallbackError) {
-            if (!isCancelled) {
-              console.warn('Public data REST fallback failed.', fallbackError);
-              if (sdkData) {
-                applyPublicData(sdkData);
-              } else {
-                setLoading(false);
-              }
-            }
+            return await withTimeout(loadPublicDataFromRest(), 10000, 'Public data REST load');
+          } catch {
+            return await withTimeout(loadPublicDataFromSdk(), 6000, 'Public data server load');
           }
         }
       };
-      loadPublicData();
-      return () => { isCancelled = true; };
+      return subscribePublicData({
+        observe: (options, onValue, onError) => onSnapshot(
+          doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'public_version'),
+          options, onValue, onError),
+        load,
+        onData: data => { setPublicDataError(false); applyPublicData(data); },
+        onError: error => {
+          console.warn('Could not verify current public data.', error);
+          setPublicDataError(true);
+          setProperties([]);
+          setPopupData({ imageUrl: '', isActive: false });
+          setLoading(false);
+        },
+      });
     }
 
     const unsubProps = onSnapshot(qProps, applyPropertiesSnapshot, (error) => {
@@ -4122,6 +4100,7 @@ export default function App() {
 
       <div className={`text-gray-800 bg-white min-h-screen flex flex-col font-sans relative ${isVisualEditMode ? 'pb-24 border-4 border-blue-500' : ''}`}>
         
+        {publicDataError && <PublicDataNotice />}
         {showPopupModal && activeTab === 'home' && !selectedProperty && !requestedPropSlug && (
             <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
                 <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full relative overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
@@ -4339,7 +4318,7 @@ export default function App() {
    ============================================================ */
 export {
   // Firebase / ค่าคงที่ระบบ
-  db, auth, appId, HOST_EMAIL, markPublicDataChanged,
+  db, auth, appId, HOST_EMAIL, setDoc,
   // ข้อมูลตั้งต้น
   DEFAULT_COMPANY_INFO, DEFAULT_LOCATIONS_DATA, DEFAULT_VISUAL_CONTENT,
   CATEGORIES, BADGES, DIRECTIONS, COMMON_FACILITIES,
