@@ -102,7 +102,7 @@ function writerHarness() {
 
 test('every public save/delete commits content and revision in one batch; users remain separate', async () => {
   const h = writerHarness();
-  for (const path of ['site_settings/popup','site_settings/visual','company_info/main','properties/house']) {
+  for (const path of ['site_settings/popup','site_settings/sale_promotion','site_settings/visual','company_info/main','properties/house']) {
     await h.api.setDoc(h.ref(path), { value: 'new' }, { merge: true });
   }
   await h.api.updateDoc(h.ref('properties/house'), { price: 1700000 });
@@ -116,7 +116,7 @@ test('every public save/delete commits content and revision in one batch; users 
   }
   await h.api.setDoc(h.ref('users/person'), { role: 'pending' });
   assert.equal(h.privateCalls.length, 1);
-  assert.equal(h.batches.length, 7);
+  assert.equal(h.batches.length, 8);
   h.fail();
   await assert.rejects(h.api.updateDoc(h.ref('properties/house'), { price: 1 }), /denied/);
 });

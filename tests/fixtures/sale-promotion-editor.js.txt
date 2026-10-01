@@ -1,0 +1,10 @@
+import { SalePromotionEditor } from '../components/site/SalePromotionAdmin';
+export default function PromotionTest() {
+  return <main style={{ padding: 20 }}><SalePromotionEditor initial={null}
+    properties={[{ id: 'one', project_name: 'Test House', custom_id: '5-557' }, { id: 'two', project_name: 'Second House', custom_id: '5-833' }]}
+    popupImage="https://res.cloudinary.com/test/image/upload/popup.jpg"
+    validateImage={file => { if (!file.type.startsWith('image/')) throw new Error('Invalid image'); }}
+    onUpload={async file => `https://res.cloudinary.com/test/image/upload/${file.name}`}
+    onSave={async data => { if (window.failPromotionSave) throw new Error('Test save failed'); window.savedPromotion = data; }}
+  /></main>;
+}

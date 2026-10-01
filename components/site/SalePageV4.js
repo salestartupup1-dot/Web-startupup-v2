@@ -17,14 +17,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { lineContactHref } from '../../lib/lineAttribution';
 import {
-  ChevronLeft, ChevronRight, MapPin, Phone, Calendar,
+  ChevronLeft, ChevronRight, MapPin, Phone, Calendar, Gift,
 } from 'lucide-react';
 
 import {
-  SmartImage, SoldOutRibbon, CalculatorSection,
+  SmartImage, SoldOutRibbon, CalculatorSection, db, appId,
   getOptimizedImg, preloadImage, preloadImagesAround,
   getYoutubeId, getPropertySharePath,
 } from './SiteApp';
+import SalePromotionCard from './SalePromotionCard';
+import useSalePromotion from './useSalePromotion';
+import { promotionAppliesTo } from '../../lib/salePromotion';
 
 /** ทิศไทย -> องศาเข็มทิศ และคำอธิบายแดดที่คนซื้อบ้านถามจริง */
 const DIR_DEG = {
@@ -111,6 +114,14 @@ export default function SalePageV4({
   property, companyInfo, onBack, properties, onSelectProp,
   visualContent, updateVisualContent, isEditMode, openLightbox,
 }) {
+  const { promotion, now } = useSalePromotion(db, appId);
+  const showPromotion = promotionAppliesTo(promotion, property, now);
+  const jumpToPromotion = () => {
+    const target = [...document.querySelectorAll('.sp4-promotion')].find(node => node.getClientRects().length);
+    if (!target) return;
+    target.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    target.focus({ preventScroll: true });
+  };
   const [at, setAt] = useState(0);
   const [wipe, setWipe] = useState(null);       // { src, dir } ระหว่างเล่นจังหวะกวาด
   const [videoOn, setVideoOn] = useState(false);
@@ -423,6 +434,9 @@ export default function SalePageV4({
           <div className="sp4-price-block reveal-on-scroll">
             <p className="sp4-price-key">ราคาขาย</p>
             <p className="sp4-price">฿ {baht(property.price)}</p>
+            {showPromotion && <button type="button" className="sp4-promotion-link" onClick={jumpToPromotion}>
+              <Gift size={17} aria-hidden="true" /> {promotion.title} · ดูสิทธิพิเศษ
+            </button>}
           </div>
 
           <div className="sp4-plate reveal-on-scroll">
@@ -456,6 +470,10 @@ export default function SalePageV4({
               </div>
             )}
           </div>
+
+          {showPromotion && <div className="sp4-promotion-mobile">
+            <SalePromotionCard key={promotion.images.join('|')} promotion={promotion} onExpand={openLightbox} />
+          </div>}
 
           {blocks.length > 0 && (
             <section className="sp4-block reveal-on-scroll">
@@ -610,6 +628,11 @@ export default function SalePageV4({
               </div>
             </div>
 
+          </div>
+          {showPromotion && <div className="sp4-promotion-desktop">
+            <SalePromotionCard key={promotion.images.join('|')} promotion={promotion} onExpand={openLightbox} />
+          </div>}
+          <div className="sp4-card sp4-calculator-card">
             <div className="sp4-calc">
               <h3>คำนวณสินเชื่อ</h3>
               <CalculatorSection
@@ -919,7 +942,7 @@ const css = `
 .sp4-mapbtn:hover { background: rgba(11,61,27,.07); transform: translateY(-2px); }
 .sp4-mapbtn.is-off, .sp4-act.is-off { pointer-events: none; opacity: .5; }
 
-.sp4-rail { position: sticky; top: var(--s3); }
+.sp4-rail { position: sticky; top: var(--s3); display: grid; gap: 16px; }
 @container (max-width: 960px) { .sp4-rail { position: static; } }
 .sp4-card {
   border-radius: var(--r2); padding: var(--s3);
@@ -994,6 +1017,24 @@ const css = `
 .sp4-book-send:disabled { opacity: .4; cursor: not-allowed; }
 
 .sp4-calc { margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--line); }
+.sp4-calculator-card .sp4-calc { margin: 0; padding: 0; border: 0; }
+.sp4-promotion-link { display: inline-flex; align-items: center; gap: 8px; text-align: left; margin-top: 14px; padding: 8px 0; min-height: 44px; color: var(--forest); background: none; border: 0; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; font: inherit; font-size: 15px; }
+.sp4-promotion { background: var(--card); padding: 20px; border: 1px solid var(--line); border-radius: var(--r2); box-shadow: var(--shadow); scroll-margin-top: 100px; }
+.sp4-promotion h2 { margin: 0 0 16px; display: flex; align-items: center; gap: 8px; color: var(--forest); font-size: 18px; font-weight: 500; }
+.sp4-promotion-image { display: block; border: 0; background: none; padding: 0; width: 100%; cursor: zoom-in; color: var(--forest); }
+.sp4-promotion-image > img { display: block; width: 100%; height: auto; border-radius: 10px; }
+.sp4-promotion-image > span { display: flex; justify-content: center; align-items: center; gap: 6px; padding-top: 12px; min-height: 44px; font-size: 14px; }
+.sp4-promotion-count, .sp4-promotion-until { margin: 10px 0 0; color: var(--ink-soft); font-size: 14px; }
+.sp4-promotion-thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 6px 2px; }
+.sp4-promotion-thumbs button { flex: 0 0 48px; border: 2px solid transparent; border-radius: 8px; background: transparent; padding: 2px; cursor: pointer; }
+.sp4-promotion-thumbs button[aria-pressed="true"] { border-color: var(--forest); }
+.sp4-promotion-thumbs img { width: 44px; height: 54px; object-fit: contain; }
+.sp4-promotion :focus-visible, .sp4-promotion-link:focus-visible { outline: 3px solid var(--forest); outline-offset: 4px; }
+.sp4-promotion-mobile { display: none; }
+@container (max-width: 960px) {
+  .sp4-promotion-mobile { display: block; margin-top: 28px; }
+  .sp4-promotion-desktop { display: none; }
+}
 .sp4-calc > h3 { margin: 0 0 var(--s2); font-size: 16px; font-weight: 500; color: var(--ink-faint); }
 /* CalculatorSection ออกแบบมาสำหรับพื้นขาวอยู่แล้ว แทบไม่ต้อง override
    ยกเว้นช่อง "ระยะเวลา (ปี)" ที่เป็น bg-gray-50 แล้วออกมาขุ่นบนการ์ดขาว */

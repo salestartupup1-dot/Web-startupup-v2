@@ -27,6 +27,7 @@ import { PROPERTY_OWNERS, DEFAULT_PROPERTY_OWNER, getPropertyOwner, selectPublic
 import { normalizeHouseKey, houseAliasKey } from '../../lib/masterStock';
 import usePropertyLink from './usePropertyLink';
 import usePublicPopup from './usePublicPopup';
+import SalePromotionAdmin from './SalePromotionAdmin';
 import { subscribeSiteSession } from '../../lib/siteSession';
 import { createPublicDataWrites } from '../../lib/publicDataWrites';
 import { subscribePublicData } from '../../lib/publicDataSubscription';
@@ -2830,6 +2831,7 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
                     {userRole === 'host' && <button onClick={() => setPanelTab('company')} className={`px-6 py-3 text-left text-sm flex items-center gap-3 transition ${panelTab === 'company' ? 'text-brand-green bg-brand-light font-medium border-r-2 border-brand-green' : 'text-gray-500 hover:bg-gray-50'}`}><Briefcase size={18}/> ข้อมูลบริษัท</button>}
                     {userRole === 'host' && <button onClick={() => setPanelTab('portfolio_images')} className={`px-6 py-3 text-left text-sm flex items-center gap-3 transition ${panelTab === 'portfolio_images' ? 'text-brand-green bg-brand-light font-medium border-r-2 border-brand-green' : 'text-gray-500 hover:bg-gray-50'}`}><ImageIcon size={18}/> จัดการรูปผลงาน</button>}
                     {userRole === 'host' && <button onClick={() => setPanelTab('popup')} className={`px-6 py-3 text-left text-sm flex items-center gap-3 transition ${panelTab === 'popup' ? 'text-brand-green bg-brand-light font-medium border-r-2 border-brand-green' : 'text-gray-500 hover:bg-gray-50'}`}><LayoutTemplate size={18}/> จัดการป๊อปอัป</button>}
+                    {userRole === 'host' && <button onClick={() => setPanelTab('sale_promotion')} className={`px-6 py-3 text-left text-sm flex items-center gap-3 transition ${panelTab === 'sale_promotion' ? 'text-brand-green bg-brand-light font-medium border-r-2 border-brand-green' : 'text-gray-500 hover:bg-gray-50'}`}><LayoutTemplate size={18}/> โปรโมชั่นหน้าบ้าน</button>}
                     {userRole === 'host' && <button onClick={() => setPanelTab('users')} className={`px-6 py-3 text-left text-sm flex items-center gap-3 transition ${panelTab === 'users' ? 'text-brand-green bg-brand-light font-medium border-r-2 border-brand-green' : 'text-gray-500 hover:bg-gray-50'}`}><Users size={18}/> ผู้ดูแลระบบ</button>}
                 </div>
 
@@ -2841,6 +2843,7 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
                         {userRole === 'host' && <button onClick={() => setPanelTab('company')} className={`whitespace-nowrap px-4 py-2 text-sm flex items-center gap-2 rounded-full transition ${panelTab === 'company' ? 'bg-brand-green text-white' : 'bg-white text-gray-600 border'}`}><Briefcase size={14}/> ข้อมูลบริษัท</button>}
                         {userRole === 'host' && <button onClick={() => setPanelTab('portfolio_images')} className={`whitespace-nowrap px-4 py-2 text-sm flex items-center gap-2 rounded-full transition ${panelTab === 'portfolio_images' ? 'bg-brand-green text-white' : 'bg-white text-gray-600 border'}`}><ImageIcon size={14}/> รูปผลงาน</button>}
                         {userRole === 'host' && <button onClick={() => setPanelTab('popup')} className={`whitespace-nowrap px-4 py-2 text-sm flex items-center gap-2 rounded-full transition ${panelTab === 'popup' ? 'bg-brand-green text-white' : 'bg-white text-gray-600 border'}`}><LayoutTemplate size={14}/> จัดการป๊อปอัป</button>}
+                        {userRole === 'host' && <button onClick={() => setPanelTab('sale_promotion')} className={`whitespace-nowrap px-4 py-2 text-sm flex items-center gap-2 rounded-full transition ${panelTab === 'sale_promotion' ? 'bg-brand-green text-white' : 'bg-white text-gray-600 border'}`}><LayoutTemplate size={14}/> โปรโมชั่นหน้าบ้าน</button>}
                         {userRole === 'host' && <button onClick={() => setPanelTab('users')} className={`whitespace-nowrap px-4 py-2 text-sm flex items-center gap-2 rounded-full transition ${panelTab === 'users' ? 'bg-brand-green text-white' : 'bg-white text-gray-600 border'}`}><Users size={14}/> ผู้ดูแลระบบ</button>}
                     </div>
 
@@ -3292,6 +3295,15 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
                                 ))}
                             </div>
                         </div>
+                    )}
+
+                    {panelTab === 'sale_promotion' && userRole === 'host' && (
+                        <SalePromotionAdmin db={db} appId={appId} properties={properties} popupImage={popupData?.imageUrl}
+                            onUpload={uploadFileToCloudinary} validateImage={validateImage}
+                            onSave={async data => {
+                                if (!checkAccess('host')) throw new Error('Access denied');
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'sale_promotion'), data);
+                            }} />
                     )}
 
                     {panelTab === 'popup' && (
