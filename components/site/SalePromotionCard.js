@@ -41,11 +41,11 @@ export default function SalePromotionCard({ promotion, onExpand }) {
       <button type="button" className="sp4-promotion-image" onClick={() => onExpand(promotion.images, at)} aria-label="ดูรูปโปรโมชั่นขนาดใหญ่">
         <SmartImage src={getOptimizedImg(promotion.images[at], 900)} alt={`${promotion.title} รูปที่ ${at + 1}`} loading="lazy" />
       </button>
-      {count > 1 && <>
-        <span className="sp4-promotion-count" aria-live={reducedMotion ? 'polite' : 'off'} aria-atomic="true">{at + 1}/{count}</span>
+      {count > 1 && <div className="sp4-promotion-navigation">
         <button type="button" className="sp4-promotion-control sp4-promotion-prev" onClick={() => move(-1)} aria-label="รูปโปรโมชั่นก่อนหน้า"><ChevronLeft size={24} aria-hidden="true" /></button>
+        <span className="sp4-promotion-count" aria-live={reducedMotion ? 'polite' : 'off'} aria-atomic="true">{at + 1}/{count}</span>
         <button type="button" className="sp4-promotion-control sp4-promotion-next" onClick={() => move(1)} aria-label="รูปโปรโมชั่นถัดไป"><ChevronRight size={24} aria-hidden="true" /></button>
-      </>}
+      </div>}
     </div>
     {promotion.endDate && <p className="sp4-promotion-until">ถึง {new Intl.DateTimeFormat('th-TH', { dateStyle: 'long', timeZone: 'Asia/Bangkok' }).format(new Date(`${promotion.endDate}T12:00:00+07:00`))}</p>}
   </section>;
