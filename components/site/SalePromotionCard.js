@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Gift, ZoomIn } from 'lucide-react';
+import { Gift } from 'lucide-react';
 import { getOptimizedImg, SmartImage } from './SiteApp';
 
 export default function SalePromotionCard({ promotion, onExpand }) {
@@ -8,7 +8,6 @@ export default function SalePromotionCard({ promotion, onExpand }) {
     <h2><Gift size={18} aria-hidden="true" />{promotion.title}</h2>
     <button type="button" className="sp4-promotion-image" onClick={() => onExpand(promotion.images, at)} aria-label="ดูรูปโปรโมชั่นขนาดใหญ่">
       <SmartImage src={getOptimizedImg(promotion.images[at], 900)} alt={`${promotion.title} รูปที่ ${at + 1}`} loading="lazy" />
-      <span><ZoomIn size={16} aria-hidden="true" />กดดูรูปขนาดใหญ่</span>
     </button>
     {promotion.images.length > 1 && <>
       <p className="sp4-promotion-count">รูปที่ {at + 1} จาก {promotion.images.length}</p>

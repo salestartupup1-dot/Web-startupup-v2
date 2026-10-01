@@ -1023,7 +1023,6 @@ const css = `
 .sp4-promotion h2 { margin: 0 0 16px; display: flex; align-items: center; gap: 8px; color: var(--forest); font-size: 18px; font-weight: 500; }
 .sp4-promotion-image { display: block; border: 0; background: none; padding: 0; width: 100%; cursor: zoom-in; color: var(--forest); }
 .sp4-promotion-image > img { display: block; width: 100%; height: auto; border-radius: 10px; }
-.sp4-promotion-image > span { display: flex; justify-content: center; align-items: center; gap: 6px; padding-top: 12px; min-height: 44px; font-size: 14px; }
 .sp4-promotion-count, .sp4-promotion-until { margin: 10px 0 0; color: var(--ink-soft); font-size: 14px; }
 .sp4-promotion-thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 6px 2px; }
 .sp4-promotion-thumbs button { flex: 0 0 48px; border: 2px solid transparent; border-radius: 8px; background: transparent; padding: 2px; cursor: pointer; }
