@@ -1029,7 +1029,6 @@ const css = `
 .sp4-promotion-control:hover { background: var(--forest); }
 .sp4-promotion-prev { left: 8px; top: 50%; transform: translateY(-50%); }
 .sp4-promotion-next { right: 8px; top: 50%; transform: translateY(-50%); }
-.sp4-promotion-play { top: 8px; left: 8px; }
 .sp4-promotion-until { margin: 10px 0 0; color: var(--ink-soft); font-size: 14px; }
 .sp4-promotion :focus-visible, .sp4-promotion-link:focus-visible { outline: 3px solid var(--forest); outline-offset: 4px; }
 .sp4-promotion-mobile { display: none; }

@@ -126,13 +126,15 @@ with sync_playwright() as p:
         expect(page.get_by_role('img', name='Image 2', exact=True)).to_be_visible()
         page.locator('button').filter(has=page.locator('svg.lucide-x')).last.click()
         expect(page.get_by_role('img', name='Image 2', exact=True)).to_have_count(0)
-        # Reduced-motion users begin paused; explicitly playing advances every 3 seconds.
+        # Autoplay resumes with the OS motion setting, including after closing a large image.
+        expect(card.locator('.sp4-promotion-control')).to_have_count(2)
+        expect(card.locator('.sp4-promotion-play')).to_have_count(0)
         started = page.evaluate('Date.now()')
-        card.get_by_role('button', name='เล่นรูปโปรโมชั่นอัตโนมัติ', exact=True).click()
+        page.emulate_media(reduced_motion='no-preference')
         expect(card.locator('.sp4-promotion-count')).to_have_text('3/5', timeout=4500)
         elapsed = page.evaluate('Date.now()') - started
         assert 2800 <= elapsed < 4500, elapsed
-        card.get_by_role('button', name='หยุดรูปโปรโมชั่นอัตโนมัติ', exact=True).click()
+        page.emulate_media(reduced_motion='reduce')
         page.wait_for_timeout(3200)
         expect(card.locator('.sp4-promotion-count')).to_have_text('3/5')
         # Refreshing the independent document updates the existing page and resets its selected image.
@@ -152,7 +154,7 @@ with sync_playwright() as p:
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
         assert not errors, errors
         context.close()
-        print(f'PASS sale mobile={mobile}: arrows wrap, 1/5 overlay, autoplay {elapsed}ms, pause, no thumbnails, lightbox, live refresh, single image, expiry', flush=True)
+        print(f'PASS sale mobile={mobile}: arrows wrap, 1/5 overlay, autoplay {elapsed}ms, no play/pause buttons, reduced motion, lightbox, live refresh, single image, expiry', flush=True)
         if os.environ.get('TEST_PROMOTION_EDITOR'): run_editor(browser, mobile)
     # Default visitors get autoplay without pressing Play first.
     context, page, state, errors = setup(browser, True)
@@ -162,7 +164,8 @@ with sync_playwright() as p:
     page.locator('.sp4-promotion-link').click()
     card = page.locator('.sp4-promotion:visible')
     expect(card.locator('.sp4-promotion-count')).to_have_text('1/5')
-    expect(card.get_by_role('button', name='หยุดรูปโปรโมชั่นอัตโนมัติ', exact=True)).to_be_visible()
+    expect(card.locator('.sp4-promotion-control')).to_have_count(2)
+    expect(card.locator('.sp4-promotion-play')).to_have_count(0)
     expect(card.locator('.sp4-promotion-count')).to_have_text('2/5', timeout=4500)
     assert not errors, errors
     context.close()

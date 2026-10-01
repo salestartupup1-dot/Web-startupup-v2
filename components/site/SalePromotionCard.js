@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Gift, Pause, Play } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Gift } from 'lucide-react';
 import { getOptimizedImg, preloadImage, SmartImage } from './SiteApp';
 
 export default function SalePromotionCard({ promotion, onExpand }) {
   const [at, setAt] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
   const [visible, setVisible] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
   const gallery = useRef(null);
@@ -16,7 +16,7 @@ export default function SalePromotionCard({ promotion, onExpand }) {
     observer.observe(gallery.current);
     const onVisibility = () => setPageVisible(document.visibilityState !== 'hidden');
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const onMotion = () => { if (motion.matches) setPaused(true); };
+    const onMotion = () => setReducedMotion(motion.matches);
     onVisibility(); onMotion();
     document.addEventListener('visibilitychange', onVisibility);
     motion.addEventListener('change', onMotion);
@@ -30,22 +30,19 @@ export default function SalePromotionCard({ promotion, onExpand }) {
   useEffect(() => {
     if (count < 2 || !visible || !pageVisible) return;
     preloadImage(promotion.images[(at + 1) % count], 900);
-    if (paused) return;
+    if (reducedMotion) return;
     const timer = setTimeout(() => setAt(index => (index + 1) % count), 3000);
     return () => clearTimeout(timer);
-  }, [at, count, paused, visible, pageVisible, promotion.images]);
+  }, [at, count, reducedMotion, visible, pageVisible, promotion.images]);
 
   return <section className="sp4-promotion" tabIndex={-1} aria-label="โปรโมชั่นสำหรับบ้านหลังนี้">
     <h2><Gift size={18} aria-hidden="true" />{promotion.title}</h2>
     <div className="sp4-promotion-gallery" ref={gallery} role="group" aria-roledescription="สไลด์รูปภาพ" aria-label="รูปโปรโมชั่น">
-      <button type="button" className="sp4-promotion-image" onClick={() => { setPaused(true); onExpand(promotion.images, at); }} aria-label="ดูรูปโปรโมชั่นขนาดใหญ่">
+      <button type="button" className="sp4-promotion-image" onClick={() => onExpand(promotion.images, at)} aria-label="ดูรูปโปรโมชั่นขนาดใหญ่">
         <SmartImage src={getOptimizedImg(promotion.images[at], 900)} alt={`${promotion.title} รูปที่ ${at + 1}`} loading="lazy" />
       </button>
       {count > 1 && <>
-        <span className="sp4-promotion-count" aria-live={paused ? 'polite' : 'off'} aria-atomic="true">{at + 1}/{count}</span>
-        <button type="button" className="sp4-promotion-control sp4-promotion-play" onClick={() => setPaused(value => !value)} aria-label={paused ? 'เล่นรูปโปรโมชั่นอัตโนมัติ' : 'หยุดรูปโปรโมชั่นอัตโนมัติ'}>
-          {paused ? <Play size={16} aria-hidden="true" /> : <Pause size={16} aria-hidden="true" />}
-        </button>
+        <span className="sp4-promotion-count" aria-live={reducedMotion ? 'polite' : 'off'} aria-atomic="true">{at + 1}/{count}</span>
         <button type="button" className="sp4-promotion-control sp4-promotion-prev" onClick={() => move(-1)} aria-label="รูปโปรโมชั่นก่อนหน้า"><ChevronLeft size={24} aria-hidden="true" /></button>
         <button type="button" className="sp4-promotion-control sp4-promotion-next" onClick={() => move(1)} aria-label="รูปโปรโมชั่นถัดไป"><ChevronRight size={24} aria-hidden="true" /></button>
       </>}
