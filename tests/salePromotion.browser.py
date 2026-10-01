@@ -15,7 +15,8 @@ IMAGE = 'https://res.cloudinary.com/test/image/upload/promo.jpg'
 HOUSE = {'id': 'one', 'custom_id': '5-557', 'project_name': 'บ้านทดสอบโปรโมชั่น', 'price': 2500000,
          'bedrooms': 3, 'bathrooms': 2, 'area_wah': 50, 'category': 'บ้านเดี่ยว', 'status': 'available',
          'images': ['/featured/singlehouse.jpg'], 'highlights': 'รายละเอียดบ้านสำหรับทดสอบ', 'property_owner': 'Startup Up'}
-PROMOTION = {'title': 'โปรโมชั่นพิเศษเดือนตุลาคม', 'images': [IMAGE, 'https://res.cloudinary.com/test/image/upload/second.jpg'],
+PROMOTION = {'title': 'โปรโมชั่นพิเศษเดือนตุลาคม', 'images': [IMAGE, 'https://res.cloudinary.com/test/image/upload/second.jpg',
+             'https://res.cloudinary.com/test/image/upload/third.jpg', 'https://res.cloudinary.com/test/image/upload/fourth.jpg', 'https://res.cloudinary.com/test/image/upload/fifth.jpg'],
              'isActive': True, 'scope': 'selected', 'propertyIds': ['one'], 'endDate': '2099-10-31'}
 
 def field(value):
@@ -112,17 +113,35 @@ with sync_playwright() as p:
         if not mobile:
             page.wait_for_function("() => getComputedStyle(document.querySelector('.sp4-rail')).opacity === '1'")
         page.screenshot(path=f'coverage/promotion-sale-{mobile}.png')
-        card.get_by_role('button', name='ดูรูปโปรโมชั่นที่ 2', exact=True).click()
+        expect(card.locator('.sp4-promotion-thumbs')).to_have_count(0)
+        expect(card.locator('.sp4-promotion-image > span')).to_have_count(0)
+        expect(card.locator('.sp4-promotion-count')).to_have_text('1/5')
+        card.get_by_role('button', name='รูปโปรโมชั่นก่อนหน้า', exact=True).click()
+        expect(card.locator('.sp4-promotion-count')).to_have_text('5/5')
+        card.get_by_role('button', name='รูปโปรโมชั่นถัดไป', exact=True).click()
+        expect(card.locator('.sp4-promotion-count')).to_have_text('1/5')
+        card.get_by_role('button', name='รูปโปรโมชั่นถัดไป', exact=True).click()
         assert (card.locator('.sp4-promotion-image img').get_attribute('src')).endswith('/second.jpg')
         card.get_by_role('button', name='ดูรูปโปรโมชั่นขนาดใหญ่').click()
         expect(page.get_by_role('img', name='Image 2', exact=True)).to_be_visible()
         page.locator('button').filter(has=page.locator('svg.lucide-x')).last.click()
         expect(page.get_by_role('img', name='Image 2', exact=True)).to_have_count(0)
+        # Reduced-motion users begin paused; explicitly playing advances every 3 seconds.
+        started = page.evaluate('Date.now()')
+        card.get_by_role('button', name='เล่นรูปโปรโมชั่นอัตโนมัติ', exact=True).click()
+        expect(card.locator('.sp4-promotion-count')).to_have_text('3/5', timeout=4500)
+        elapsed = page.evaluate('Date.now()') - started
+        assert 2800 <= elapsed < 4500, elapsed
+        card.get_by_role('button', name='หยุดรูปโปรโมชั่นอัตโนมัติ', exact=True).click()
+        page.wait_for_timeout(3200)
+        expect(card.locator('.sp4-promotion-count')).to_have_text('3/5')
         # Refreshing the independent document updates the existing page and resets its selected image.
         state['promotion'] = {**PROMOTION, 'title': 'โปรโมชั่นอัปเดตแล้ว', 'images': ['https://res.cloudinary.com/test/image/upload/updated.jpg']}
         page.evaluate("window.dispatchEvent(new Event('focus'))")
         expect(card.locator('h2')).to_have_text('โปรโมชั่นอัปเดตแล้ว')
         page.wait_for_function("() => [...document.querySelectorAll('.sp4-promotion-image img')].some(img => img.src.endsWith('/updated.jpg'))")
+        expect(card.locator('.sp4-promotion-control')).to_have_count(0)
+        expect(card.locator('.sp4-promotion-count')).to_have_count(0)
         for patch in [{'isActive': False}, {'propertyIds': ['two']}, {'endDate': '2020-01-01'}]:
             state['promotion'] = {**PROMOTION, **patch}
             page.evaluate("window.dispatchEvent(new Event('focus'))")
@@ -133,6 +152,19 @@ with sync_playwright() as p:
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
         assert not errors, errors
         context.close()
-        print(f'PASS sale mobile={mobile}: placement, jump, gallery, lightbox, live refresh, exclusions, expiry', flush=True)
+        print(f'PASS sale mobile={mobile}: arrows wrap, 1/5 overlay, autoplay {elapsed}ms, pause, no thumbnails, lightbox, live refresh, single image, expiry', flush=True)
         if os.environ.get('TEST_PROMOTION_EDITOR'): run_editor(browser, mobile)
+    # Default visitors get autoplay without pressing Play first.
+    context, page, state, errors = setup(browser, True)
+    page.emulate_media(reduced_motion='no-preference')
+    page.goto(BASE + '/?property=one')
+    page.wait_for_load_state('networkidle')
+    page.locator('.sp4-promotion-link').click()
+    card = page.locator('.sp4-promotion:visible')
+    expect(card.locator('.sp4-promotion-count')).to_have_text('1/5')
+    expect(card.get_by_role('button', name='หยุดรูปโปรโมชั่นอัตโนมัติ', exact=True)).to_be_visible()
+    expect(card.locator('.sp4-promotion-count')).to_have_text('2/5', timeout=4500)
+    assert not errors, errors
+    context.close()
+    print('PASS autoplay starts automatically with the default motion preference', flush=True)
     browser.close()

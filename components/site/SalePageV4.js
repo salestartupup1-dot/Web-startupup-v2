@@ -1021,13 +1021,16 @@ const css = `
 .sp4-promotion-link { display: inline-flex; align-items: center; gap: 8px; text-align: left; margin-top: 14px; padding: 8px 0; min-height: 44px; color: var(--forest); background: none; border: 0; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; font: inherit; font-size: 15px; }
 .sp4-promotion { background: var(--card); padding: 20px; border: 1px solid var(--line); border-radius: var(--r2); box-shadow: var(--shadow); scroll-margin-top: 100px; }
 .sp4-promotion h2 { margin: 0 0 16px; display: flex; align-items: center; gap: 8px; color: var(--forest); font-size: 18px; font-weight: 500; }
-.sp4-promotion-image { display: block; border: 0; background: none; padding: 0; width: 100%; cursor: zoom-in; color: var(--forest); }
-.sp4-promotion-image > img { display: block; width: 100%; height: auto; border-radius: 10px; }
-.sp4-promotion-count, .sp4-promotion-until { margin: 10px 0 0; color: var(--ink-soft); font-size: 14px; }
-.sp4-promotion-thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 6px 2px; }
-.sp4-promotion-thumbs button { flex: 0 0 48px; border: 2px solid transparent; border-radius: 8px; background: transparent; padding: 2px; cursor: pointer; }
-.sp4-promotion-thumbs button[aria-pressed="true"] { border-color: var(--forest); }
-.sp4-promotion-thumbs img { width: 44px; height: 54px; object-fit: contain; }
+.sp4-promotion-gallery { position: relative; border-radius: 10px; background: #f8faf8; }
+.sp4-promotion-image { display: block; border: 0; background: none; padding: 0; width: 100%; aspect-ratio: 1; cursor: zoom-in; color: var(--forest); }
+.sp4-promotion-image > img { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: 10px; }
+.sp4-promotion-count { position: absolute; top: 10px; right: 10px; border-radius: 999px; padding: 5px 10px; background: rgba(11,35,19,.82); color: #fff; font-size: 14px; font-variant-numeric: tabular-nums; pointer-events: none; }
+.sp4-promotion-control { position: absolute; display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid rgba(255,255,255,.5); border-radius: 50%; padding: 0; background: rgba(11,35,19,.82); color: #fff; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.sp4-promotion-control:hover { background: var(--forest); }
+.sp4-promotion-prev { left: 8px; top: 50%; transform: translateY(-50%); }
+.sp4-promotion-next { right: 8px; top: 50%; transform: translateY(-50%); }
+.sp4-promotion-play { top: 8px; left: 8px; }
+.sp4-promotion-until { margin: 10px 0 0; color: var(--ink-soft); font-size: 14px; }
 .sp4-promotion :focus-visible, .sp4-promotion-link:focus-visible { outline: 3px solid var(--forest); outline-offset: 4px; }
 .sp4-promotion-mobile { display: none; }
 @container (max-width: 960px) {
