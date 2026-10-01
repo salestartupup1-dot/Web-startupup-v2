@@ -19,7 +19,6 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, signOut, signInAnonymously, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { getFirestore, collection, addDoc as sdkAddDoc, getDocsFromServer, doc, updateDoc as sdkUpdateDoc, deleteDoc as sdkDeleteDoc, onSnapshot, query, setDoc as sdkSetDoc, getDoc, getDocFromServer, serverTimestamp, writeBatch } from 'firebase/firestore';
 import Head from 'next/head';
-import Link from 'next/link';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { fetchPublicCollectionRest, fetchPublicDocumentRest, makePropertySlug } from '../../lib/firestorePublic';
 import { buildPageSeo, buildStructuredData, safeJsonLd } from '../../lib/seo';
@@ -2825,7 +2824,6 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
 
             <div className="flex flex-1 overflow-hidden">
                 <div className="w-64 bg-white border-r py-6 flex flex-col gap-2 hidden md:flex">
-                    <Link href="/admin/line-leads" prefetch={false} onClick={e => { e.preventDefault(); window.location.assign('/admin/line-leads'); }} className="px-6 py-3 text-left text-sm flex items-center gap-3 text-brand-green hover:bg-brand-light"><Tag size={18}/> ที่มาลูกค้า LINE</Link>
                     {userRole === 'host' && <button onClick={enterVisualEditMode} className={`px-6 py-3 text-left text-sm flex items-center gap-3 transition text-blue-600 hover:bg-blue-50 bg-blue-50/50`}><Layout size={18}/> ปรับแก้หน้าตาเว็บไซต์</button>}
                     <button onClick={() => { setPanelTab('properties'); setIsEditing(false); }} className={`px-6 py-3 text-left text-sm flex items-center gap-3 transition ${panelTab === 'properties' ? 'text-brand-green bg-brand-light font-medium border-r-2 border-brand-green' : 'text-gray-500 hover:bg-gray-50'}`}><Home size={18}/> จัดการบ้าน <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full text-gray-600 ml-1">{properties.length}</span></button>
                     {userRole === 'host' && <button onClick={() => setPanelTab('company')} className={`px-6 py-3 text-left text-sm flex items-center gap-3 transition ${panelTab === 'company' ? 'text-brand-green bg-brand-light font-medium border-r-2 border-brand-green' : 'text-gray-500 hover:bg-gray-50'}`}><Briefcase size={18}/> ข้อมูลบริษัท</button>}
@@ -2837,7 +2835,6 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
 
                 <div className="flex-1 p-4 md:p-8 overflow-y-auto">
                     <div className="md:hidden flex gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide">
-                        <Link href="/admin/line-leads" prefetch={false} onClick={e => { e.preventDefault(); window.location.assign('/admin/line-leads'); }} className="whitespace-nowrap px-4 py-2 text-sm flex items-center gap-2 rounded-full bg-white text-brand-green border"><Tag size={14}/> ที่มาลูกค้า LINE</Link>
                         {userRole === 'host' && <button onClick={enterVisualEditMode} className={`whitespace-nowrap px-4 py-2 text-sm flex items-center gap-2 rounded-full transition bg-blue-50 text-blue-600 border border-blue-200`}><Layout size={14}/> ปรับแก้หน้าเว็บ</button>}
                         <button onClick={() => { setPanelTab('properties'); setIsEditing(false); }} className={`whitespace-nowrap px-4 py-2 text-sm flex items-center gap-2 rounded-full transition ${panelTab === 'properties' ? 'bg-brand-green text-white' : 'bg-white text-gray-600 border'}`}><Home size={14}/> จัดการบ้าน</button>
                         {userRole === 'host' && <button onClick={() => setPanelTab('company')} className={`whitespace-nowrap px-4 py-2 text-sm flex items-center gap-2 rounded-full transition ${panelTab === 'company' ? 'bg-brand-green text-white' : 'bg-white text-gray-600 border'}`}><Briefcase size={14}/> ข้อมูลบริษัท</button>}
