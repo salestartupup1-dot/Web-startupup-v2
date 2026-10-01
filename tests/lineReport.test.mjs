@@ -65,6 +65,7 @@ test('Thai dates include both endpoint days, including UTC previous evening; inv
 });
 test('platform grouping keeps website clicks together and consolidates social ad subtypes', () => {
   assert.equal(reportPlatform({ source: 'facebook_ads' }), 'facebook');
+  assert.equal(reportPlatform({ source: 'google_organic' }), 'website');
   assert.equal(reportPlatform({ source: 'tiktok_ads' }), 'tiktok');
   assert.equal(reportPlatform({ source: 'facebook', entryPoint: 'website' }), 'website');
   assert.equal(reportPlatform(null), 'unknown');
@@ -100,6 +101,36 @@ test('date boundaries exclude adjacent days, exact counts exceed page size, tied
   await assert.rejects(listLeads({ ...day, platform: 'facebook', cursor: first.nextCursor }, db), { status: 400 });
   await assert.rejects(listLeads({ ...day, cursor: 'invalid' }, db), { status: 400 });
 });
+test('Google Search history merges with ads, preserving counts and pagination across tied timestamps', async () => {
+  const db = memoryDb();
+  for (let i = 0; i < 106; i++) {
+    const platform = i % 2 ? 'google_organic' : 'website';
+    const occurredAt = at + Math.floor(i / 40);
+    const id = 'visit_' + i.toString(16).padStart(64, '0');
+    db.data.set(`${VISITS_COLLECTION}/${id}`, { userId: profile.userId, platform, occurredAt,
+      platformDateKey: `${platform}:${String(occurredAt).padStart(13, '0')}`, touch: { source: platform === 'website' ? 'google_ads' : 'google_organic' } });
+  }
+  await visit(db, 'facebook', at);
+  const all = await listLeads(day, db);
+  assert.equal(all.total, 107);
+  assert.equal(all.counts.website, 106);
+  assert.equal(all.counts.google_organic, undefined);
+  const rows = [];
+  let cursor;
+  do {
+    const page = await listLeads({ ...day, platform: 'website', ...(cursor ? { cursor } : {}) }, db);
+    assert.equal(page.counts.website, 106);
+    assert.ok(page.leads.every(lead => lead.platform === 'website'));
+    rows.push(...page.leads);
+    cursor = page.nextCursor;
+    assert.ok(rows.length <= 106);
+  } while (cursor);
+  assert.equal(rows.length, 106);
+  assert.equal(new Set(rows.map(row => row.eventId)).size, 106);
+  assert.equal(rows.filter(row => row.touch.source === 'google_organic').length, 53);
+  assert.ok(rows.every((row, i) => !i || rows[i - 1].occurredAt >= row.occurredAt));
+});
+
 test('messages update contact status without manufacturing additional visits', async () => {
   const db = memoryDb();
   const event = { type: 'message', timestamp: at, source: { type: 'user', userId: profile.userId } };
