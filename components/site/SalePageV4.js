@@ -17,7 +17,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { lineContactHref } from '../../lib/lineAttribution';
 import {
-  ChevronLeft, ChevronRight, MapPin, Phone, Calendar, Gift,
+  ChevronLeft, ChevronRight, MapPin, Phone, Calendar,
 } from 'lucide-react';
 
 import {
@@ -116,12 +116,6 @@ export default function SalePageV4({
 }) {
   const { promotion, now } = useSalePromotion(db, appId);
   const showPromotion = promotionAppliesTo(promotion, property, now);
-  const jumpToPromotion = () => {
-    const target = [...document.querySelectorAll('.sp4-promotion')].find(node => node.getClientRects().length);
-    if (!target) return;
-    target.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
-    target.focus({ preventScroll: true });
-  };
   const [at, setAt] = useState(0);
   const [wipe, setWipe] = useState(null);       // { src, dir } ระหว่างเล่นจังหวะกวาด
   const [videoOn, setVideoOn] = useState(false);
@@ -434,9 +428,6 @@ export default function SalePageV4({
           <div className="sp4-price-block reveal-on-scroll">
             <p className="sp4-price-key">ราคาขาย</p>
             <p className="sp4-price">฿ {baht(property.price)}</p>
-            {showPromotion && <button type="button" className="sp4-promotion-link" onClick={jumpToPromotion}>
-              <Gift size={17} aria-hidden="true" /> {promotion.title} · ดูสิทธิพิเศษ
-            </button>}
           </div>
 
           <div className="sp4-plate reveal-on-scroll">
@@ -1018,7 +1009,6 @@ const css = `
 
 .sp4-calc { margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--line); }
 .sp4-calculator-card .sp4-calc { margin: 0; padding: 0; border: 0; }
-.sp4-promotion-link { display: inline-flex; align-items: center; gap: 8px; text-align: left; margin-top: 14px; padding: 8px 0; min-height: 44px; color: var(--forest); background: none; border: 0; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; font: inherit; font-size: 15px; }
 .sp4-promotion { background: var(--card); padding: 20px; border: 1px solid var(--line); border-radius: var(--r2); box-shadow: var(--shadow); scroll-margin-top: 100px; }
 .sp4-promotion h2 { margin: 0 0 16px; display: flex; align-items: center; gap: 8px; color: var(--forest); font-size: 18px; font-weight: 500; }
 .sp4-promotion-image { display: block; border: 0; border-radius: 10px; background: #f8faf8; padding: 0; width: 100%; aspect-ratio: 1; cursor: zoom-in; color: var(--forest); }
@@ -1028,7 +1018,7 @@ const css = `
 .sp4-promotion-control { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; padding: 0; background: transparent; color: var(--forest); cursor: pointer; }
 .sp4-promotion-control:hover { background: rgba(11,61,27,.07); }
 .sp4-promotion-until { margin: 10px 0 0; color: var(--ink-soft); font-size: 14px; }
-.sp4-promotion :focus-visible, .sp4-promotion-link:focus-visible { outline: 3px solid var(--forest); outline-offset: 4px; }
+.sp4-promotion :focus-visible { outline: 3px solid var(--forest); outline-offset: 4px; }
 .sp4-promotion-mobile { display: none; }
 @container (max-width: 960px) {
   .sp4-promotion-mobile { display: block; margin-top: 28px; }

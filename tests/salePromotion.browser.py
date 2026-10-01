@@ -106,8 +106,7 @@ with sync_playwright() as p:
         else:
             assert card.bounding_box()['x'] > page.locator('.sp4-price').bounding_box()['x']
             assert card.bounding_box()['y'] > page.locator('.sp4-rail > .sp4-card').first.bounding_box()['y']
-        page.locator('.sp4-promotion-link').click()
-        expect(card).to_be_focused()
+        card.scroll_into_view_if_needed()
         expect(card).to_be_in_viewport()
         page.wait_for_function("() => [...document.querySelectorAll('.sp4-promotion:has(img)')].filter(n => n.getClientRects().length).every(n => n.querySelector('img').naturalWidth > 0)")
         if not mobile:
@@ -161,8 +160,8 @@ with sync_playwright() as p:
     page.emulate_media(reduced_motion='no-preference')
     page.goto(BASE + '/?property=one')
     page.wait_for_load_state('networkidle')
-    page.locator('.sp4-promotion-link').click()
     card = page.locator('.sp4-promotion:visible')
+    card.scroll_into_view_if_needed()
     expect(card.locator('.sp4-promotion-count')).to_have_text('1/5')
     expect(card.locator('.sp4-promotion-control')).to_have_count(2)
     expect(card.locator('.sp4-promotion-play')).to_have_count(0)
