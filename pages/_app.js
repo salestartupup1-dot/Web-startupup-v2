@@ -1,6 +1,7 @@
 import { Component as ReactComponent, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { captureAttribution } from '../lib/lineAttribution'
+import { gtagSendEvent, trackContactClick } from '../lib/googleAdsConversion'
 import 'leaflet/dist/leaflet.css'
 import '../styles/globals.css'
 import Script from 'next/script'
@@ -57,6 +58,15 @@ class ErrorBoundary extends ReactComponent {
 export default function App({ Component, pageProps }) {
   const router = useRouter()
   const privateRoute = /^\/(admin|line)(\/|$)/.test(router.pathname)
+  useEffect(() => {
+    if (privateRoute) return
+    window.gtagSendEvent = gtagSendEvent
+    document.addEventListener('click', trackContactClick)
+    return () => {
+      document.removeEventListener('click', trackContactClick)
+      if (window.gtagSendEvent === gtagSendEvent) delete window.gtagSendEvent
+    }
+  }, [privateRoute])
   useEffect(() => {
     const capture = () => captureAttribution()
     router.events.on('routeChangeComplete', capture)

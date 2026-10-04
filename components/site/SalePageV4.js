@@ -16,6 +16,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { lineContactHref } from '../../lib/lineAttribution';
+import { gtagSendEvent } from '../../lib/googleAdsConversion';
 import {
   ChevronLeft, ChevronRight, MapPin, Phone, Calendar,
 } from 'lucide-react';
@@ -265,6 +266,8 @@ export default function SalePageV4({
   }, [property]);
 
   const sendBooking = useCallback(() => {
+    if (!bookReady || isEditMode) return;
+    gtagSendEvent();
     trackContact('booking_line_send');
     const msg = [
       'สนใจนัดเข้าชมบ้าน',
@@ -282,7 +285,7 @@ export default function SalePageV4({
      * ปิดการส่ง referrer ทิ้ง LINE ก็ไม่มีอะไรให้ต่อท้าย เหลือลิงก์บ้านหลังเดียว
      */
     window.open(lineContactHref(property, msg), '_blank', 'noopener,noreferrer');
-  }, [property, houseAndSoi, pickDate, hour, minute, thaiDate, trackContact]);
+  }, [property, houseAndSoi, pickDate, hour, minute, thaiDate, trackContact, bookReady, isEditMode]);
 
   // ลูกศรซ้าย-ขวาบนคีย์บอร์ดเลื่อนรูปได้
   useEffect(() => {

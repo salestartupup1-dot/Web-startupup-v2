@@ -1,5 +1,20 @@
 # Tracking ส่วนทำเลหน้าแรก
 
+## Google Ads contact conversion
+
+เพิ่ม `ads_conversion___1` ตาม snippet ของเจ้าของเว็บเมื่อ 4 ตุลาคม 2026
+ส่งเมื่อคลิกปุ่ม LINE หรือโทรทุกจุดในหน้าสาธารณะ และส่งนัดชมบ้านทาง LINE
+ไม่ส่งเมื่อเปิดหน้าเว็บเฉย ๆ และไม่ส่งในหน้าหลังบ้านหรือหน้าเชื่อม LINE
+ใช้ Google tag/GTM เดิม ไม่เพิ่ม config หรือรหัสปลายทางที่ไม่ได้ให้มา
+
+`window.gtagSendEvent(url)` ส่ง event ก่อนนำทาง พร้อม callback และ fallback 2 วินาที
+สำหรับลิงก์เปิดแท็บใหม่ ส่ง event แล้วให้เบราว์เซอร์เปิดแท็บทันทีเพื่อคงการเปิด LINE บนมือถือ
+หน้าเดิมยังอยู่เพื่อส่ง event ต่อได้ ไม่ส่ง URL/ข้อความนัดหมาย/เบอร์โทรเป็น event parameters
+ทดสอบ callback, tag ถูกบล็อก, timeout และการนำทางด้วย `tests/googleAdsConversion.test.mjs`
+การรับ event และนับ Conversion ในบัญชี Google Ads ต้องตรวจใน Tag Assistant/Google Ads เพิ่มเติม
+
+อ้างอิง: https://developers.google.com/tag-platform/gtagjs/reference/parameters
+
 ## การติดตั้ง GA4
 
 GTM `GTM-N27PQGL2` เป็นผู้โหลดและตั้งค่า Google tag `G-989XMRNC6Y`
