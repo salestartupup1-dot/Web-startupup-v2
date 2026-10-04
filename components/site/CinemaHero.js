@@ -967,8 +967,12 @@ export default function CinemaHero({
               <div className="intro-copy">
                 <p className="intro-lead">{tagline}</p>
                 <div className="cine-quick-actions" ref={quickActionsRef}>
-                  <button type="button" disabled={isEditMode} onClick={onShowAllHomes}>ดูบ้านทั้งหมด</button>
-                  <button type="button" disabled={isEditMode} onClick={onShowLocations}>เลือกทำเล</button>
+                  <button type="button" disabled={isEditMode} onClick={onShowAllHomes}>
+                    <span>ดูบ้านทั้งหมด</span>
+                  </button>
+                  <button type="button" disabled={isEditMode} onClick={onShowLocations}>
+                    <span>เลือกทำเล</span>
+                  </button>
                 </div>
 
                 {/*
@@ -1082,7 +1086,27 @@ export default function CinemaHero({
 
 const cinemaCss = `
 .cinema-scroll .cine-quick-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 18px 0; pointer-events: auto; }
-.cinema-scroll .cine-quick-actions button { min-height: 52px; padding: 12px 24px; border: 1px solid rgba(253, 241, 225, 0.3); border-radius: 10px; background: rgba(253, 241, 225, 0.13); color: #fdf1e1; backdrop-filter: blur(6px); font: inherit; font-size: 18px; font-weight: 500; cursor: pointer; }
+.cinema-scroll .cine-quick-actions button { position: relative; overflow: hidden; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; min-height: 54px; padding: 12px 26px; border: 1px solid rgba(253,241,225,.38); border-top-color: rgba(255,250,240,.7); border-radius: 999px; background: linear-gradient(180deg, rgba(255,255,255,.12), transparent 48%, rgba(253,241,225,.025)), rgba(253,241,225,.13); color: #fdf1e1; box-shadow: inset 0 1px 0 rgba(255,255,255,.22), inset 0 -1px 0 rgba(253,241,225,.1), 0 4px 14px rgba(0,0,0,.12); font: inherit; font-size: 17px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: transform .18s ease, background-color .18s ease, border-color .18s ease; }
+.cinema-scroll .cine-quick-actions button::before { content: ''; position: absolute; pointer-events: none; z-index: -1; top: -55%; left: 5%; width: 40%; height: 210%; transform: skewX(-24deg); background: linear-gradient(90deg, transparent, rgba(255,250,240,.26) 50%, rgba(255,250,240,.06) 80%, transparent); animation: cine-button-shine 4.8s ease-in-out infinite; }
+.cinema-scroll .cine-quick-actions button:nth-child(2)::before { animation-delay: .65s; }
+@keyframes cine-button-shine {
+  0%, 8% { transform: translateX(-170%) skewX(-24deg); }
+  46%, 100% { transform: translateX(330%) skewX(-24deg); }
+}
+@media (hover: hover) {
+  .cinema-scroll .cine-quick-actions button:hover:not(:disabled) { background-color: rgba(253,241,225,.22); border-color: rgba(253,241,225,.7); transform: translateY(-1px); }
+}
+.cinema-scroll .cine-quick-actions button:active:not(:disabled) { transform: scale(.98); background-color: rgba(253,241,225,.25); }
+.cinema-scroll .cine-quick-actions button:disabled { cursor: default; }
+.cinema-scroll .cine-quick-actions button:disabled::before { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .cinema-scroll .cine-quick-actions button, .cinema-scroll .cine-quick-actions button::before { transition: none; }
+  .cinema-scroll .cine-quick-actions button::before { animation: none; }
+}
+@media (max-width: 600px) {
+  .cinema-scroll .cine-quick-actions { flex-wrap: nowrap; gap: 10px; }
+  .cinema-scroll .cine-quick-actions button { min-height: 54px; padding: 10px 22px; font-size: 16px; }
+}
 .cinema-scroll .cine-quick-actions button:focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
 /* Touch navigation chooses the reading point on release. Native snapping would
    compete with that landing and can pull the page back during the next gesture. */
@@ -1496,7 +1520,6 @@ const cinemaCss = `
   .cinema-scroll .hero-stats { gap: 8px; margin-top: 16px; flex-wrap: nowrap; }
   /* จอสัมผัสตัด backdrop-filter ทิ้ง — มันบังคับให้เครื่องประกอบภาพใหม่ทุกเฟรมที่วิดีโอขยับ
      บนมือถือเห็นเป็นภาพกระพริบ และกินแบตโดยได้ความสวยเพิ่มน้อยมาก */
-  .cinema-scroll .cine-quick-actions button,
   .cinema-scroll .hero-stats .hero-stat {
     backdrop-filter: none; -webkit-backdrop-filter: none;
     background: rgba(20, 32, 22, 0.42);
