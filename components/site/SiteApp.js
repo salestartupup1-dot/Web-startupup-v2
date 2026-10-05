@@ -2264,6 +2264,7 @@ function CustomAlertModal({ isOpen, type, title, message, onConfirm, onCancel, s
 }
 
 // --- FULL ADMIN PANEL ---
+const MAX_PROPERTY_IMAGES = 15;
 function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popupData, locations, onClose, onLogout, db, appId, enterVisualEditMode, showAlert, showConfirm }) {
     const [panelTab, setPanelTab] = useState('properties'); 
     const [isEditing, setIsEditing] = useState(false);
@@ -2506,8 +2507,8 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
         const files = sortFilesByName(e.target.files);
         if (!files.length) return;
         
-        const allowedFiles = files.slice(0, 10 - imagesPreview.length);
-        if (allowedFiles.length === 0) { showAlert('แจ้งเตือน', 'อัปโหลดได้สูงสุด 10 รูปครับ', 'warning'); return; }
+        const allowedFiles = files.slice(0, Math.max(0, MAX_PROPERTY_IMAGES - imagesPreview.length));
+        if (allowedFiles.length === 0) { showAlert('แจ้งเตือน', `อัปโหลดได้สูงสุด ${MAX_PROPERTY_IMAGES} รูปครับ`, 'warning'); return; }
 
         setIsUploadingImgs(true);
         try {
@@ -3152,7 +3153,7 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
 
                                 <div className="space-y-6">
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                                        <h4 className="font-medium mb-6 pb-2 border-b">รูปภาพ</h4>
+                                        <h4 className="font-medium mb-6 pb-2 border-b">รูปภาพ <span className="text-sm text-gray-500">({imagesPreview.length}/{MAX_PROPERTY_IMAGES} รูป)</span></h4>
                                         <div className="grid grid-cols-3 gap-2 mb-4">
                                             {imagesPreview.map((img, i) => (
                                                 <div key={i} className="aspect-square bg-gray-100 rounded-lg relative group overflow-hidden border">
@@ -3173,7 +3174,7 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
                                                 </div>
                                             ))}
                                             
-                                            {imagesPreview.length < 10 && (
+                                            {imagesPreview.length < MAX_PROPERTY_IMAGES && (
                                                 <label className="aspect-square border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 w-full transition relative">
                                                     {isUploadingImgs ? (
                                                         <Loader className="animate-spin text-brand-green" size={24} />
