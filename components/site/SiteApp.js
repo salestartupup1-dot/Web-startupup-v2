@@ -74,7 +74,8 @@ const DEFAULT_COMPANY_INFO = {
   line: 'https://line.me/R/ti/p/@SURE141',
   facebook: 'https://www.facebook.com/startupuprealestate/',
   description: 'จุดเริ่มต้นของคนอยากมีบ้าน',
-  logoUrl: 'https://res.cloudinary.com/dm2wr55r5/image/upload/v1773023427/LOGO_%E0%B9%80%E0%B8%82%E0%B8%B5%E0%B8%A2%E0%B8%A7%E0%B9%82%E0%B8%9B%E0%B8%A3%E0%B9%88%E0%B8%87_vhyhyo.png',
+  // Match the saved company logo on the first server-rendered frame as well.
+  logoUrl: 'https://res.cloudinary.com/dm2wr55r5/image/upload/v1790151670/pljolp7kwd6ulupq0mvf.png',
   portfolio_years: []
 };
 
@@ -3213,12 +3214,12 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
                             <h3 className="text-2xl font-light mb-8 pb-4 border-b">ข้อมูลบริษัท</h3>
                             <form onSubmit={handleSaveCompany} className="space-y-6">
                                 <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-                                    <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 relative group flex-shrink-0">
+                                    <div className="w-24 h-24 rounded-xl overflow-hidden bg-[#123b2c] relative group flex-shrink-0">
                                         {isUploadingLogo ? (
                                             <div className="absolute inset-0 flex items-center justify-center bg-gray-200"><Loader className="animate-spin text-brand-green" size={24} /></div>
                                         ) : (
                                             <>
-                                                <SmartImage src={getOptimizedImg(companyForm.logoUrl, 300)} className="w-full h-full object-cover" alt="Company logo" width={300} height={300} sizes="96px" loading="lazy" decoding="async" />
+                                                <SmartImage src={getOptimizedImg(companyForm.logoUrl, 300)} className="w-full h-full object-contain p-2" alt="Company logo" width={300} height={300} sizes="96px" loading="lazy" decoding="async" />
                                                 <label className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer text-xs w-full h-full transition">
                                                     <Upload size={16}/>เปลี่ยน
                                                     <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
@@ -4125,7 +4126,7 @@ export default function App() {
                       } 
                   }} className={`cursor-pointer inline-block ${isVisualEditMode ? 'pointer-events-none opacity-50' : ''}`}>
                       {companyInfo?.logoUrl ? (
-                          <SmartImage src={getOptimizedImg(companyInfo.logoUrl, 200)} alt="Logo" width={200} height={80} sizes="200px" priority className="h-10 md:h-12 w-auto object-contain" decoding="async" onError={(e) => { e.target.onerror = null; e.target.src = 'https://res.cloudinary.com/dm2wr55r5/image/upload/v1773023427/LOGO_%E0%B9%80%E0%B8%82%E0%B8%B5%E0%B8%A2%E0%B8%A7%E0%B9%82%E0%B8%9B%E0%B8%A3%E0%B9%88%E0%B8%87_vhyhyo.png'; }} />
+                          <SmartImage src={getOptimizedImg(companyInfo.logoUrl, 200)} alt="Logo" width={200} height={80} sizes="200px" priority className="h-10 md:h-12 w-auto object-contain" decoding="async" onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_COMPANY_INFO.logoUrl; }} />
                       ) : (
                           <span className="text-xl md:text-2xl font-light tracking-[0.2em] text-brand-green uppercase whitespace-nowrap">Startup Up</span>
                       )}

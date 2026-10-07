@@ -77,9 +77,12 @@ export default function StockMap({ zones, view, onViewChange, activeHouseKey }) 
         zoom: MAP_ZOOM,
         scrollWheelZoom: true,
       });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap contributors © CARTO',
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>',
         maxZoom: 19,
+        referrerPolicy: 'strict-origin-when-cross-origin',
+        updateWhenIdle: true,
+        keepBuffer: 1,
       }).addTo(mapRef.current);
       layerRef.current = L.layerGroup().addTo(mapRef.current);
       setReady(true);

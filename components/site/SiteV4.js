@@ -302,7 +302,12 @@ export default function SiteV4({ basePath = '/v4' }) {
         <meta property="og:description" content={seoMeta.description} />
         <meta property="og:url" content={seoMeta.canonicalUrl} />
         <meta property="og:image" content={seoMeta.image} />
+        <meta property="og:image:secure_url" content={seoMeta.image} />
+        <meta property="og:image:alt" content={seoMeta.imageAlt} />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={seoMeta.title} />
+        <meta name="twitter:description" content={seoMeta.description} />
+        <meta name="twitter:image" content={seoMeta.image} />
         <meta name="theme-color" content="#0b1f12" />
         <link rel="icon" type="image/png" href="/icon-192.png" sizes="192x192" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(structuredData) }} />

@@ -683,6 +683,8 @@ export default function CinemaHero({
      * แล้วเห็นภาพขยับเองทั้งที่ยังไม่ได้แตะอะไร
      */
     let userInput = false;
+    /* ล้อที่ CinemaNavigation ไม่ได้รับไปพาไปสถานี = ผู้ใช้ตั้งใจเลื่อนช้า ๆ ให้เลื่อนตามปกติ ไม่ดูด */
+    let slowWheel = false;
     let lastScrollY = window.scrollY;
     let scrollDirection = 0;
 
@@ -719,7 +721,7 @@ export default function CinemaHero({
       if (snapTimer) clearTimeout(snapTimer);
       // Touch gestures finish at a chapter in CinemaNavigation; do not run a second snap engine.
       if (coarse) return;
-      if (editModeRef.current || reduceMotion.matches || !userInput) return;
+      if (editModeRef.current || reduceMotion.matches || !userInput || slowWheel) return;
       if (performance.now() < snapSuppressUntil) return;
       snapTimer = setTimeout(() => {
         snapTimer = null;
@@ -753,9 +755,15 @@ export default function CinemaHero({
     /* สัญญาณว่าผู้ใช้กำลังลงมือเอง — หยุดดูดทันทีทุกกรณี */
     const onUserTakeOver = () => {
       userInput = true;
+      slowWheel = false;
       cancelSnap();
     };
-    const onTouchStart = () => { userInput = true; touching = true; cancelSnap(); };
+    /* CinemaNavigation ลงทะเบียนก่อน (effect ของลูกรันก่อนแม่) จึงรู้ได้ว่ามันรับล้อนี้ไปหรือไม่ */
+    const onWheel = (event) => {
+      onUserTakeOver();
+      slowWheel = !event.defaultPrevented;
+    };
+    const onTouchStart = () => { userInput = true; slowWheel = false; touching = true; cancelSnap(); };
     const onTouchEnd = () => { touching = false; armSnap(); };
     const onPointerMove = (event) => {
       targetMouseX = event.clientX / window.innerWidth - 0.5;
@@ -765,7 +773,7 @@ export default function CinemaHero({
 
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onResize);
-    window.addEventListener('wheel', onUserTakeOver, { passive: true });
+    window.addEventListener('wheel', onWheel, { passive: true });
     window.addEventListener('keydown', onUserTakeOver);
     /* ลากแถบเลื่อน หรือกดปุ่มบนหน้า ก็นับว่าผู้ใช้ลงมือเอง */
     window.addEventListener('pointerdown', onUserTakeOver, { passive: true });
@@ -867,7 +875,7 @@ export default function CinemaHero({
       if (deepLinkTimer) clearTimeout(deepLinkTimer);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
-      window.removeEventListener('wheel', onUserTakeOver);
+      window.removeEventListener('wheel', onWheel);
       window.removeEventListener('keydown', onUserTakeOver);
       window.removeEventListener('pointerdown', onUserTakeOver);
       window.removeEventListener('touchstart', onTouchStart);

@@ -1,8 +1,9 @@
 import { fetchPublicPropertyRest, matchesPropertySlug } from '../../lib/firestorePublic';
 import { getPublicProperties } from '../../lib/publicDataCache';
+import { DEFAULT_OG_IMAGE, getSeoImage } from '../../lib/seo';
 
 const SITE_URL = 'https://www.startupup-real-estate.com';
-const FALLBACK_LOGO = 'https://res.cloudinary.com/dm2wr55r5/image/upload/v1773023427/LOGO_%E0%B9%80%E0%B8%82%E0%B8%B5%E0%B8%A2%E0%B8%A7%E0%B9%82%E0%B8%9B%E0%B8%A3%E0%B9%88%E0%B8%87_vhyhyo.png';
+const FALLBACK_LOGO = DEFAULT_OG_IMAGE;
 
 const escapeHtml = (value) => String(value || '')
   .replace(/&/g, '&amp;')
@@ -80,9 +81,7 @@ export default async function handler(req, res) {
       }
 
       imageUrl = (prop.images && prop.images.length > 0) ? prop.images[0] : (prop.imageUrl || imageUrl);
-      if (typeof imageUrl === 'string' && imageUrl.includes('cloudinary.com')) {
-        imageUrl = imageUrl.replace('/upload/', '/upload/f_jpg,q_auto,w_1200,h_630,c_limit/');
-      }
+      imageUrl = getSeoImage(imageUrl);
     }
 
     const safeTitle = escapeHtml(title);

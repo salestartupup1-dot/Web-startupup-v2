@@ -24,7 +24,7 @@ export const GROUP_META = {
 
 export const GROUP_ORDER = ['wip', 'ready', 'hold'];
 
-// จัดกลุ่มค่า "รูปแบบ" ในชีตให้เหลือประเภทหลักๆ — ลำดับสำคัญ ใช้ตัวที่ match ก่อน
+// จัดกลุ่ม "ประเภทบ้าน" (ชื่อเดิม "รูปแบบ") — ลำดับสำคัญ ใช้ตัวที่ match ก่อน
 export const STYLE_CATEGORIES = [
   { key: 'twin', label: 'บ้านแฝด', test: (s) => /บ้านแฝด/.test(s) },
   { key: 'detached', label: 'บ้านเดี่ยว', test: (s) => /บ้านเดี่ยว/.test(s) },
@@ -178,7 +178,7 @@ export async function fetchStockRows() {
         || at(row, 'หมดสัญญา') === CONSIGNMENT_MARK;
 
       const rawStatus = at(row, 'สถานะ');
-      const style = at(row, 'รูปแบบ');
+      const style = at(row, 'ประเภทบ้าน') || at(row, 'รูปแบบ');
       const { areaText, areaWah, areaUnit } = parseArea(at(row, 'พื้นที่'));
 
       return {

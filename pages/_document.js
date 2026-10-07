@@ -2,11 +2,55 @@ import { Html, Head, Main, NextScript } from 'next/document'
 
 const GOOGLE_TAG_MANAGER_ID = 'GTM-N27PQGL2'
 
+// Run before the browser restores scroll and before React/the cinema initializes.
+// Only reloads of the home route reset; property links and history navigation keep their targets.
+const HOME_RELOAD_START = `(() => {
+  const url = new URL(window.location.href);
+  const navigation = performance.getEntriesByType('navigation')[0];
+  const tab = url.searchParams.get('tab');
+  if (navigation?.type !== 'reload' || !['/', '/v4', '/v4/'].includes(url.pathname)
+    || (tab && tab !== 'home') || url.hash
+    || ['property', 'at', 't'].some(key => url.searchParams.has(key))) return;
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  let active = true;
+  const reset = () => {
+    if (!active) return;
+    const root = document.documentElement;
+    const previous = root.style.scrollBehavior;
+    root.style.scrollBehavior = 'auto';
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    root.style.scrollBehavior = previous;
+  };
+  const inputEvents = ['pointerdown', 'touchstart', 'wheel', 'keydown'];
+  const stop = () => {
+    active = false;
+    document.removeEventListener('DOMContentLoaded', reset);
+    window.removeEventListener('load', reset);
+    window.removeEventListener('pageshow', shown);
+    inputEvents.forEach(name => window.removeEventListener(name, stop));
+  };
+  const shown = event => {
+    if (event.persisted) return;
+    reset();
+    requestAnimationFrame(reset);
+  };
+  inputEvents.forEach(name => window.addEventListener(name, stop, { passive: true, once: true }));
+  window.addEventListener('pagehide', () => {
+    stop();
+    if ('scrollRestoration' in history) history.scrollRestoration = 'auto';
+  }, { once: true });
+  document.addEventListener('DOMContentLoaded', reset, { once: true });
+  window.addEventListener('load', reset, { once: true });
+  window.addEventListener('pageshow', shown, { once: true });
+  reset();
+})();`
+
 export default function Document(props) {
   const privateRoute = /^\/(admin|line)(\/|$)/.test(props.__NEXT_DATA__?.page || '')
   return (
     <Html lang="th">
       <Head>
+        <script id="home-reload-start" dangerouslySetInnerHTML={{ __html: HOME_RELOAD_START }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link rel="preconnect" href="https://firestore.googleapis.com" crossOrigin="" />

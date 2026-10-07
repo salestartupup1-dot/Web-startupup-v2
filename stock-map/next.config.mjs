@@ -34,8 +34,7 @@ const contentSecurityPolicy = [
     "'self'",
     "data:",
     "blob:",
-    "https://*.basemaps.cartocdn.com",
-    "https://*.tile.openstreetmap.org"
+    "https://tile.openstreetmap.org"
   ].join(' '),
   "connect-src 'self'",
   "worker-src 'self' blob:",
