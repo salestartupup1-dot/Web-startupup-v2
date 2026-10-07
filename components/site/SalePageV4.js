@@ -111,6 +111,42 @@ function SunDial({ deg }) {
   );
 }
 
+function SaleHeroImage({ src, alt, onClick }) {
+  const optimized = getOptimizedImg(src, 1400);
+  const [useOriginal, setUseOriginal] = useState(false);
+  const [status, setStatus] = useState('loading');
+  const [attempt, setAttempt] = useState(0);
+  const imageRef = useRef(null);
+  const resolvedSrc = useOriginal ? src : optimized;
+  const failed = useCallback(() => {
+    if (!useOriginal && src && optimized !== src) setUseOriginal(true);
+    else setStatus('error');
+  }, [useOriginal, src, optimized]);
+
+  // A cached image may finish before React attaches its load handler. Read the DOM
+  // as well, and keep this state local so opening a property cannot reset it afterwards.
+  useEffect(() => {
+    const image = imageRef.current;
+    if (!image?.complete) return;
+    if (image.naturalWidth > 0) setStatus('ready');
+    else failed();
+  }, [resolvedSrc, attempt, failed]);
+
+  return <>
+    {status === 'loading' && <div className="sp4-skel sp4-skel-hero" aria-hidden="true" />}
+    <SmartImage
+      key={`${resolvedSrc}:${attempt}`} ref={imageRef}
+      src={resolvedSrc} alt={alt} width={1400} height={900} sizes="100vw"
+      priority loading="eager" decoding="async" className="sp4-hero"
+      onLoad={() => setStatus('ready')} onError={failed} onClick={onClick}
+    />
+    {status === 'error' && <div className="sp4-image-error" role="status">
+      <span>โหลดรูปไม่สำเร็จ</span>
+      <button type="button" onClick={() => { setStatus('loading'); setAttempt(value => value + 1); }}>ลองโหลดรูปอีกครั้ง</button>
+    </div>}
+  </>;
+}
+
 export default function SalePageV4({
   property, companyInfo, onBack, properties, onSelectProp,
   visualContent, updateVisualContent, isEditMode, openLightbox,
@@ -120,7 +156,6 @@ export default function SalePageV4({
   const [at, setAt] = useState(0);
   const [wipe, setWipe] = useState(null);       // { src, dir } ระหว่างเล่นจังหวะกวาด
   const [videoOn, setVideoOn] = useState(false);
-  const [heroReady, setHeroReady] = useState(false);
   const [saved, setSaved] = useState([]);
   const [toast, setToast] = useState('');
   const [bookOpen, setBookOpen] = useState(false);
@@ -151,7 +186,7 @@ export default function SalePageV4({
   useEffect(() => { setSaved(readSaved()); }, []);
 
   useEffect(() => {
-    setAt(0); setWipe(null); setVideoOn(false); setHeroReady(false);
+    setAt(0); setWipe(null); setVideoOn(false);
     setBookOpen(false); setPickDate(null); setHour(''); setMinute('');
   }, [property?.id]);
 
@@ -371,18 +406,10 @@ export default function SalePageV4({
       {/* ── ภาพหลัก แถบเต็มความกว้าง รูปไม่ถูกครอบ ── */}
       <figure className="sp4-stage">
         <div className="sp4-shot">
-          {!heroReady && <div className="sp4-skel sp4-skel-hero" aria-hidden="true" />}
-          <SmartImage
-            src={getOptimizedImg(images[at], 1400)}
+          <SaleHeroImage
+            key={`${propId}:${images[at]}`}
+            src={images[at]}
             alt={property.project_name}
-            width={1400} height={900}
-            sizes="100vw"
-            priority
-            decoding="async"
-            className="sp4-hero"
-            style={heroReady ? undefined : { visibility: 'hidden' }}
-            onLoad={() => setHeroReady(true)}
-            onError={() => setHeroReady(true)}
             onClick={() => openLightbox && openLightbox(images, at)}
           />
 
@@ -775,13 +802,13 @@ const css = `
 .sp4-shot { position: relative; display: flex; max-width: 100%; overflow: hidden; }
 .sp4-shot .sp4-hero {
   width: auto; max-width: 100%; max-height: 74vh; object-fit: contain;
-  display: block; cursor: zoom-in;
+  display: block; cursor: zoom-in; position: relative; z-index: 1;
 }
 
 /* เปลี่ยนรูปแบบกวาดตามทิศ — ภาพใหม่เผยทับภาพเดิมจากด้านที่กด
    กำหนดทั้ง from และ to ชัดเจน ไม่ปล่อยให้เบราว์เซอร์เดาจุดเริ่มเอง
    ไม่งั้นบางเบราว์เซอร์จะ interpolate ข้ามชนิดรูปทรงแล้วออกมาเป็นวงรี */
-.sp4-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.sp4-layer { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; }
 .sp4-layer img { width: 100%; height: 100%; object-fit: contain; display: block;
   animation: sp4wipe 620ms cubic-bezier(.65,0,.35,1) forwards; }
 .sp4-layer.is-back img { animation-name: sp4wipeBack; }
@@ -817,8 +844,11 @@ const css = `
 }
 @keyframes sp4shimmer { from { background-position: 130% 0; } to { background-position: -30% 0; } }
 .sp4-skel-hero {
-  position: absolute; inset: 0; z-index: 2; border-radius: 0;
+  position: absolute; inset: 0; z-index: 0; border-radius: 0;
 }
+.sp4-image-error { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: #eef1f5; color: var(--forest); }
+.sp4-image-error button { min-height: 44px; padding: 10px 18px; border: 1px solid currentColor; border-radius: 999px; background: #fff; cursor: pointer; }
+.sp4-image-error button:focus-visible { outline: 3px solid var(--forest); outline-offset: 3px; }
 /* กันไม่ให้กรอบรูปยุบเหลือศูนย์ตอนยังไม่มีภาพ ไม่งั้นหน้าจะกระตุกตอนโหลดเสร็จ */
 .sp4-shot { min-height: clamp(220px, 42vh, 520px); min-width: min(100%, 900px); }
 
