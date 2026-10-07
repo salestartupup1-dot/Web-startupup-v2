@@ -16,10 +16,8 @@ const WHEEL_SLOW_SPEED = 0.35;   // px/ms over WHEEL_WINDOW; below this counts a
 const WHEEL_WINDOW = 120;        // ms
 const WHEEL_GESTURE_GAP = 200;   // quiet ms that separates one scroll action from the next
 const WHEEL_LINE_PX = 40;        // Firefox reports lines instead of pixels
-// Touch: a swipe moves one chapter unless the whole drag AND the release were very slow.
-// Stricter than the wheel because people read on phones with slow drags all the time.
-const TOUCH_SLOW_SPEED = 0.15;   // px/ms (150 px/s)
-const TOUCH_RELEASE_WINDOW = 100; // ms before lift-off used to measure release speed
+// Touch paging depends on distance, never speed: a slow swipe must work as well as a flick.
+const TOUCH_PAGE_DISTANCE = 32;
 
 const wheelDeltaY = event => {
   if (event.deltaMode === 1) return event.deltaY * WHEEL_LINE_PX;
@@ -133,10 +131,11 @@ export default function CinemaNavigation({ sectionRef, isEditMode }) {
       glideToChapter(destination);
     };
     const start = event => {
-      cancelAnimationFrame(landingFrame);
-      gesture = null;
+      cancel();
+      wheelGestureOpen = false;
       if (event.touches.length !== 1 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (pageScrollLocked()) return;
+      if (event.target.closest('[role="dialog"], [aria-modal="true"], input, textarea, select, [contenteditable="true"]')) return;
       for (let node = event.target; node && node !== section; node = node.parentElement) {
         const overflow = getComputedStyle(node).overflowY;
         if ((overflow === 'auto' || overflow === 'scroll') && node.scrollHeight > node.clientHeight + 1) return;
@@ -144,31 +143,41 @@ export default function CinemaNavigation({ sectionRef, isEditMode }) {
       const distance = window.scrollY - section.offsetTop;
       if (distance < -80 || distance > section.offsetHeight - window.innerHeight) return;
       const touch = event.touches[0];
-      const at = performance.now();
-      gesture = { x: touch.clientX, y: touch.clientY, distance, at, trail: [{ at, y: touch.clientY }] };
+      gesture = { x: touch.clientX, y: touch.clientY, distance, owned: false };
     };
     const move = event => {
-      if (!gesture || event.touches.length !== 1) return;
-      const now = performance.now();
-      gesture.trail.push({ at: now, y: event.touches[0].clientY });
-      // Keep one sample older than the window so the release speed always has a baseline.
-      while (gesture.trail.length > 2 && now - gesture.trail[1].at > TOUCH_RELEASE_WINDOW) gesture.trail.shift();
+      if (!gesture) return;
+      if (event.touches.length !== 1 || pageScrollLocked()) { cancel(); return; }
+      const touch = event.touches[0];
+      const vertical = gesture.y - touch.clientY;
+      const horizontal = gesture.x - touch.clientX;
+      if (!gesture.owned) {
+        // Decide on the first move, before iOS starts native momentum scrolling.
+        // Once a horizontal gesture belongs to a carousel, leave the rest of it alone.
+        if (!vertical && !horizontal) return;
+        if (Math.abs(vertical) <= Math.abs(horizontal) * 1.3) { gesture = null; return; }
+        if (!chapterFrom(gesture.distance, Math.sign(vertical))) { gesture = null; return; }
+      }
+      if (!event.cancelable) { gesture = null; return; }
+      event.preventDefault();
+      gesture.owned = true;
+      // Follow the finger without allowing the browser's fling to race the landing animation.
+      // Bound the preview to adjacent chapters even on a long swipe near a reading point.
+      const previous = chapterFrom(gesture.distance, -1)?.at ?? 0;
+      const next = chapterFrom(gesture.distance, 1);
+      const nextAt = next.key === 'after' ? section.offsetHeight - 76 : next.at;
+      const distance = Math.min(nextAt, Math.max(previous, gesture.distance + vertical));
+      window.scrollTo({ top: section.offsetTop + distance, behavior: 'instant' });
     };
     const end = event => {
       const initial = gesture;
       gesture = null;
-      if (!initial || event.touches.length || event.changedTouches.length !== 1) return;
+      if (!initial?.owned || event.touches.length || event.changedTouches.length !== 1) return;
       const touch = event.changedTouches[0];
       const vertical = initial.y - touch.clientY;
       const horizontal = initial.x - touch.clientX;
       // Leave taps, horizontal carousels, pinch zoom and tiny reading adjustments alone.
-      if (Math.abs(vertical) < 48 || Math.abs(vertical) < Math.abs(horizontal) * 1.3) return;
-      // A very slow drag reads the scene frame by frame; leave it where the finger put it.
-      const now = performance.now();
-      const averageSpeed = Math.abs(vertical) / Math.max(1, now - initial.at);
-      const baseline = initial.trail[0];
-      const releaseSpeed = Math.abs(baseline.y - touch.clientY) / Math.max(1, now - baseline.at);
-      if (averageSpeed < TOUCH_SLOW_SPEED && releaseSpeed < TOUCH_SLOW_SPEED) return;
+      if (Math.abs(vertical) < TOUCH_PAGE_DISTANCE || Math.abs(vertical) < Math.abs(horizontal) * 1.3) return;
       const destination = chapterFrom(initial.distance, Math.sign(vertical));
       if (!destination) return;
       // Follow the finger, then glide into the reading point; a new input cancels immediately.
@@ -176,7 +185,7 @@ export default function CinemaNavigation({ sectionRef, isEditMode }) {
     };
     // Capture also sees page swipes beginning over Leaflet, which stops bubbling touch events.
     section.addEventListener('touchstart', start, { passive: true, capture: true });
-    section.addEventListener('touchmove', move, { passive: true, capture: true });
+    section.addEventListener('touchmove', move, { passive: false, capture: true });
     section.addEventListener('touchend', end, { passive: true, capture: true });
     section.addEventListener('touchcancel', cancel, { passive: true, capture: true });
     // Must not be passive: a paging wheel event is cancelled so the browser does not scroll too.

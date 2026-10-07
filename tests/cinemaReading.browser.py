@@ -118,7 +118,7 @@ with sync_playwright() as p:
     context.close()
     print('PASS: touch interrupts the smooth landing without a lock timer')
 
-    # A very slow drag reads the scene natively; a fast lift at the end still turns the chapter.
+    # Slow swipes (including a pause before release) must page just like fast swipes.
     context, page, errors = setup(browser)
     cdp = context.new_cdp_session(page)
     def slow_drag(flick_end=False):
@@ -133,16 +133,15 @@ with sync_playwright() as p:
                 y -= 40
                 cdp.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': [{'x': 190, 'y': y}]})
                 page.wait_for_timeout(16)
+        page.wait_for_timeout(400)
         cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []})
     slow_drag()
-    page.wait_for_timeout(1200)
-    slow_at = page.evaluate('scrollY')
-    assert 100 < slow_at < 600, f'Slow drag must stay where the finger left it, got {slow_at}'
-    slow_drag(flick_end=True)
     at(page, 2050)
+    slow_drag(flick_end=True)
+    at(page, 3740)
     assert not errors, errors
     context.close()
-    print('PASS: very slow touch drag stays native, a flick at release still lands')
+    print('PASS: slow swipe, paused release and flick each move exactly one chapter')
 
     # Desktop wheel moves forward to the next chapter and never pulls back to the previous stop
     # (wheel paging details live in cinemaWheel.browser.py).
