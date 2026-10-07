@@ -32,6 +32,7 @@ import { createPublicDataWrites } from '../../lib/publicDataWrites';
 import { subscribePublicData } from '../../lib/publicDataSubscription';
 import PublicDataNotice from './PublicDataNotice';
 import { getPendingStockHouses, groupAdminStock } from '../../lib/adminStock';
+import { groupPropertyMapZones, propertyMapZone } from '../../lib/propertyMap';
 
 
 const Facebook = ({ size = 24, className = "" }) => (
@@ -751,8 +752,8 @@ const getSafeCoords = (p) => {
           || DISTRICT_COORDS[subLoc]
           || DISTRICT_COORDS[subDist]
           || [14.020, 100.650];
-      lat = fallback[0] + (Math.random() - 0.5) * 0.005; 
-      lng = fallback[1] + (Math.random() - 0.5) * 0.005;
+      lat = fallback[0];
+      lng = fallback[1];
   }
   return { lat, lng };
 };
@@ -766,8 +767,8 @@ const getSafeCoords = (p) => {
  *
  * โหมด story ต่างตรงที่ปิดการลากแผนที่บนจอสัมผัส เพราะฉากนั้นเป็นแบบ sticky
  * นิ้วที่ลากแผนที่จะทำให้หน้าเลื่อนต่อไม่ได้ กลายเป็นติดกับดัก
- * ยังกดป้าย "N โครงการ" และปุ่มซูม +/- ได้ตามปกติ ซึ่งเป็นสิ่งที่คนใช้จริง
- * (ส่วนล้อเมาส์ปิดไว้อยู่แล้วทั้งสองโหมด จึงไม่เคยดักการเลื่อนบนคอม)
+ * กดป้าย "N โครงการ" และซูมด้วยปุ่ม +/- หรือลูกกลิ้งเมาส์ได้
+ * Leaflet รับลูกกลิ้งเฉพาะภายในแผนที่ ส่วนด้านนอกยังเลื่อนหน้าเว็บตามปกติ
  */
 function PropertyMap({ properties, onSelectProp, variant = 'section' }) {
   const mapRef = useRef(null);
@@ -798,43 +799,19 @@ function PropertyMap({ properties, onSelectProp, variant = 'section' }) {
               mapInstance.current = L.map(mapRef.current, {
                   center: [13.980, 100.615],
                   zoom: 11,
-                  scrollWheelZoom: false,
+                  scrollWheelZoom: true,
                   // ในฉากภาพยนตร์บนจอสัมผัส ห้ามลากแผนที่ ไม่งั้นเลื่อนหน้าต่อไม่ได้
                   dragging: !(variant === 'story' && isTouch)
               });
 
-              /**
-               * แผนที่พื้นหลัง
-               * แผนที่พื้นหลัง — Esri World Street Map
-               *
-               * ที่มา : เดิมใช้ CARTO Positron แต่ CARTO บังคับใช้ API key แล้ว ภาพเลยมีลายน้ำ
-               * "API KEY REQUIRED" ทับ จึงย้ายมา Esri Light Gray ซึ่งไม่ต้องใช้คีย์
-               * แต่ Light Gray จืดเกินไปจนดูไม่ออกว่าที่ไหนเป็นที่ไหน เลยเปลี่ยนมาใช้ World Street Map
-               * ที่มีถนนแยกระดับสีส้ม/เหลือง ชื่อไทยครบ หน้าตาใกล้เคียง Google Maps ที่คนไทยคุ้น
-               *
-               * ข้อดีเทียบของเดิม : ชื่อสถานที่มาในไทล์เดียวกัน ไม่ต้องซ้อนชั้น label แยก (โหลดครึ่งเดียว)
-               * และมีภาพจริงถึงระดับซูม 19 (Light Gray มีถึง 16 เท่านั้น ซูมใกล้แล้วภาพแตก)
-               *
-               * ยังไม่ต้องใช้ API key และ server.arcgisonline.com อยู่ใน CSP img-src แล้ว
-               * ถ้าโหลดไม่ขึ้นจริง ๆ ค่อยถอยไปใช้ OpenStreetMap มาตรฐาน
-               */
-              const baseLayer = L.tileLayer(
-                  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-                  { maxZoom: 19, attribution: '© OpenStreetMap contributors © Esri' }
-              ).addTo(mapInstance.current);
-
-              let tileErrors = 0;
-              baseLayer.on('tileerror', () => {
-                  tileErrors += 1;
-                  // เผื่อเน็ตสะดุดชั่วคราว รอให้พลาดหลายไทล์ก่อนค่อยสลับ
-                  if (tileErrors < 5 || !mapInstance.current) return;
-                  baseLayer.off('tileerror');
-                  mapInstance.current.removeLayer(baseLayer);
-                  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                      attribution: '© OpenStreetMap contributors',
-                      maxZoom: 19
-                  }).addTo(mapInstance.current);
-              });
+              // Match Stock Map's road, building and place-name detail at every zoom level.
+              L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>',
+                  maxZoom: 19,
+                  referrerPolicy: 'strict-origin-when-cross-origin',
+                  updateWhenIdle: true,
+                  keepBuffer: 1,
+              }).addTo(mapInstance.current);
 
               TRANSIT_LINES.forEach(line => {
                   const lineCoords = line.stations.map(st => [st.lat, st.lng]);
@@ -866,6 +843,18 @@ function PropertyMap({ properties, onSelectProp, variant = 'section' }) {
 
           const map = mapInstance.current;
           const layerGroup = markersLayer.current;
+          const zones = groupPropertyMapZones(properties, getSafeCoords);
+          const markerIcon = (text, house = false) => {
+              const pill = document.createElement('div');
+              pill.className = `property-map-pill${house ? ' is-house' : ''}`;
+              const dot = document.createElement('span');
+              dot.className = 'property-map-dot';
+              dot.setAttribute('aria-hidden', 'true');
+              const label = document.createElement('span');
+              label.textContent = text;
+              pill.append(dot, label);
+              return L.divIcon({ className: 'property-map-icon', html: pill, iconSize: null, iconAnchor: [18, 14] });
+          };
 
           const createPopupItem = (p) => {
               const itemDiv = document.createElement('div');
@@ -924,22 +913,16 @@ function PropertyMap({ properties, onSelectProp, variant = 'section' }) {
 
               if (expandedZone.current && expandedProject.current) {
                   const houses = validProps.filter(p => 
-                      (p.main_location || p.district || 'พื้นที่อื่นๆ') === expandedZone.current &&
+                      propertyMapZone(p).key === expandedZone.current &&
                       ((p.project_name || '').trim() || 'ไม่ระบุชื่อโครงการ') === expandedProject.current
                   );
 
                   houses.forEach((p, index) => {
-                      let { lat, lng } = getSafeCoords(p);
-                      lat += (Math.random() - 0.5) * 0.0002; 
-                      lng += (Math.random() - 0.5) * 0.0002;
+                      const { lat, lng } = getSafeCoords(p);
                       bounds.push([lat, lng]);
 
                       const markerText = p.house_number ? `เลขที่ ${p.house_number}` : `หลังที่ ${index + 1}`;
-                      const customIcon = L.divIcon({
-                          className: '', 
-                          html: `<div class="custom-map-marker shadow-lg border-2 hover:scale-105 transition max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap bg-brand-green text-white" style="border-color: white;">${markerText}</div>`,
-                          iconSize: null, iconAnchor: [45, 15] 
-                      });
+                      const customIcon = markerIcon(markerText, true);
 
                       const marker = L.marker([lat, lng], { icon: customIcon }).addTo(layerGroup);
                       const popupContent = document.createElement('div');
@@ -949,30 +932,15 @@ function PropertyMap({ properties, onSelectProp, variant = 'section' }) {
                   });
               } 
               else if (expandedZone.current) {
-                  const zoneProps = validProps.filter(p => (p.main_location || p.district || 'พื้นที่อื่นๆ') === expandedZone.current);
-                  const projectClusters = {};
-
-                  zoneProps.forEach(p => {
-                      const projName = (p.project_name || '').trim() || 'ไม่ระบุชื่อโครงการ';
-                      if (!projectClusters[projName]) {
-                          let { lat, lng } = getSafeCoords(p);
-                          projectClusters[projName] = { lat, lng, name: projName, items: [] };
-                      }
-                      projectClusters[projName].items.push(p);
-                  });
-
-                  Object.values(projectClusters).forEach(cluster => {
+                  const projectClusters = zones.find(zone => zone.key === expandedZone.current)?.projects || [];
+                  projectClusters.forEach(cluster => {
                       const count = cluster.items.length;
                       bounds.push([cluster.lat, cluster.lng]);
                       const markerText = count > 1 ? `${cluster.name} (${count} หลัง)` : cluster.name;
                       
-                      const customIcon = L.divIcon({
-                          className: '', 
-                          html: `<div class="custom-map-marker shadow-lg border-2 hover:scale-105 transition max-w-[250px] overflow-hidden text-ellipsis bg-white text-brand-green">${markerText}</div>`,
-                          iconSize: null, iconAnchor: [45, 15] 
-                      });
+                      const customIcon = markerIcon(markerText);
 
-                      const marker = L.marker([cluster.lat, cluster.lng], { icon: customIcon }).addTo(layerGroup);
+                      const marker = L.marker([cluster.lat, cluster.lng], { icon: customIcon, title: markerText, alt: markerText, zIndexOffset: count * 10 }).addTo(layerGroup);
                       marker.on('click', () => {
                           if (count > 1 && cluster.name !== 'ไม่ระบุชื่อโครงการ') {
                               expandedProject.current = cluster.name;
@@ -986,35 +954,26 @@ function PropertyMap({ properties, onSelectProp, variant = 'section' }) {
                               popupContent.appendChild(title);
                               cluster.items.forEach(p => popupContent.appendChild(createPopupItem(p)));
                               marker.bindPopup(popupContent);
+                              marker.openPopup();
                           }
                       });
                   });
               } 
               else {
-                  const zoneClusters = {};
-                  validProps.forEach(p => {
-                      const zoneName = p.main_location || p.district || 'พื้นที่อื่นๆ';
-                      if (!zoneClusters[zoneName]) {
-                          let { lat, lng } = getSafeCoords(p);
-                          zoneClusters[zoneName] = { lat, lng, name: zoneName, items: [] };
-                      }
-                      zoneClusters[zoneName].items.push(p);
-                  });
-
-                  Object.values(zoneClusters).forEach(cluster => {
-                      const uniqueProjects = new Set(cluster.items.map(p => (p.project_name || '').trim() || p.id)).size;
+                  zones.forEach(cluster => {
+                      const uniqueProjects = cluster.projects.length;
                       bounds.push([cluster.lat, cluster.lng]);
                       const markerText = `${uniqueProjects} โครงการ`;
                       
-                      const customIcon = L.divIcon({
-                          className: '', 
-                          html: `<div class="custom-map-marker shadow-lg border-2 hover:scale-105 transition max-w-[250px] overflow-hidden text-ellipsis bg-[#eef3f0] text-brand-green font-bold px-4 py-2">${markerText}</div>`,
-                          iconSize: null, iconAnchor: [45, 15] 
-                      });
+                      const customIcon = markerIcon(markerText);
 
-                      const marker = L.marker([cluster.lat, cluster.lng], { icon: customIcon }).addTo(layerGroup);
+                      const label = `${cluster.name} · ${markerText} · ${cluster.items.length} หลัง`;
+                      const marker = L.marker([cluster.lat, cluster.lng], { icon: customIcon, title: label, alt: label, zIndexOffset: cluster.items.length * 10 }).addTo(layerGroup);
+                      const tooltip = document.createElement('span');
+                      tooltip.textContent = label;
+                      marker.bindTooltip(tooltip, { direction: 'top', offset: [0, -6] });
                       marker.on('click', () => {
-                          expandedZone.current = cluster.name;
+                          expandedZone.current = cluster.key;
                           drawMap();
                       });
                   });
