@@ -4,11 +4,12 @@ Requires Python Playwright and Microsoft Edge. All database responses are
 fixtures; the test never creates or edits production houses.
 """
 import json
+import os
 from pathlib import Path
 from urllib.parse import quote
 from playwright.sync_api import sync_playwright, expect
 
-BASE = 'http://localhost:3000'
+BASE = os.environ.get('SITE_TEST_BASE_URL', 'http://localhost:3000')
 HOUSE = {
     'id': 'new-house', 'custom_id': 'บ้านใหม่ 12/34',
     'project_name': 'บ้านทดสอบเพิ่มใหม่', 'house_number': '12/34',
@@ -38,6 +39,14 @@ def setup(browser, scenario):
             if scenario == 'card':
                 houses[0]['property_owner'] = 'Startup Up'
             route.fulfill(json={'properties': houses, 'company': None, 'visual': None, 'popup': None})
+        elif '/api/property?' in url:
+            lookups.append({'api': True})
+            if scenario in ['missing', 'cached_deleted']:
+                route.fulfill(status=404, json={'error': 'not found'})
+            elif scenario == 'offline':
+                route.fulfill(status=503, json={'error': 'unavailable'})
+            else:
+                route.fulfill(json={'property': HOUSE})
         elif 'firestore.googleapis.com' in url and '/properties/new-house' in url:
             lookups.append({'document': 'new-house'})
             if scenario == 'cached_deleted':
@@ -87,12 +96,12 @@ with sync_playwright() as p:
                 page.screenshot(path=str(output))
         elif scenario in ['missing', 'cached_deleted']:
             expect(page.get_by_text('ไม่พบข้อมูล', exact=True)).to_be_visible()
-            assert len(lookups) == (2 if scenario == 'missing' else 1)
+            assert len(lookups) == 1
         else:
             expect(page.get_by_text('โหลดข้อมูลไม่สำเร็จ', exact=True)).to_be_visible()
             expect(page.get_by_text('ไม่พบข้อมูล', exact=True)).to_have_count(0)
             assert 'property=' in page.url
-            page.route('**/*:runQuery*', lambda route: route.fulfill(json=[{'document': DOCUMENT}]))
+            page.route('**/api/property?*', lambda route: route.fulfill(json={'property': HOUSE}))
             page.get_by_role('button', name='ตกลง', exact=True).click()
             expect(page.get_by_role('heading', name=HOUSE['project_name'], exact=True)).to_be_visible()
         assert not errors, errors

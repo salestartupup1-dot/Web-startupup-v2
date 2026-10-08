@@ -39,6 +39,8 @@ with sync_playwright() as p:
                 url = route.request.url
                 if '/api/public-data' in url:
                     route.fulfill(json={'properties': [house], 'company': None, 'visual': None, 'popup': None})
+                elif '/api/property?' in url:
+                    route.fulfill(json={'property': house})
                 elif 'firestore.googleapis.com' in url and '/properties/hero-test' in url:
                     route.fulfill(json=document)
                 elif 'firestore.googleapis.com' in url and ':runQuery' in url:

@@ -39,6 +39,8 @@ def setup(browser, mobile):
         url = route.request.url
         if '/api/public-data' in url:
             route.fulfill(json={'properties': [state['house']], 'company': None, 'visual': None, 'popup': None})
+        elif '/api/property?' in url:
+            route.fulfill(json={'property': state['house']})
         elif '/site_settings/sale_promotion?' in url:
             state['reads'] += 1
             route.fulfill(json=document(state['promotion']))

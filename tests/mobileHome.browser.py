@@ -39,6 +39,8 @@ def setup(browser, width=390, height=844, touch=True, reduced=False):
         url = route.request.url
         if '/api/public-data' in url:
             route.fulfill(json={'properties': HOUSES, 'company': None, 'visual': None, 'popup': None})
+        elif '/api/property?' in url:
+            route.fulfill(json={'property': HOUSE})
         elif 'firestore.googleapis.com' in url and ':runQuery' in url:
             route.fulfill(json=[{'document': DOCUMENT}])
         elif 'firestore.googleapis.com' in url and '/properties/mobile-home-test' in url:

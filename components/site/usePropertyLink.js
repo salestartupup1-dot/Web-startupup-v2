@@ -1,27 +1,25 @@
 import { useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { fetchPublicDocumentRest, fetchPublicPropertyRest, matchesPropertySlug } from '../../lib/firestorePublic';
+import { fetchPublicPropertyApi } from '../../lib/publicProperty';
 import { subscribePropertyDetails } from '../../lib/propertyDetails';
 
 export default function usePropertyLink({
-  db, appId, loading, requestedPropSlug, properties, selectedProperty,
+  db, appId, requestedPropSlug, selectedProperty,
   setRequestedPropSlug, setSelectedProperty, setActiveTab, setGlobalAlert,
 }) {
   useEffect(() => {
-    if (loading || !requestedPropSlug) return;
-    const cachedProperty = properties.find(property => matchesPropertySlug(property, requestedPropSlug));
+    if (!requestedPropSlug) return;
 
     let cancelled = false;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    const timeout = setTimeout(() => controller.abort(), 20000);
     const closeAlert = () => setGlobalAlert(previous => ({ ...previous, isOpen: false }));
 
-    // The cached list identifies the document; its price may already be stale.
-    const request = cachedProperty?.id
-      ? fetchPublicDocumentRest(`properties/${encodeURIComponent(cachedProperty.id)}`, { signal: controller.signal, cache: 'no-store' })
-      : fetchPublicPropertyRest(requestedPropSlug, { signal: controller.signal });
+    // Deep links do not wait for the full catalogue or depend on browser Firebase access.
+    const request = fetchPublicPropertyApi(requestedPropSlug, { signal: controller.signal });
     request.then(property => {
       if (cancelled) return;
+      closeAlert();
       setSelectedProperty(property);
       setRequestedPropSlug(null);
       if (!property) {
@@ -49,7 +47,7 @@ export default function usePropertyLink({
       clearTimeout(timeout);
       controller.abort();
     };
-  }, [loading, requestedPropSlug, properties, setRequestedPropSlug, setSelectedProperty, setActiveTab, setGlobalAlert]);
+  }, [requestedPropSlug, setRequestedPropSlug, setSelectedProperty, setActiveTab, setGlobalAlert]);
 
   const selectedId = selectedProperty?.id;
   useEffect(() => {
