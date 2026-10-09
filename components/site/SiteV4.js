@@ -644,6 +644,7 @@ export default function SiteV4({ basePath = '/v4' }) {
           showCancel={globalAlert.showCancel}
           onCancel={globalAlert.onCancel}
           onConfirm={globalAlert.onConfirm}
+          confirmText={globalAlert.confirmText}
         />
 
         {adminEntryPending && !authReady && (

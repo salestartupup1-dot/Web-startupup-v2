@@ -102,7 +102,7 @@ with sync_playwright() as p:
             expect(page.get_by_text('ไม่พบข้อมูล', exact=True)).to_have_count(0)
             assert 'property=' in page.url
             page.route('**/api/property?*', lambda route: route.fulfill(json={'property': HOUSE}))
-            page.get_by_role('button', name='ตกลง', exact=True).click()
+            page.get_by_role('button', name='ลองอีกครั้ง', exact=True).click()
             expect(page.get_by_role('heading', name=HOUSE['project_name'], exact=True)).to_be_visible()
         assert not errors, errors
         print(json.dumps({'scenario': scenario, 'passed': True, 'lookups': len(lookups)}))

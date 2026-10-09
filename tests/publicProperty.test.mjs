@@ -11,7 +11,7 @@ test('public property endpoint reads current data on every request without cachi
   let price = 2500000;
   const handler = createPropertyHandler({ lookup: async (slug, { signal }) => {
     assert.equal(slug, '24/182'); assert.ok(signal); return { id: 'house', price };
-  } });
+  }, readDocument: async () => ({ id: 'house', custom_id: '24/182', price }) });
   const req = { method: 'GET', query: { property: '24/182' } };
   const first = response(); await handler(req, first);
   price = 2300000;
@@ -50,4 +50,47 @@ test('browser never substitutes stale prices on failure and respects cancellatio
   await assert.rejects(fetchPublicPropertyApi('offline', { fetcher: async () => new Response(null, { status: 503 }) }));
   const controller = new AbortController(); controller.abort();
   await assert.rejects(fetchPublicPropertyApi('x', { signal: controller.signal, fetcher: () => assert.fail('aborted') }), { name: 'AbortError' });
+});
+
+
+test('backoff increases, respects Retry-After and stops on permanent errors', async () => {
+  const delays = [];
+  let calls = 0;
+  const result = await fetchPublicPropertyApi('x', {
+    sleep: async delay => delays.push(delay), random: () => 0,
+    fetcher: async () => ++calls < 3
+      ? Response.json({ retryable: true }, { status: 503, headers: { 'Retry-After': '1' } })
+      : Response.json({ property: { id: 'x', price: 123 } }),
+  });
+  assert.equal(result.price, 123); assert.deepEqual(delays, [1000, 1500]);
+  calls = 0;
+  await assert.rejects(fetchPublicPropertyApi('x', {
+    sleep: () => assert.fail('must not retry quota'),
+    fetcher: async () => { calls++; return Response.json({ retryable: false }, { status: 503 }); },
+  }));
+  assert.equal(calls, 1);
+});
+
+test('aborting during backoff makes no further request', async () => {
+  const controller = new AbortController();
+  let calls = 0;
+  const request = fetchPublicPropertyApi('x', { signal: controller.signal,
+    fetcher: async () => { calls++; setTimeout(() => controller.abort(), 5); return new Response(null, { status: 503 }); },
+  });
+  await assert.rejects(request, { name: 'AbortError' });
+  assert.equal(calls, 1);
+});
+
+test('diagnostic request IDs connect failures to structured logs without leaking upstream data', async () => {
+  const logs = [];
+  const handler = createPropertyHandler({ log: record => logs.push(record), lookup: async () => {
+    throw Object.assign(new Error('private credential'), { code: 'QUOTA_EXCEEDED', upstreamStatus: 429, retryable: false });
+  } });
+  const res = response(); await handler({ method: 'GET', query: { property: 'x' } }, res);
+  assert.equal(res.body.retryable, false);
+  assert.equal(logs[0].code, 'QUOTA_EXCEEDED');
+  assert.equal(logs[0].upstreamStatus, 429);
+  assert.equal(logs[0].requestId, res.headers['X-Request-Id']);
+  assert.equal(res.body.requestId, logs[0].requestId);
+  assert.ok(!JSON.stringify([res.body, logs]).includes('private credential'));
 });

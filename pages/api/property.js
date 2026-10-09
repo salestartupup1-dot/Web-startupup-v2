@@ -1,27 +1,42 @@
-import { fetchPublicPropertyRest } from '../../lib/firestorePublic.js';
+import { randomUUID } from 'node:crypto';
+import { createPropertyReader } from '../../lib/propertyReadService.js';
 
-// Public reads use the same Firestore rules as before; no admin credentials or cache.
-export const createPropertyHandler = ({ lookup = fetchPublicPropertyRest, timeoutMs = 8000 } = {}) => async (req, res) => {
+export const createPropertyHandler = ({ lookup, timeoutMs = 8000, readDocument,
+  reader = createPropertyReader({ lookup, readDocument, timeoutMs }),
+  log = entry => console[entry.status >= 500 ? 'warn' : 'info'](JSON.stringify(entry)),
+} = {}) => async (req, res) => {
+  const started = Date.now();
+  const requestId = randomUUID();
   for (const name of ['Cache-Control', 'CDN-Cache-Control', 'Vercel-CDN-Cache-Control']) res.setHeader(name, 'no-store');
+  res.setHeader('X-Request-Id', requestId);
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed', requestId });
   }
   const slug = req.query.property;
   if (typeof slug !== 'string' || !slug.trim() || slug.length > 500) {
-    return res.status(400).json({ error: 'Invalid property' });
+    return res.status(400).json({ error: 'Invalid property', requestId });
   }
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let status = 503, failure, shared = false;
   try {
-    const property = await lookup(slug, { signal: controller.signal });
-    if (!property) return res.status(404).json({ error: 'Property not found' });
-    return res.status(200).json({ property });
+    const read = reader(slug);
+    shared = read.shared;
+    const property = await read.promise;
+    status = property ? 200 : 404;
+    return res.status(status).json(property
+      ? { property, checkedAt: new Date().toISOString(), requestId }
+      : { error: 'Property not found', requestId });
   } catch (error) {
-    console.warn('Public property read unavailable:', error.message);
-    return res.status(503).json({ error: 'Property temporarily unavailable' });
+    failure = error;
+    const retryable = error.retryable !== false;
+    if (retryable) res.setHeader('Retry-After', '1');
+    return res.status(status).json({ error: 'Property temporarily unavailable', retryable, requestId });
   } finally {
-    clearTimeout(timeout);
+    // Do not record price, customer data, credentials, or raw upstream messages/URLs.
+    log({ event: 'public_property_read', time: new Date().toISOString(), requestId,
+      property: slug.slice(0, 100), status, durationMs: Date.now() - started, shared,
+      ...(failure ? { code: failure.code || failure.name || 'UNKNOWN',
+        upstreamStatus: failure.upstreamStatus, retryable: failure.retryable !== false } : {}) });
   }
 };
 

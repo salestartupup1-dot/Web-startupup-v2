@@ -1,0 +1,48 @@
+name: Sale Page availability
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,17,27,37,47,57 * * * *'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: sale-health
+  cancel-in-progress: false
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      LINE_ALERT_CONFIGURED: ${{ secrets.LINE_ALERT_CHANNEL_ACCESS_TOKEN != '' && secrets.LINE_ALERT_USER_ID != '' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Check fresh property reads
+        id: check
+        run: node scripts/monitor-sale.mjs
+      - name: Notify Peth on LINE
+        if: always() && env.LINE_ALERT_CONFIGURED == 'true' && (steps.check.outcome == 'success' || steps.check.outcome == 'failure')
+        env:
+          SALE_MONITOR_FAILED: ${{ steps.check.outcome == 'failure' }}
+          GITHUB_TOKEN: ${{ github.token }}
+          LINE_ALERT_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_ALERT_CHANNEL_ACCESS_TOKEN }}
+          LINE_ALERT_USER_ID: ${{ secrets.LINE_ALERT_USER_ID }}
+        run: node scripts/notify-sale.mjs
+      - name: Report missing LINE setup
+        if: always() && env.LINE_ALERT_CONFIGURED != 'true'
+        run: echo '::warning::LINE notifications are not active. Add LINE_ALERT_CHANNEL_ACCESS_TOKEN and LINE_ALERT_USER_ID in Actions secrets.'
+      - name: Keep availability evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sale-health
+          path: coverage/sale-health.json
+          retention-days: 90
+      - name: Fail on unhealthy property APIs
+        if: always() && steps.check.outcome == 'failure'
+        run: exit 1

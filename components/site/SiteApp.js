@@ -2199,7 +2199,7 @@ function LoginModal({ onClose, onGoogleLogin }) {
     );
 }
 
-function CustomAlertModal({ isOpen, type, title, message, onConfirm, onCancel, showCancel }) {
+function CustomAlertModal({ isOpen, type, title, message, onConfirm, onCancel, showCancel, confirmText = 'ตกลง' }) {
     if (!isOpen) return null;
     const Icon = type === 'warning' ? AlertTriangle : type === 'error' ? XCircle : type === 'success' ? CheckCircle : AlertCircle;
     const iconColor = type === 'warning' ? 'text-yellow-500' : type === 'error' ? 'text-red-500' : type === 'success' ? 'text-green-500' : 'text-blue-500';
@@ -2216,7 +2216,7 @@ function CustomAlertModal({ isOpen, type, title, message, onConfirm, onCancel, s
                     {showCancel && (
                         <button onClick={onCancel} className="px-5 py-2.5 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full font-medium text-sm transition flex-1">ยกเลิก</button>
                     )}
-                    <button onClick={onConfirm} className={`px-5 py-2.5 text-white rounded-full font-medium text-sm transition flex-1 ${type === 'error' ? 'bg-red-500 hover:bg-red-600' : type === 'warning' ? 'bg-brand-green hover:bg-[#135c2a]' : 'bg-brand-green hover:bg-[#135c2a]'}`}>ตกลง</button>
+                    <button onClick={onConfirm} className={`px-5 py-2.5 text-white rounded-full font-medium text-sm transition flex-1 ${type === 'error' ? 'bg-red-500 hover:bg-red-600' : type === 'warning' ? 'bg-brand-green hover:bg-[#135c2a]' : 'bg-brand-green hover:bg-[#135c2a]'}`}>{confirmText}</button>
                 </div>
             </div>
         </div>
@@ -4234,7 +4234,7 @@ export default function App() {
         <CustomAlertModal 
             isOpen={globalAlert.isOpen} type={globalAlert.type} title={globalAlert.title} 
             message={globalAlert.message} showCancel={globalAlert.showCancel} 
-            onCancel={globalAlert.onCancel} onConfirm={globalAlert.onConfirm} 
+            onCancel={globalAlert.onCancel} onConfirm={globalAlert.onConfirm} confirmText={globalAlert.confirmText}
         />
 
         {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} onGoogleLogin={handleGoogleLogin} />}

@@ -11,41 +11,76 @@ export default function usePropertyLink({
     if (!requestedPropSlug) return;
 
     let cancelled = false;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-    const closeAlert = () => setGlobalAlert(previous => ({ ...previous, isOpen: false }));
+    let controller, timer, recoveryTimer;
+    let running = false;
+    let recoveryCount = 0;
+    let mayRecover = true;
+    const closeAlert = () => setGlobalAlert(previous => previous.propertyLoadError
+      ? { ...previous, isOpen: false } : previous);
 
-    // Deep links do not wait for the full catalogue or depend on browser Firebase access.
-    const request = fetchPublicPropertyApi(requestedPropSlug, { signal: controller.signal });
-    request.then(property => {
-      if (cancelled) return;
+    // Retry in place. A recovered network never requires reloading the whole site.
+    const load = async () => {
+      if (cancelled || running) return;
+      clearTimeout(recoveryTimer);
+      running = true;
       closeAlert();
-      setSelectedProperty(property);
-      setRequestedPropSlug(null);
-      if (!property) {
-        setActiveTab('home');
+      controller = new AbortController();
+      timer = setTimeout(() => controller.abort(), 30000);
+      try {
+        const property = await fetchPublicPropertyApi(requestedPropSlug, { signal: controller.signal });
+        if (cancelled) return;
+        closeAlert();
+        setSelectedProperty(property);
+        setRequestedPropSlug(null);
+        if (!property) {
+          setActiveTab('home');
+          setGlobalAlert({
+            isOpen: true, type: 'error', title: 'ไม่พบข้อมูล',
+            message: 'ไม่พบข้อมูลบ้านที่คุณระบุ ระบบจะพากลับหน้าหลัก',
+            showCancel: false,
+            onConfirm: () => setGlobalAlert(previous => ({ ...previous, isOpen: false })),
+          });
+        }
+      } catch (error) {
+        if (cancelled) return;
+        mayRecover = error.retryable !== false;
+        console.warn('Direct property lookup failed.', { status: error.status, requestId: error.requestId });
         setGlobalAlert({
-          isOpen: true, type: 'error', title: 'ไม่พบข้อมูล',
-          message: 'ไม่พบข้อมูลบ้านที่คุณระบุ ระบบจะพากลับหน้าหลัก',
-          showCancel: false, onConfirm: closeAlert,
+          isOpen: true, propertyLoadError: true, type: 'error', title: 'โหลดข้อมูลไม่สำเร็จ',
+          message: 'ยังเชื่อมต่อข้อมูลบ้านไม่ได้ กรุณาลองอีกครั้ง โดยไม่ต้องรีเฟรชหน้าเว็บ',
+          confirmText: 'ลองอีกครั้ง', showCancel: false, onConfirm: load,
         });
+        // Bounded recovery: no endless polling against an outage or exhausted quota.
+        if (mayRecover && recoveryCount < 2) {
+          recoveryTimer = setTimeout(() => {
+            if (document.visibilityState !== 'hidden' && navigator.onLine) {
+              recoveryCount += 1;
+              void load();
+            }
+          }, 15000 * (recoveryCount + 1));
+        }
+      } finally {
+        clearTimeout(timer);
+        running = false;
       }
-    }).catch(error => {
-      if (cancelled) return;
-      console.warn('Direct property lookup failed.', error);
-      // Retry the requested house, including navigation from another card/page.
-      setGlobalAlert({
-        isOpen: true, type: 'error', title: 'โหลดข้อมูลไม่สำเร็จ',
-        message: 'ยังโหลดข้อมูลบ้านไม่ได้ในตอนนี้ กรุณากดตกลงเพื่อลองใหม่',
-        showCancel: false,
-        onConfirm: () => window.location.assign(`/api/share?property=${encodeURIComponent(requestedPropSlug)}`),
-      });
-    }).finally(() => clearTimeout(timeout));
-
+    };
+    const recover = () => {
+      if (!running && mayRecover && recoveryCount < 2 && document.visibilityState !== 'hidden' && navigator.onLine) {
+        recoveryCount += 1;
+        void load();
+      }
+    };
+    void load();
+    window.addEventListener('online', recover);
+    document.addEventListener('visibilitychange', recover);
     return () => {
       cancelled = true;
-      clearTimeout(timeout);
-      controller.abort();
+      clearTimeout(timer);
+      clearTimeout(recoveryTimer);
+      controller?.abort();
+      window.removeEventListener('online', recover);
+      document.removeEventListener('visibilitychange', recover);
+      closeAlert();
     };
   }, [requestedPropSlug, setRequestedPropSlug, setSelectedProperty, setActiveTab, setGlobalAlert]);
 
