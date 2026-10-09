@@ -152,7 +152,8 @@ export default function SalePageV4({
   visualContent, updateVisualContent, isEditMode, openLightbox,
 }) {
   const { promotion, now } = useSalePromotion(db, appId);
-  const showPromotion = promotionAppliesTo(promotion, property, now);
+  const detailsPending = Boolean(property?._detailsPending);
+  const showPromotion = !detailsPending && promotionAppliesTo(promotion, property, now);
   const [at, setAt] = useState(0);
   const [wipe, setWipe] = useState(null);       // { src, dir } ระหว่างเล่นจังหวะกวาด
   const [videoOn, setVideoOn] = useState(false);
@@ -376,7 +377,7 @@ export default function SalePageV4({
       </div>
 
       {/* ── ชื่อบ้าน อยู่ก่อนรูปเหมือน SalePage เดิม ── */}
-      <div className="sp4-masthead reveal-on-scroll">
+      <div className="sp4-masthead">
         {property.category && <p className="sp4-eyebrow">{property.category}</p>}
         <p className="sp4-title-key">ชื่อโครงการ</p>
         <h1 className="sp4-title">{property.project_name}</h1>
@@ -457,7 +458,9 @@ export default function SalePageV4({
         <div>
           <div className="sp4-price-block reveal-on-scroll">
             <p className="sp4-price-key">ราคาขาย</p>
-            <p className="sp4-price">฿ {baht(property.price)}</p>
+            {detailsPending
+              ? <p className="sp4-price-pending" role="status">กำลังตรวจสอบราคาล่าสุด…</p>
+              : <p className="sp4-price">฿ {baht(property.price)}</p>}
           </div>
 
           <div className="sp4-plate reveal-on-scroll">
@@ -587,7 +590,7 @@ export default function SalePageV4({
               >
                 <img src="/brand/line.png" alt="" width="18" height="18" className="sp4-lineico" /> ทักไลน์
               </a>
-              <button type="button" className="sp4-act line" aria-expanded={bookOpen} onClick={() => setBookOpen((v) => !v)}>
+              <button type="button" className="sp4-act line" disabled={detailsPending} aria-expanded={bookOpen} onClick={() => setBookOpen((v) => !v)}>
                 <Calendar size={16} /> นัดเข้าชมบ้าน
               </button>
             </div>
@@ -642,7 +645,7 @@ export default function SalePageV4({
                   <p className="sp4-book-sum">{thaiDate(pickDate)} เวลา {hour}:{minute} น.</p>
                 )}
 
-                <button type="button" className="sp4-book-send" disabled={!bookReady || isEditMode} onClick={sendBooking}>
+                <button type="button" className="sp4-book-send" disabled={detailsPending || !bookReady || isEditMode} onClick={sendBooking}>
                   <img src="/brand/line.png" alt="" width="18" height="18" className="sp4-lineico" />
                   ส่งนัดผ่านไลน์
                 </button>
@@ -656,17 +659,17 @@ export default function SalePageV4({
           <div className="sp4-card sp4-calculator-card">
             <div className="sp4-calc">
               <h3>คำนวณสินเชื่อ</h3>
-              <CalculatorSection
+              {detailsPending ? <p className="sp4-details-pending">กำลังตรวจสอบข้อมูลบ้านล่าสุด…</p> : <CalculatorSection
                 defaultPrice={property.price} minimalist
                 visualContent={visualContent} updateVisualContent={updateVisualContent} isEditMode={isEditMode}
-              />
+              />}
             </div>
           </div>
         </aside>
       </main>
 
       {/* ── โครงการที่คุณอาจสนใจ ── */}
-      {relatedProps.length > 0 && (
+      {!detailsPending && relatedProps.length > 0 && (
         <section className="sp4-related reveal-on-scroll">
           <div className="sp4-related-head">
             <h2>โครงการที่คุณอาจสนใจ</h2>
@@ -877,6 +880,9 @@ const css = `
 
 .sp4-price-block { padding-bottom: var(--s3); border-bottom: 1px solid var(--line); }
 .sp4-price-key { margin: 0 0 6px; font-size: 16px; font-weight: 500; color: var(--forest); }
+.sp4-price-pending { display: flex; align-items: center; min-height: 58px; margin: 0; color: var(--forest); font-size: 18px; }
+.sp4-details-pending { color: var(--ink-soft); font-size: 14px; }
+.sp4-act:disabled { opacity: .55; cursor: wait; }
 .sp4-price {
   margin: 0; font-size: clamp(30px, 4.2vw, 42px); font-weight: 600; line-height: 1;
   color: var(--forest); letter-spacing: -.02em;

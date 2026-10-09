@@ -3,6 +3,27 @@ import assert from 'node:assert/strict';
 import { createPropertyReader } from '../lib/propertyReadService.js';
 import { firestoreReadError } from '../lib/firestorePublic.js';
 
+test('known document ID reads current prices directly without slug queries', async () => {
+  let price = 100;
+  const reader = createPropertyReader({ lookup: () => assert.fail('unnecessary slug query'),
+    readDocument: async (path, options) => {
+      assert.equal(path, 'properties/doc-id'); assert.equal(options.cache, 'no-store');
+      return { id: 'doc-id', custom_id: '1/2', price: price++ };
+    } });
+  assert.equal((await reader('1-2', { documentId: 'doc-id' }).promise).price, 100);
+  assert.equal((await reader('1-2', { documentId: 'doc-id' }).promise).price, 101);
+});
+
+test('incorrect or deleted document hints resolve the requested slug instead', async () => {
+  for (const hinted of [null, { id: 'wrong', custom_id: 'other', price: 1 }]) {
+    let queries = 0;
+    const reader = createPropertyReader({ readDocument: async () => hinted,
+      lookup: async slug => { queries++; assert.equal(slug, 'wanted'); return { id: 'right', price: 2 }; } });
+    assert.equal((await reader('wanted', { documentId: 'wrong' }).promise).id, 'right');
+    assert.equal(queries, 1);
+  }
+});
+
 test('concurrent readers share only the pending lookup; later readers get new prices', async () => {
   let finish, lookups = 0, reads = 0;
   const reader = createPropertyReader({

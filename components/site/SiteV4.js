@@ -90,7 +90,7 @@ export default function SiteV4({ basePath = '/v4' }) {
   const {
     userRole, userEmail, authReady, properties, publicProperties, companyInfo, authorizedUsers,
     loading, publicDataError, visualContent, popupData,
-    activeTab, setActiveTab, searchParams, selectedProperty, requestedPropSlug, setSelectedProperty,
+    activeTab, setActiveTab, searchParams, selectedProperty, requestedPropSlug, setRequestedPropSlug, setSelectedProperty,
     showLoginModal, setShowLoginModal, showAdminPanel, setShowAdminPanel,
     showPopupModal, isSnoozeChecked, setIsSnoozeChecked, dismissPopup,
     lightbox, openLightbox, closeLightbox, globalAlert,
@@ -444,7 +444,7 @@ export default function SiteV4({ basePath = '/v4' }) {
             <SalePageV4
               property={selectedProperty}
               companyInfo={companyInfo}
-              onBack={() => { setSelectedProperty(null); window.scrollTo(0, 0); }}
+              onBack={() => { setRequestedPropSlug(null); setSelectedProperty(null); window.scrollTo(0, 0); }}
               properties={publicProperties}
               onSelectProp={handleSelectProperty}
               visualContent={visualContent}

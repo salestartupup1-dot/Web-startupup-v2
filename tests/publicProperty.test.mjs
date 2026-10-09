@@ -7,6 +7,23 @@ function response() {
   return { headers: {}, setHeader(k, v) { this.headers[k] = v; },
     status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
 }
+
+test('browser sends an encoded document hint and endpoint validates it before reading', async () => {
+  await fetchPublicPropertyApi('1/2', { documentId: 'doc id', fetcher: async url => {
+    assert.equal(url, '/api/property?property=1%2F2&documentId=doc%20id');
+    return Response.json({ property: { id: 'doc id' } });
+  } });
+  const res = response();
+  await createPropertyHandler({ readDocument: async path => {
+    assert.equal(path, 'properties/doc%20id'); return { id: 'doc id', custom_id: '1/2' };
+  }, lookup: () => assert.fail('no slug query') })({ method: 'GET', query: { property: '1-2', documentId: 'doc id' } }, res);
+  assert.equal(res.code, 200);
+  for (const documentId of ['', '../x', '..', ['a'], 'x'.repeat(1501)]) {
+    const invalid = response();
+    await createPropertyHandler({ reader: () => assert.fail('invalid hint') })({ method: 'GET', query: { property: 'x', documentId } }, invalid);
+    assert.equal(invalid.code, 400);
+  }
+});
 test('public property endpoint reads current data on every request without caching', async () => {
   let price = 2500000;
   const handler = createPropertyHandler({ lookup: async (slug, { signal }) => {

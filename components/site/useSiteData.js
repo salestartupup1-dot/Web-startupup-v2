@@ -32,6 +32,7 @@ import {
 import { buildPageSeo, buildStructuredData } from '../../lib/seo';
 import { selectPublicProperties } from '../../lib/propertyOwners';
 import usePropertyLink from './usePropertyLink';
+import { createPropertyPreview } from '../../lib/propertyPreview';
 import usePublicPopup from './usePublicPopup';
 import { subscribeSiteSession } from '../../lib/siteSession';
 import { subscribePublicData } from '../../lib/publicDataSubscription';
@@ -130,7 +131,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
         setActiveTab(tab);
         if (sType && sValue) setSearchParams({ type: sType, value: sValue, area: params.get('sArea') || '' });
         setRequestedPropSlug(propSlug);
-        if (!propSlug) setSelectedProperty(null);
+        setSelectedProperty(null);
       } catch (e) {
         console.warn('Cannot read URL parameters in this environment.');
       }
@@ -582,6 +583,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
   }, [jumpTop]);
 
   const handleSelectProperty = useCallback((p) => {
+    setSelectedProperty(createPropertyPreview(p));
     setRequestedPropSlug(generatePropSlug(p));
     jumpTop();
   }, [jumpTop]);
@@ -602,7 +604,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
     authorizedUsers, loading, publicDataError, visualContent, popupData,
     // สถานะหน้าจอ
     activeTab, setActiveTab, isRouteReady, searchParams, selectedProperty,
-    requestedPropSlug, setSelectedProperty,
+    requestedPropSlug, setRequestedPropSlug, setSelectedProperty,
     // โมดัล
     showLoginModal, setShowLoginModal, showAdminPanel, setShowAdminPanel,
     showPopupModal, isSnoozeChecked, setIsSnoozeChecked, dismissPopup,

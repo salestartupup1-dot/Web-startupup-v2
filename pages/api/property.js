@@ -14,12 +14,17 @@ export const createPropertyHandler = ({ lookup, timeoutMs = 8000, readDocument,
     return res.status(405).json({ error: 'Method not allowed', requestId });
   }
   const slug = req.query.property;
+  const documentId = req.query.documentId;
+  if (documentId !== undefined && (typeof documentId !== 'string' || !documentId.trim()
+    || documentId.length > 1500 || documentId.includes('/') || /^\.{1,2}$/.test(documentId))) {
+    return res.status(400).json({ error: 'Invalid document hint', requestId });
+  }
   if (typeof slug !== 'string' || !slug.trim() || slug.length > 500) {
     return res.status(400).json({ error: 'Invalid property', requestId });
   }
   let status = 503, failure, shared = false;
   try {
-    const read = reader(slug);
+    const read = reader(slug, { documentId });
     shared = read.shared;
     const property = await read.promise;
     status = property ? 200 : 404;

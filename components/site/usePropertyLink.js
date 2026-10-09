@@ -2,11 +2,14 @@ import { useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { fetchPublicPropertyApi } from '../../lib/publicProperty';
 import { subscribePropertyDetails } from '../../lib/propertyDetails';
+import { matchesPropertySlug } from '../../lib/firestorePublic';
 
 export default function usePropertyLink({
   db, appId, requestedPropSlug, selectedProperty,
   setRequestedPropSlug, setSelectedProperty, setActiveTab, setGlobalAlert,
 }) {
+  const documentId = requestedPropSlug && selectedProperty?._detailsPending
+    && matchesPropertySlug(selectedProperty, requestedPropSlug) ? selectedProperty.id : undefined;
   useEffect(() => {
     if (!requestedPropSlug) return;
 
@@ -27,7 +30,7 @@ export default function usePropertyLink({
       controller = new AbortController();
       timer = setTimeout(() => controller.abort(), 30000);
       try {
-        const property = await fetchPublicPropertyApi(requestedPropSlug, { signal: controller.signal });
+        const property = await fetchPublicPropertyApi(requestedPropSlug, { signal: controller.signal, documentId });
         if (cancelled) return;
         closeAlert();
         setSelectedProperty(property);
@@ -82,7 +85,7 @@ export default function usePropertyLink({
       document.removeEventListener('visibilitychange', recover);
       closeAlert();
     };
-  }, [requestedPropSlug, setRequestedPropSlug, setSelectedProperty, setActiveTab, setGlobalAlert]);
+  }, [requestedPropSlug, documentId, setRequestedPropSlug, setSelectedProperty, setActiveTab, setGlobalAlert]);
 
   const selectedId = selectedProperty?.id;
   useEffect(() => {
