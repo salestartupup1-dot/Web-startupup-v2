@@ -25,3 +25,21 @@ test('delivery failure is visible without leaking token or response body', async
     runId: '1', runUrl: 'https://github.com', fetcher: async () => Response.json({ secret: 'private' }, { status: 401 }) }),
     error => error.message === 'LINE alert delivery failed (HTTP 401)');
 });
+
+test('manual test verifies the recipient and labels the message as a test', async () => {
+  const userId = 'U' + 'b'.repeat(32), calls = [];
+  await sendSaleAlert({ state: 'test', token: 'test-secret', userId, runId: '2', runUrl: 'https://github.com',
+    fetcher: async (url, options) => {
+      calls.push({ url, options });
+      return url.includes('/profile/') ? Response.json({ userId }) : new Response(null, { status: 200 });
+    } });
+  assert.equal(calls.length, 2);
+  assert.match(JSON.parse(calls[1].options.body).messages[0].text, /ข้อความทดสอบ/);
+});
+
+test('an unverified LINE recipient cannot receive the test', async () => {
+  let calls = 0;
+  await assert.rejects(sendSaleAlert({ state: 'test', token: 'test-secret', userId: 'U' + 'b'.repeat(32),
+    runId: '3', runUrl: 'https://github.com', fetcher: async () => { calls++; return new Response(null, { status: 404 }); } }), /recipient verification failed/);
+  assert.equal(calls, 1);
+});

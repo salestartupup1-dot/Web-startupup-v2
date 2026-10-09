@@ -52,7 +52,8 @@ The GitHub runner calls LINE directly, so notification does not depend on the si
 Send only on an outage transition and recovery. A continuing outage with a successful alert is suppressed;
 a failed delivery is retried in the next monitor run, with a stable LINE retry key within each run.
 Missing secrets visibly skip LINE delivery and emit a workflow warning. API monitoring still runs.
-Run the workflow after setup; the current implementation has been tested with mocked delivery only.
+After setup, run the workflow with test_line checked. It verifies the recipient's profile and sends
+an explicitly labeled test message without simulating an outage. LINE acceptance is not a read receipt.
 
 A separate durable export of every application error log and independent content backup require
 choosing/configuring those services. Monitor history alone cannot reconstruct every customer's incident.

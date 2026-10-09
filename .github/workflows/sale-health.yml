@@ -1,6 +1,11 @@
 name: Sale Page availability
 on:
   workflow_dispatch:
+    inputs:
+      test_line:
+        description: Send a clearly labeled LINE test message to Peth
+        type: boolean
+        default: false
   schedule:
     - cron: '7,17,27,37,47,57 * * * *'
 permissions:
@@ -29,6 +34,7 @@ jobs:
         if: always() && env.LINE_ALERT_CONFIGURED == 'true' && (steps.check.outcome == 'success' || steps.check.outcome == 'failure')
         env:
           SALE_MONITOR_FAILED: ${{ steps.check.outcome == 'failure' }}
+          SALE_MONITOR_TEST_LINE: ${{ github.event_name == 'workflow_dispatch' && inputs.test_line }}
           GITHUB_TOKEN: ${{ github.token }}
           LINE_ALERT_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_ALERT_CHANNEL_ACCESS_TOKEN }}
           LINE_ALERT_USER_ID: ${{ secrets.LINE_ALERT_USER_ID }}

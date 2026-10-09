@@ -34,4 +34,8 @@ if (!token || !userId) {
     await sendSaleAlert({ state, token, userId, runId, runUrl: `https://github.com/${repo}/actions/runs/${runId}` });
     console.log('LINE notification accepted: ' + state);
   } else console.log('No status transition; no duplicate LINE notification.');
+  if (process.env.SALE_MONITOR_TEST_LINE === 'true' && process.env.GITHUB_EVENT_NAME === 'workflow_dispatch') {
+    await sendSaleAlert({ state: 'test', token, userId, runId, runUrl: `https://github.com/${repo}/actions/runs/${runId}` });
+    console.log('LINE recipient verified; test notification accepted.');
+  }
 }
