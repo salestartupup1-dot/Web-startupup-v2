@@ -39,6 +39,7 @@ function memoryDb() {
       return { doc: id => ref(name, id), where: (...c) => query([...conditions, c], ordering, after, limit),
         orderBy: (field, direction = 'asc') => query(conditions, [...ordering, [field, direction]], after, limit),
         startAfter: (...cursor) => query(conditions, ordering, cursor, limit), limit: n => query(conditions, ordering, after, n),
+        select: () => query(conditions, ordering, after, limit),
         get: async () => { const docs = rows(); return { docs, size: docs.length }; },
         count: () => ({ get: async () => ({ data: () => ({ count: rows().length }) }) }) };
     }
@@ -78,6 +79,9 @@ test('same customer in same/different channels creates separate immutable visits
   await visit(db, 'facebook', at + 2000);
   const report = await listLeads(day, db);
   assert.equal(report.total, 3);
+  assert.equal(report.customerTotal, 1);
+  assert.equal(report.customerCounts.tiktok, 1);
+  assert.equal(report.customerCounts.facebook, 1);
   assert.deepEqual(report.leads.map(v => v.platform), ['facebook', 'tiktok', 'tiktok']);
   assert.equal(new Set(report.leads.map(v => v.userId)).size, 1);
   assert.equal(new Set(report.leads.map(v => v.eventId)).size, 3);
@@ -91,6 +95,7 @@ test('date boundaries exclude adjacent days, exact counts exceed page size, tied
   await visit(db, 'google', from); await visit(db, 'google', until - 1); await visit(db, 'facebook', until);
   const first = await listLeads(day, db);
   assert.equal(first.total, 55); assert.equal(first.counts.tiktok, 53); assert.equal(first.counts.facebook, 0);
+  assert.equal(first.customerTotal, 1); assert.equal(first.customerCounts.tiktok, 1);
   assert.equal(first.leads.length, 50);
   const second = await listLeads({ ...day, cursor: first.nextCursor }, db);
   assert.equal(second.leads.length, 5); assert.equal(second.nextCursor, null);
@@ -100,6 +105,25 @@ test('date boundaries exclude adjacent days, exact counts exceed page size, tied
   assert.equal(filteredNext.leads.length, 3);
   await assert.rejects(listLeads({ ...day, platform: 'facebook', cursor: first.nextCursor }, db), { status: 400 });
   await assert.rejects(listLeads({ ...day, cursor: 'invalid' }, db), { status: 400 });
+});
+
+test('unique customer totals cover all pages and distinguish same-name accounts across channels', async () => {
+  const db = memoryDb();
+  for (let i = 1; i <= 52; i++) {
+    await visit(db, 'facebook', at + i, { ...profile, userId: 'U' + i.toString(16).padStart(32, '0') });
+  }
+  const repeat = { ...profile, userId: 'U' + '1'.padStart(32, '0') };
+  await visit(db, 'facebook', at + 100, repeat);
+  await visit(db, 'tiktok', at + 200, repeat);
+  const first = await listLeads({ ...day, platform: 'facebook' }, db);
+  const second = await listLeads({ ...day, platform: 'facebook', cursor: first.nextCursor }, db);
+  for (const report of [first, second]) {
+    assert.equal(report.customerTotal, 52);
+    assert.equal(report.customerCounts.facebook, 52);
+    assert.equal(report.customerCounts.tiktok, 1);
+    assert.equal(report.counts.facebook, 53);
+  }
+  assert.equal(new Set([...first.leads, ...second.leads].map(row => row.userId)).size, 52);
 });
 test('Google Search history merges with ads, preserving counts and pagination across tied timestamps', async () => {
   const db = memoryDb();
@@ -114,6 +138,7 @@ test('Google Search history merges with ads, preserving counts and pagination ac
   const all = await listLeads(day, db);
   assert.equal(all.total, 107);
   assert.equal(all.counts.website, 106);
+  assert.equal(all.customerCounts.website, 1);
   assert.equal(all.counts.google_organic, undefined);
   const rows = [];
   let cursor;
