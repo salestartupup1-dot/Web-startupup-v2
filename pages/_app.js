@@ -1,4 +1,4 @@
-import { Component as ReactComponent, useEffect } from 'react'
+import { Component as ReactComponent, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { captureAttribution } from '../lib/lineAttribution'
 import { gtagSendEvent, trackContactClick } from '../lib/googleAdsConversion'
@@ -12,6 +12,7 @@ const GOOGLE_TAG_MANAGER_ID = 'GTM-N27PQGL2'
 const TIKTOK_PIXEL_ID = 'D929G0BC77U133LMGG50'
 
 // Capture incoming campaign parameters before the site's SPA rewrites its URL.
+const phoneDiagnosticsRequested = typeof window !== 'undefined' && new URL(window.location.href).searchParams.get('phone_debug') === '1'
 if (typeof window !== 'undefined') captureAttribution()
 
 /**
@@ -58,11 +59,16 @@ class ErrorBoundary extends ReactComponent {
 
 export default function App({ Component, pageProps }) {
   const router = useRouter()
+  const [phoneDiagnostic, setPhoneDiagnostic] = useState(null)
   const privateRoute = /^\/(admin|line)(\/|$)/.test(router.pathname)
   useEffect(() => {
     if (privateRoute) return
     window.gtagSendEvent = gtagSendEvent
-    const stopPhoneTracking = installPhoneClickTracking()
+    const diagnostic = phoneDiagnosticsRequested || new URL(window.location.href).searchParams.get('phone_debug') === '1'
+    if (diagnostic) setPhoneDiagnostic('ready')
+    const stopPhoneTracking = installPhoneClickTracking(window, document, status => {
+      if (diagnostic) setPhoneDiagnostic(status)
+    })
     document.addEventListener('click', trackContactClick)
     return () => {
       document.removeEventListener('click', trackContactClick)
@@ -105,6 +111,10 @@ export default function App({ Component, pageProps }) {
         `}
       </Script>
       </>}
+      {phoneDiagnostic && !privateRoute && <aside role="status" aria-live="polite" style={{ position: 'fixed', bottom: 12, left: 12, right: 12, zIndex: 2147483647, margin: '0 auto', maxWidth: 420, padding: '12px 16px', borderRadius: 12, background: '#fff', color: '#123d2b', border: '2px solid #06c755', boxShadow: '0 2px 12px #0002', fontSize: 14 }}>
+        <strong>????????????</strong>{' ? '}
+        {phoneDiagnostic === 'ready' ? '?????????? ? ?????????????????' : phoneDiagnostic === 'sending' ? '????????????' : phoneDiagnostic === 'saved' ? '?????????? Lead Source ????' : phoneDiagnostic === 'retry' ? '??????????????? ????????????????????????' : `??????????????? (${phoneDiagnostic.replace('error:', '')})`}
+      </aside>}
       <ErrorBoundary>
         <Component {...pageProps} />
       </ErrorBoundary>

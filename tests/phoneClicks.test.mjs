@@ -60,8 +60,10 @@ test('mobile clicks retry without randomUUID or mouse button; server acknowledge
   const event = { defaultPrevented: false, target: { closest: () => anchor }, preventDefault() { throw new Error('must not block dialing'); } };
   const tracker = createPhoneClickTracker(runtime);
   tracker(event); tracker(event);
+  assert.equal(sent.length, 1, 'beacon is queued before the click handler returns');
+  assert.equal(fetched.length, 1, 'fetch starts before the click handler returns');
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(sent.length, 1); assert.equal(fetched.length, 1);
+  assert.equal(sent.length, 2); assert.equal(fetched.length, 1);
   assert.equal(sent[0][0], '/api/contact/phone-click');
   assert.equal(JSON.parse(await sent[0][1].text()).property.name, 'บ้านทดสอบ');
   assert.equal(fetched[0][1].keepalive, true);
@@ -74,8 +76,11 @@ test('mobile clicks retry without randomUUID or mouse button; server acknowledge
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(JSON.parse(fetched[1][1].body).eventId, id);
   assert.equal(JSON.parse([...storage.values()][0]).length, 0);
-  tracker({ ...event, defaultPrevented: true }); tracker({ ...event, button: 2 });
-  assert.equal(sent.length, 1);
+  tracker({ ...event, button: 2 });
+  assert.equal(sent.length, 2);
+  resumed({ ...event, defaultPrevented: true, button: -1 });
+  assert.equal(sent.length, 3, 'a touch activation handled by other analytics is still counted');
+  await new Promise(resolve => setImmediate(resolve));
 });
 
 test('tracking runs in capture phase and retries on mobile resume; cleanup removes every listener', () => {
