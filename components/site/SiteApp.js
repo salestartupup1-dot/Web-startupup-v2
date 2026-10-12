@@ -1718,7 +1718,7 @@ function SalePage({ property, companyInfo, onBack, properties, onSelectProp, vis
                 {companyInfo?.logoUrl && (<SmartImage src={getOptimizedImg(companyInfo.logoUrl, 240)} alt="Logo" width={240} height={96} sizes="240px" className="h-12 w-auto mx-auto mb-4 object-contain" loading="lazy" decoding="async" />)}
                 <h3 className="font-medium text-base mb-5">สนใจติดต่อ</h3>
                 <div className="space-y-3 mb-6">
-                    <a href={isEditMode ? '#' : `tel:${companyInfo?.phone}`} className={`flex items-center justify-center gap-2 w-full bg-brand-green text-white py-3 rounded-full text-sm font-light hover:bg-opacity-90 transition hover:-translate-y-1 ${isEditMode ? 'pointer-events-none' : ''}`}><Phone size={16} /> {companyInfo?.phone}</a>
+                    <a href={isEditMode ? '#' : `tel:${companyInfo?.phone}`} data-phone-property-id={property.id} data-phone-property-name={[property.project_name, property.house_number].filter(Boolean).join(" ")} data-phone-property-slug={generatePropSlug(property)} className={`flex items-center justify-center gap-2 w-full bg-brand-green text-white py-3 rounded-full text-sm font-light hover:bg-opacity-90 transition hover:-translate-y-1 ${isEditMode ? 'pointer-events-none' : ''}`}><Phone size={16} /> {companyInfo?.phone}</a>
                     <a href={isEditMode ? '#' : lineContactHref(property)} target="_blank" rel="noopener noreferrer" className={`flex items-center justify-center gap-2 w-full bg-[#06C755] text-white py-3 rounded-full text-sm font-light hover:bg-opacity-90 transition hover:-translate-y-1 ${isEditMode ? 'pointer-events-none' : ''}`}><MessageCircle size={16} /> ทักไลน์</a>
                 </div>
                 <div className="border-t border-gray-100 pt-5 text-left">
@@ -4185,7 +4185,7 @@ export default function App() {
                 <a href={isVisualEditMode ? "#" : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(companyInfo?.address)}`} onClick={(e)=>{if(isVisualEditMode)e.preventDefault()}} target={isVisualEditMode ? "_self" : "_blank"} rel="noopener noreferrer" className={`mb-2 text-sm opacity-80 block ${isVisualEditMode ? 'pointer-events-none opacity-50' : 'hover:text-white hover:underline'}`}>
                     {companyInfo?.address}
                 </a>
-                <p className="mb-2 text-lg"><a href={isVisualEditMode ? "#" : `tel:${companyInfo?.phone}`} onClick={(e)=>{if(isVisualEditMode)e.preventDefault()}} className={isVisualEditMode ? 'pointer-events-none opacity-50' : 'hover:text-white hover:underline'}>โทร: {companyInfo?.phone}</a></p>
+                <p className="mb-2 text-lg"><a href={isVisualEditMode ? "#" : `tel:${companyInfo?.phone}`} data-phone-property-id={selectedProperty?.id} data-phone-property-name={[selectedProperty?.project_name, selectedProperty?.house_number].filter(Boolean).join(" ")} data-phone-property-slug={selectedProperty ? generatePropSlug(selectedProperty) : undefined} onClick={(e)=>{if(isVisualEditMode)e.preventDefault()}} className={isVisualEditMode ? 'pointer-events-none opacity-50' : 'hover:text-white hover:underline'}>โทร: {companyInfo?.phone}</a></p>
                 <p className="text-sm opacity-80">Email: {companyInfo?.email}</p>
               </div>
               <div className="reveal-on-scroll delay-200">

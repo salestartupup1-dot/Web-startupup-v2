@@ -2,6 +2,7 @@ import { Component as ReactComponent, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { captureAttribution } from '../lib/lineAttribution'
 import { gtagSendEvent, trackContactClick } from '../lib/googleAdsConversion'
+import { createPhoneClickTracker } from '../lib/phoneClicks'
 import 'leaflet/dist/leaflet.css'
 import '../styles/globals.css'
 import Script from 'next/script'
@@ -61,9 +62,12 @@ export default function App({ Component, pageProps }) {
   useEffect(() => {
     if (privateRoute) return
     window.gtagSendEvent = gtagSendEvent
+    const trackPhoneClick = createPhoneClickTracker()
+    document.addEventListener('click', trackPhoneClick)
     document.addEventListener('click', trackContactClick)
     return () => {
       document.removeEventListener('click', trackContactClick)
+      document.removeEventListener('click', trackPhoneClick)
       if (window.gtagSendEvent === gtagSendEvent) delete window.gtagSendEvent
     }
   }, [privateRoute])
