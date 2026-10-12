@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { recordPhoneClick, listPhoneClicks, phoneClickRecord, PHONE_CLICKS_COLLECTION } from '../lib/phoneClickServer.js';
-import { createPhoneClickTracker } from '../lib/phoneClicks.js';
+import { createPhoneClickTracker, installPhoneClickTracking } from '../lib/phoneClicks.js';
 import { sameOrigin } from '../lib/lineServer.js';
 const at = Date.parse('2026-10-12T12:00:00+07:00');
 const range = { start: '2026-10-12', end: '2026-10-12' };
@@ -49,23 +49,45 @@ test('repeat delivery counts once; real later clicks remain events; tied paginat
   assert.equal([...db.data.keys()].every(key => key.startsWith(PHONE_CLICKS_COLLECTION + '/')), true);
 });
 
-test('click handler preserves dialing, deduplicates double taps, and falls back from beacon to keepalive', async () => {
+test('mobile clicks retry without randomUUID or mouse button; server acknowledgement clears the queue', async () => {
   const sent = [], fetched = [];
-  const runtime = { crypto: { randomUUID }, location: { pathname: '/api/share' }, navigator: { sendBeacon: (url, blob) => { sent.push([url, blob]); return true; } }, fetch: async (...args) => { fetched.push(args); } };
+  const storage = new Map();
+  const runtime = { crypto: { getRandomValues: bytes => { bytes.set(Array.from({ length: 16 }, (_, i) => i)); return bytes; } },
+    sessionStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value) },
+    location: { pathname: '/api/share' }, navigator: { sendBeacon: (url, blob) => { sent.push([url, blob]); return true; } },
+    fetch: async (...args) => { fetched.push(args); throw new Error('phone app interrupted the request'); } };
   const anchor = { href: 'tel:0624782426', dataset: { phonePropertyId: 'h1', phonePropertyName: 'บ้านทดสอบ', phonePropertySlug: 'slug' }, getAttribute: () => 'tel:0624782426', hasAttribute: () => false };
-  const event = { button: 0, defaultPrevented: false, target: { closest: () => anchor }, preventDefault() { throw new Error('must not block dialing'); } };
+  const event = { defaultPrevented: false, target: { closest: () => anchor }, preventDefault() { throw new Error('must not block dialing'); } };
   const tracker = createPhoneClickTracker(runtime);
   tracker(event); tracker(event);
-  assert.equal(sent.length, 1); assert.equal(fetched.length, 0);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(sent.length, 1); assert.equal(fetched.length, 1);
   assert.equal(sent[0][0], '/api/contact/phone-click');
   assert.equal(JSON.parse(await sent[0][1].text()).property.name, 'บ้านทดสอบ');
-  runtime.navigator.sendBeacon = () => false;
-  createPhoneClickTracker(runtime)(event);
   assert.equal(fetched[0][1].keepalive, true);
-  const blocked = createPhoneClickTracker({ ...runtime, fetch: () => Promise.reject(new Error('offline')) });
-  assert.doesNotThrow(() => blocked(event));
+  assert.equal(JSON.parse([...storage.values()][0]).length, 1, 'beacon acceptance does not clear pending delivery');
+  const id = JSON.parse(fetched[0][1].body).eventId;
+  assert.match(id, /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/);
+  runtime.fetch = async (...args) => { fetched.push(args); return { ok: true, status: 204 }; };
+  const resumed = createPhoneClickTracker(runtime);
+  resumed.flush();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(JSON.parse(fetched[1][1].body).eventId, id);
+  assert.equal(JSON.parse([...storage.values()][0]).length, 0);
   tracker({ ...event, defaultPrevented: true }); tracker({ ...event, button: 2 });
   assert.equal(sent.length, 1);
+});
+
+test('tracking runs in capture phase and retries on mobile resume; cleanup removes every listener', () => {
+  const handlers = new Map(), removed = [];
+  const target = prefix => ({ addEventListener: (name, fn, capture) => handlers.set(prefix + name, { fn, capture }), removeEventListener: (name, fn, capture) => { assert.deepEqual(handlers.get(prefix + name), { fn, capture }); removed.push(prefix + name); } });
+  const doc = { ...target('doc:'), visibilityState: 'hidden' };
+  const runtime = { ...target('window:'), navigator: {}, sessionStorage: { getItem: () => '[]', setItem: () => {} } };
+  const stop = installPhoneClickTracking(runtime, doc);
+  assert.equal(handlers.get('doc:click').capture, true);
+  for (const name of ['doc:visibilitychange', 'window:pageshow', 'window:online', 'window:focus']) assert.equal(typeof handlers.get(name).fn, 'function');
+  assert.doesNotThrow(() => handlers.get('doc:visibilitychange').fn());
+  stop(); assert.equal(removed.length, 5);
 });
 
 test('collection writes require the website origin and JSON body', () => {
