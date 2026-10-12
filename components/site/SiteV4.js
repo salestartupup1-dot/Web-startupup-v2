@@ -31,7 +31,7 @@ import { safeJsonLd } from '../../lib/seo';
 import {
   HomeSection, LocationSection, PropertiesList, CalculatorSection, PortfolioSection,
   LoginModal, CustomAlertModal, AdminPanel, Lightbox, SmartImage, EditableText,
-  getOptimizedImg, DEFAULT_LOCATIONS_DATA, DEFAULT_VISUAL_CONTENT, db, appId,
+  getOptimizedImg, DEFAULT_LOCATIONS_DATA, DEFAULT_VISUAL_CONTENT, db, appId, generatePropSlug,
 } from './SiteApp';
 
 const Facebook = ({ size = 26 }) => (
@@ -597,7 +597,7 @@ export default function SiteV4({ basePath = '/v4' }) {
                 href={OFFICE_MAP_URL}
                 target="_blank" rel="noopener noreferrer"
               >{companyInfo?.address}</a>
-              <a className="v4-phone" href={`tel:${companyInfo?.phone}`}>โทร {companyInfo?.phone}</a>
+              <a className="v4-phone" href={`tel:${companyInfo?.phone}`} data-phone-property-id={selectedProperty?.id} data-phone-property-name={[selectedProperty?.project_name, selectedProperty?.house_number].filter(Boolean).join(' ')} data-phone-property-slug={selectedProperty ? generatePropSlug(selectedProperty) : undefined}>โทร {companyInfo?.phone}</a>
               <span>{companyInfo?.email}</span>
             </div>
             <div>

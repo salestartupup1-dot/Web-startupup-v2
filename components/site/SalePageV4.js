@@ -24,7 +24,7 @@ import {
 import {
   SmartImage, SoldOutRibbon, CalculatorSection, db, appId,
   getOptimizedImg, preloadImage, preloadImagesAround,
-  getYoutubeId, getPropertySharePath,
+  getYoutubeId, getPropertySharePath, generatePropSlug,
 } from './SiteApp';
 import SalePromotionCard from './SalePromotionCard';
 import useSalePromotion from './useSalePromotion';
@@ -578,6 +578,9 @@ export default function SalePageV4({
               <a
                 className={`sp4-act call${isEditMode ? ' is-off' : ''}`}
                 href={isEditMode ? '#' : `tel:${companyInfo?.phone}`}
+                data-phone-property-id={property.id}
+                data-phone-property-name={[property.project_name, property.house_number].filter(Boolean).join(' ')}
+                data-phone-property-slug={generatePropSlug(property)}
                 onClick={() => trackContact('contact_call')}
               >
                 <Phone size={16} /> {companyInfo?.phone}
