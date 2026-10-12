@@ -64,11 +64,3 @@
   .card .privacy { margin-top: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { .progress span { animation: none; transform: translateX(11px); } }
-
-/* Once inside LINE, hand off to chat without repeating the full welcome page. */
-.handoff { min-height: 100svh; background: #fff; padding: 24px; }
-.handoffCard { width: 100%; max-width: 340px; padding: 24px 12px; border: 0; background: transparent; }
-.handoffCard h1 { font-size: 20px; margin: 14px 0 8px; }
-.handoffCard p { font-size: 13px; color: #52675b; }
-.handoffCard .lineIcon { width: 36px; height: 36px; margin-bottom: 14px; }
-.handoffCard .lineIcon img { width: 36px; height: 36px; }

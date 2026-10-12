@@ -15,7 +15,7 @@ export default function LineConnect({ liffId, ready, inLineBrowser = false }) {
   const [loginRedirect, setLoginRedirect] = useState('');
   const [inLine, setInLine] = useState(inLineBrowser);
   const [showChatFallback, setShowChatFallback] = useState(false);
-  const compact = inLine && !error;
+  const automaticHandoff = inLine && !error;
   useEffect(() => {
     if (!destination) return;
     const timeout = window.setTimeout(() => setShowChatFallback(true), 2000);
@@ -69,7 +69,7 @@ export default function LineConnect({ liffId, ready, inLineBrowser = false }) {
       window.location.replace(data.chatUrl);
     } catch (err) { setError(err.message || 'เชื่อมบัญชีไม่สำเร็จ กรุณาลองอีกครั้ง'); }
   }, [liffId, ready]);
-  return <main className={`${styles.gateway} ${compact ? visual.handoff : visual.scene}`}><Head>
+  return <main className={`${styles.gateway} ${visual.scene}`}><Head>
     <title>Add LINE friend</title>
     <meta name="robots" content="noindex,nofollow" />
     <meta name="referrer" content="no-referrer" />
@@ -83,26 +83,26 @@ export default function LineConnect({ liffId, ready, inLineBrowser = false }) {
     <meta name="twitter:title" content="Add LINE friend" key="twitter:title" />
     <meta name="twitter:image" content="https://www.startupup-real-estate.com/brand/line-add-friend.png" key="twitter:image" />
   </Head>
-    {!compact && <><div className={visual.photo} aria-hidden="true">
+    <div className={visual.photo} aria-hidden="true">
       <Image src="/brand/line-connect-background.png" alt="" fill sizes="(max-width: 700px) 100vw, 60vw" preload className={visual.background} />
     </div>
-    <div className={visual.brand}>STARTUP UP<span>REAL ESTATE</span></div></>}
+    <div className={visual.brand}>STARTUP UP<span>REAL ESTATE</span></div>
     {ready && <Script src="https://static.line-scdn.net/liff/edge/2/sdk.js" strategy="afterInteractive" onReady={connect} onError={() => setError('โหลด LINE ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่')} />}
-    <section className={`${styles.gatewayCard} ${compact ? visual.handoffCard : visual.card}`} aria-labelledby="line-connect-heading">
+    <section className={`${styles.gatewayCard} ${visual.card}`} aria-labelledby="line-connect-heading">
       <div className={visual.lineIcon}><Image src="/brand/line.png" width={52} height={52} alt="LINE" /></div>
-      {!compact && <span className={styles.eyebrow}>คุยเรื่องบ้านกับ STARTUP UP</span>}
-      <h1 id="line-connect-heading">{compact ? 'กำลังเข้าห้องแชท…' : destination ? 'พร้อมคุยกับทีมงานแล้ว' : error ? 'เปิด LINE ไม่สำเร็จ' : appUrl ? 'เปิดแอป LINE เพื่อคุยกัน' : 'กำลังเปิด LINE…'}</h1>
+      <span className={styles.eyebrow}>คุยเรื่องบ้านกับ STARTUP UP</span>
+      <h1 id="line-connect-heading">{automaticHandoff && !showChatFallback ? 'กำลังเข้าห้องแชท…' : destination ? 'พร้อมคุยกับทีมงานแล้ว' : error ? 'เปิด LINE ไม่สำเร็จ' : appUrl ? 'เปิดแอป LINE เพื่อคุยกัน' : 'กำลังเปิด LINE…'}</h1>
       {ready && !error && !appUrl && !showChatFallback && <div className={visual.progress} aria-hidden="true"><span /></div>}
-      {error ? <p role="alert" className={styles.error}>{error}</p> : <p role="status">{compact && !showChatFallback ? 'กำลังเชื่อมต่อกับทีม STARTUP UP' : destination ? 'หากแชทยังไม่เปิด แตะปุ่มด้านล่าง' : appUrl ? 'แตะปุ่มด้านล่างเพื่อเชื่อมบัญชีและติดต่อ @SURE141' : 'กรุณารอสักครู่ เราจะพาคุณไปที่ @SURE141 อัตโนมัติ'}</p>}
+      {error ? <p role="alert" className={styles.error}>{error}</p> : <p role="status">{automaticHandoff && !showChatFallback ? 'กำลังเชื่อมต่อกับทีม STARTUP UP' : destination ? 'หากแชทยังไม่เปิด แตะปุ่มด้านล่าง' : appUrl ? 'แตะปุ่มด้านล่างเพื่อเชื่อมบัญชีและติดต่อ @SURE141' : 'กรุณารอสักครู่ เราจะพาคุณไปที่ @SURE141 อัตโนมัติ'}</p>}
       {appUrl && !destination && <>
         <a className={styles.primary} href={appUrl} rel="noreferrer">เปิดแอป LINE</a>
         <details><summary>หากแอป LINE ไม่เปิด</summary><p>ลองแตะปุ่มค้างแล้วเลือก “เปิดใน LINE” หรือกลับไปสแกน QR ด้วยตัวสแกนภายในแอป LINE</p><button className={styles.secondary} onClick={() => window.liff.login({ redirectUri: loginRedirect })}>เข้าสู่ระบบ LINE ผ่านเบราว์เซอร์</button></details>
       </>}
-      {destination && (!compact || showChatFallback) && <a className={styles.primary} href={destination} rel="noreferrer">เปิดแชทกับทีมงาน</a>}
+      {destination && (!automaticHandoff || showChatFallback) && <a className={styles.primary} href={destination} rel="noreferrer">เปิดแชทกับทีมงาน</a>}
       {error && ready && <button className={styles.primary} onClick={() => window.location.reload()}>ลองอีกครั้ง</button>}
       {error && !destination && <a className={styles.secondary} href={MAIN_LINE_URL} rel="noreferrer">เปิดแชท LINE โดยตรง</a>}
       <noscript><p>กรุณาเปิด JavaScript เพื่อเปิด LINE อัตโนมัติ</p><a className={styles.secondary} href={MAIN_LINE_URL} rel="noreferrer">เปิดแชท LINE โดยตรง</a></noscript>
-      {(!compact || showChatFallback) && <a className={`${styles.textLink} ${visual.privacy}`} href="/line/privacy" target="_blank" rel="noreferrer">อ่านคำชี้แจงการใช้ข้อมูล <span aria-hidden="true">↗</span></a>}
+      <a className={`${styles.textLink} ${visual.privacy}`} href="/line/privacy" target="_blank" rel="noreferrer">อ่านคำชี้แจงการใช้ข้อมูล <span aria-hidden="true">↗</span></a>
     </section></main>;
 }
 
