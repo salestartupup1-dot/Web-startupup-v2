@@ -1,9 +1,11 @@
 import Head from 'next/head';
+import Image from 'next/image';
 import Script from 'next/script';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAIN_LINE_URL } from '../../lib/lineAttribution';
 import { needsLineAppTap, resolveLineEntry, createQrIntent } from '../../lib/lineLaunch';
 import styles from '../../styles/line-leads.module.css';
+import visual from '../../styles/line-connect.module.css';
 
 export default function LineConnect({ liffId, ready }) {
   const started = useRef(false);
@@ -58,7 +60,7 @@ export default function LineConnect({ liffId, ready }) {
       window.location.replace(data.chatUrl);
     } catch (err) { setError(err.message || 'เชื่อมบัญชีไม่สำเร็จ กรุณาลองอีกครั้ง'); }
   }, [liffId, ready]);
-  return <main className={styles.gateway}><Head>
+  return <main className={`${styles.gateway} ${visual.scene}`}><Head>
     <title>Add LINE friend</title>
     <meta name="robots" content="noindex,nofollow" />
     <meta name="referrer" content="no-referrer" />
@@ -72,8 +74,16 @@ export default function LineConnect({ liffId, ready }) {
     <meta name="twitter:title" content="Add LINE friend" key="twitter:title" />
     <meta name="twitter:image" content="https://www.startupup-real-estate.com/brand/line-add-friend.png" key="twitter:image" />
   </Head>
+    <div className={visual.photo} aria-hidden="true">
+      <Image src="/brand/line-connect-background.png" alt="" fill sizes="(max-width: 700px) 100vw, 60vw" preload className={visual.background} />
+    </div>
+    <div className={visual.brand}>STARTUP UP<span>REAL ESTATE</span></div>
     {ready && <Script src="https://static.line-scdn.net/liff/edge/2/sdk.js" strategy="afterInteractive" onReady={connect} onError={() => setError('โหลด LINE ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่')} />}
-    <section className={styles.gatewayCard}><span className={styles.eyebrow}>STARTUP UP · LINE</span><h1>{destination ? 'พร้อมคุยกับทีมงานแล้ว' : error ? 'เปิด LINE ไม่สำเร็จ' : appUrl ? 'เปิดแอป LINE เพื่อดำเนินการต่อ' : 'กำลังเปิด LINE…'}</h1>
+    <section className={`${styles.gatewayCard} ${visual.card}`} aria-labelledby="line-connect-heading">
+      <div className={visual.lineIcon}><Image src="/brand/line.png" width={52} height={52} alt="LINE" /></div>
+      <span className={styles.eyebrow}>คุยเรื่องบ้านกับ STARTUP UP</span>
+      <h1 id="line-connect-heading">{destination ? 'พร้อมคุยกับทีมงานแล้ว' : error ? 'เปิด LINE ไม่สำเร็จ' : appUrl ? 'เปิดแอป LINE เพื่อคุยกัน' : 'กำลังเปิด LINE…'}</h1>
+      {ready && !error && !destination && !appUrl && <div className={visual.progress} aria-hidden="true"><span /></div>}
       {error ? <p role="alert" className={styles.error}>{error}</p> : <p role="status">{destination ? 'หาก LINE ยังไม่เปิด กดปุ่มด้านล่าง' : appUrl ? 'แตะปุ่มด้านล่างเพื่อเชื่อมบัญชีและติดต่อ @SURE141' : 'กรุณารอสักครู่ เราจะพาคุณไปที่ @SURE141 อัตโนมัติ'}</p>}
       {appUrl && !destination && <>
         <a className={styles.primary} href={appUrl} rel="noreferrer">เปิดแอป LINE</a>
@@ -83,7 +93,7 @@ export default function LineConnect({ liffId, ready }) {
       {error && ready && <button className={styles.primary} onClick={() => window.location.reload()}>ลองอีกครั้ง</button>}
       {error && !destination && <a className={styles.secondary} href={MAIN_LINE_URL} rel="noreferrer">เปิดแชท LINE โดยตรง</a>}
       <noscript><p>กรุณาเปิด JavaScript เพื่อเปิด LINE อัตโนมัติ</p><a className={styles.secondary} href={MAIN_LINE_URL} rel="noreferrer">เปิดแชท LINE โดยตรง</a></noscript>
-      <a className={styles.textLink} href="/line/privacy" target="_blank" rel="noreferrer">อ่านคำชี้แจงการใช้ข้อมูล</a>
+      <a className={`${styles.textLink} ${visual.privacy}`} href="/line/privacy" target="_blank" rel="noreferrer">อ่านคำชี้แจงการใช้ข้อมูล <span aria-hidden="true">↗</span></a>
     </section></main>;
 }
 

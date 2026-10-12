@@ -1,0 +1,66 @@
+.scene {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100svh;
+  padding: 40px 5vw 40px 64%;
+  background: #153d2b;
+}
+
+.photo { position: absolute; inset: 0 40% 0 0; z-index: -1; }
+.background { object-fit: cover; object-position: 50% 50%; }
+.photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #10271b70, transparent 30%, #10271b10);
+}
+.brand {
+  position: absolute;
+  top: max(32px, env(safe-area-inset-top));
+  left: 36px;
+  color: #fff;
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  line-height: 1.4;
+  text-shadow: 0 2px 14px #10271b66;
+}
+.brand span { display: block; margin-top: 5px; font-size: 10px; letter-spacing: .3em; font-weight: 400; }
+.card {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 32px 26px 18px;
+  border: 1px solid #ffffffb3;
+  border-radius: 26px;
+  background: #fffffff5;
+  box-shadow: 0 20px 70px #061d2033;
+}
+.lineIcon { width: 52px; height: 52px; margin: 0 auto 18px; }
+.lineIcon img { display: block; }
+.card h1 { font-size: clamp(23px, 2.2vw, 29px); line-height: 1.4; margin: 12px 0; font-weight: 500; letter-spacing: -.025em; }
+.card p { font-size: 14px; color: #52675b; margin: 12px 0 10px; line-height: 1.8; }
+.card p[role='alert'] { color: #9b3025; }
+.card details { font-size: 13px; text-align: left; margin-top: 18px; }
+.card summary { cursor: pointer; padding: 8px 0; }
+.card .privacy { justify-content: center; gap: 7px; font-size: 11px; color: #52675b; border-top: 1px solid #dce5dc; margin-top: 20px; padding-top: 10px; }
+.progress { width: 44px; height: 4px; overflow: hidden; background: #dcefe1; margin: 18px auto; border-radius: 3px; }
+.progress span { display: block; width: 22px; height: 100%; background: #06c755; border-radius: inherit; animation: connecting 1.4s ease-in-out infinite alternate; }
+@keyframes connecting { to { transform: translateX(22px); } }
+
+@media (max-width: 700px) {
+  .scene { justify-content: flex-end; min-height: 100svh; padding: 170px 20px max(24px, env(safe-area-inset-bottom)); }
+  .photo { inset: 0; }
+  .background { object-position: 50% 38%; }
+  .photo::after { background: linear-gradient(180deg, #10271b66, transparent 28%, #10271b10 55%, #10271b80); }
+  .brand { top: max(28px, env(safe-area-inset-top)); left: 26px; font-size: 21px; }
+  .card { max-width: 400px; padding: 24px 22px 12px; border-radius: 24px; }
+  .lineIcon { width: 44px; height: 44px; margin-bottom: 14px; }
+  .lineIcon img { width: 44px; height: 44px; }
+  .card h1 { font-size: 24px; }
+  .card .privacy { margin-top: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .progress span { animation: none; transform: translateX(11px); } }
