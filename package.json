@@ -10,6 +10,7 @@
     "test:line": "node --test tests/lineAttribution.test.mjs tests/lineLaunch.test.mjs tests/lineReport.test.mjs"
   },
   "dependencies": {
+    "@vercel/functions": "3.9.11",
     "firebase": "^12.12.1",
     "firebase-admin": "13.10.0",
     "leaflet": "^1.9.4",

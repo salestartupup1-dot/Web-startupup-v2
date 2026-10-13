@@ -15,12 +15,14 @@ for (const slug of slugs) {
       const data = await response.json();
       const checkedAt = Date.parse(data.checkedAt);
       Object.assign(record, { status: response.status, requestId: response.headers.get('x-request-id'),
-        durationMs: Date.now() - started });
+        durationMs: Date.now() - started,
+        ...(data.code === 'QUOTA_EXCEEDED' ? { code: 'QUOTA_EXCEEDED' } : {}) });
       ok = response.ok && Boolean(data.property?.id)
         && response.headers.get('cache-control')?.includes('no-store')
         && Number.isFinite(checkedAt) && Math.abs(Date.now() - checkedAt) < 60000;
       record.ok = ok;
-      if (!ok) record.reason = response.ok ? 'Invalid or stale response' : 'Property API unavailable';
+      if (!ok) record.reason = data.code === 'QUOTA_EXCEEDED' ? 'Firestore quota exhausted'
+        : response.ok ? 'Invalid or stale response' : 'Property API unavailable';
       records.push(record);
       if (ok || data.retryable === false || response.status === 404) break;
     } catch (error) {

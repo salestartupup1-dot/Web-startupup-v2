@@ -35,7 +35,8 @@ export const createPropertyHandler = ({ lookup, timeoutMs = 8000, readDocument,
     failure = error;
     const retryable = error.retryable !== false;
     if (retryable) res.setHeader('Retry-After', '1');
-    return res.status(status).json({ error: 'Property temporarily unavailable', retryable, requestId });
+    return res.status(status).json({ error: 'Property temporarily unavailable', retryable, requestId,
+      code: error.code === 'QUOTA_EXCEEDED' ? 'QUOTA_EXCEEDED' : 'UNAVAILABLE' });
   } finally {
     // Do not record price, customer data, credentials, or raw upstream messages/URLs.
     log({ event: 'public_property_read', time: new Date().toISOString(), requestId,

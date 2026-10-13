@@ -43,15 +43,17 @@ test('an old REST result cannot replace a newer confirmed popup or deletion', as
   h.emit(null); assert.equal(h.values.at(-1), null); h.stop();
 });
 
-test('focus refresh cancels the earlier request; an old timeout cannot abort the new one', async () => {
+test('focus shares a pending read; an old timeout cannot abort a later refresh', async () => {
   const h = harness();
   h.win.dispatchEvent(new Event('focus'));
-  assert.equal(h.pending[0].options.signal.aborted, true);
+  assert.equal(h.pending.length, 1);
+  assert.equal(h.pending[0].options.signal.aborted, false);
+  h.pending[0].resolve({ imageUrl: 'old.jpg' }); await tick();
+  h.win.dispatchEvent(new Event('focus'));
   h.timeouts[0]();
   assert.equal(h.pending[1].options.signal.aborted, false);
   h.pending[1].resolve({ imageUrl: 'latest.jpg' }); await tick();
-  h.pending[0].resolve({ imageUrl: 'old.jpg' }); await tick();
-  assert.deepEqual(h.values, [{ imageUrl: 'latest.jpg' }]); h.stop();
+  assert.deepEqual(h.values, [{ imageUrl: 'old.jpg' }, { imageUrl: 'latest.jpg' }]); h.stop();
 });
 
 test('cleanup detaches the listener and ignores late data', async () => {

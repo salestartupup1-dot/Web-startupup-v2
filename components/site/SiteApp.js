@@ -17,10 +17,10 @@ import React, { useState, useEffect, useRef, useMemo, useCallback, useId } from 
 import { Home, MapPin, Bed, Bath, Car, Maximize, Phone, MessageCircle, Menu, X, Plus, Trash2, ShieldCheck, CheckCircle, Calculator, Users, FileText, Settings, Edit, Save, Image as ImageIcon, Layout, ChevronLeft, ChevronRight, ChevronDown, Upload, Briefcase, XCircle, Tag, Loader, Video, Check, Copy, Calendar, FolderPlus, Map as MapIcon, Search, AlertTriangle, AlertCircle, Star, ClipboardCheck, Type, LayoutTemplate, Compass, SlidersHorizontal } from 'lucide-react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, signOut, signInAnonymously, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { getFirestore, collection, addDoc as sdkAddDoc, getDocsFromServer, doc, updateDoc as sdkUpdateDoc, deleteDoc as sdkDeleteDoc, onSnapshot, query, setDoc as sdkSetDoc, getDoc, getDocFromServer, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { getFirestore, collection, addDoc as sdkAddDoc, doc, updateDoc as sdkUpdateDoc, deleteDoc as sdkDeleteDoc, onSnapshot, query, setDoc as sdkSetDoc, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import Head from 'next/head';
 import { lineContactHref } from '../../lib/lineAttribution';
-import { fetchPublicCollectionRest, fetchPublicDocumentRest, makePropertySlug } from '../../lib/firestorePublic';
+import { makePropertySlug } from '../../lib/firestorePublic';
 import { buildPageSeo, buildStructuredData, safeJsonLd } from '../../lib/seo';
 import { PROPERTY_OWNERS, DEFAULT_PROPERTY_OWNER, getPropertyOwner, selectPublicProperties } from '../../lib/propertyOwners';
 import { normalizeHouseKey, houseAliasKey } from '../../lib/masterStock';
@@ -30,6 +30,7 @@ import SalePromotionAdmin from './SalePromotionAdmin';
 import { subscribeSiteSession } from '../../lib/siteSession';
 import { createPublicDataWrites } from '../../lib/publicDataWrites';
 import { subscribePublicData } from '../../lib/publicDataSubscription';
+import { loadPublicCatalogue } from '../../lib/publicCatalogueClient';
 import PublicDataNotice from './PublicDataNotice';
 import { getPendingStockHouses, groupAdminStock } from '../../lib/adminStock';
 import { groupPropertyMapZones, propertyMapZone } from '../../lib/propertyMap';
@@ -3636,11 +3637,11 @@ export default function App() {
     return () => clearTimeout(timeoutId);
   }, [loading]);
 
+  const canManageSite = Boolean(user) && (userRole === 'host' || userRole === 'admin');
   useEffect(() => {
     const qProps = query(collection(db, 'artifacts', appId, 'public', 'data', 'properties'));
     const companyRef = doc(db, 'artifacts', appId, 'public', 'data', 'company_info', 'main');
     const visualRef = doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'visual');
-    const canManageSite = Boolean(user) && (userRole === 'host' || userRole === 'admin');
 
     const sortProperties = (items = []) => {
       const props = [...items];
@@ -3723,66 +3724,8 @@ export default function App() {
       applyVisualData(visual);
     };
 
-    const loadPublicDataFromSdk = async () => {
-      const [propsSnap, companySnap, visualSnap] = await Promise.all([
-        getDocsFromServer(qProps),
-        getDocFromServer(companyRef),
-        getDocFromServer(visualRef)
-      ]);
-
-      return {
-        props: snapshotToProperties(propsSnap),
-        company: companySnap.exists() ? companySnap.data() : null,
-        visual: visualSnap.exists() ? visualSnap.data() : null,
-      };
-    };
-
-    /**
-     * ทางหลักของผู้เข้าชมทั่วไป — อ่านผ่าน /api/public-data ที่แคชไว้ฝั่ง server
-     * เพื่อไม่ให้เบราว์เซอร์ทุกคนยิงอ่าน Firestore ทั้งคอลเลกชัน (กินโควตาอ่านรายวันจนหมด)
-     */
-    const loadPublicDataFromApi = async () => {
-      const response = await fetch('/api/public-data', { cache: 'no-store' });
-      if (!response.ok) throw new Error(`Public data API failed (${response.status})`);
-
-      const data = await response.json();
-      if (!Array.isArray(data?.properties) || data.stale) {
-        throw new Error('Public data API returned invalid or stale data');
-      }
-
-      return { props: data.properties, company: data.company, visual: data.visual };
-    };
-
-    const loadPublicDataFromRest = async () => {
-      const [props, company, visual] = await Promise.all([
-        fetchPublicCollectionRest('properties'),
-        fetchPublicDocumentRest('company_info/main', { cache: 'no-store' }),
-        fetchPublicDocumentRest('site_settings/visual', { cache: 'no-store' }),
-      ]);
-
-      return { props, company, visual };
-    };
-
-    const withTimeout = (promise, timeoutMs, label) => Promise.race([
-      promise,
-      new Promise((_, reject) => {
-        setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
-      })
-    ]);
-
     if (!canManageSite) {
-      const load = async () => {
-        try {
-          return await withTimeout(loadPublicDataFromApi(), 6000, 'Public data API load');
-        } catch (error) {
-          console.warn('Public API unavailable, checking the source.', error);
-          try {
-            return await withTimeout(loadPublicDataFromRest(), 10000, 'Public data REST load');
-          } catch {
-            return await withTimeout(loadPublicDataFromSdk(), 6000, 'Public data server load');
-          }
-        }
-      };
+      const load = () => loadPublicCatalogue();
       return subscribePublicData({
         observe: (options, onValue, onError) => onSnapshot(
           doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'public_version'),
@@ -3817,7 +3760,7 @@ export default function App() {
     }, (error) => console.warn(error));
     
     return () => { unsubProps(); unsubCompany(); unsubVisual(); unsubUsers(); };
-  }, [user, userRole]);
+  }, [canManageSite]);
 
   const handleLogout = async () => {
     await signOut(auth);

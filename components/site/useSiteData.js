@@ -22,13 +22,10 @@ import {
   GoogleAuthProvider, signInWithPopup,
 } from 'firebase/auth';
 import {
-  collection, getDocsFromServer, doc, onSnapshot, query,
-  getDoc, getDocFromServer, serverTimestamp,
+  collection, doc, onSnapshot, query,
+  getDoc, serverTimestamp,
 } from 'firebase/firestore';
 
-import {
-  fetchPublicCollectionRest, fetchPublicDocumentRest,
-} from '../../lib/firestorePublic';
 import { buildPageSeo, buildStructuredData } from '../../lib/seo';
 import { selectPublicProperties } from '../../lib/propertyOwners';
 import usePropertyLink from './usePropertyLink';
@@ -36,6 +33,7 @@ import { createPropertyPreview } from '../../lib/propertyPreview';
 import usePublicPopup from './usePublicPopup';
 import { subscribeSiteSession } from '../../lib/siteSession';
 import { subscribePublicData } from '../../lib/publicDataSubscription';
+import { loadPublicCatalogue } from '../../lib/publicCatalogueClient';
 
 import {
   db, auth, appId, HOST_EMAIL, setDoc,
@@ -328,11 +326,11 @@ export default function useSiteData({ basePath = '/' } = {}) {
   }, [loading]);
 
   /* ---------- โหลดข้อมูลสาธารณะ ---------- */
+  const canManageSite = Boolean(user) && (userRole === 'host' || userRole === 'admin');
   useEffect(() => {
     const qProps = query(collection(db, 'artifacts', appId, 'public', 'data', 'properties'));
     const companyRef = doc(db, 'artifacts', appId, 'public', 'data', 'company_info', 'main');
     const visualRef = doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'visual');
-    const canManageSite = Boolean(user) && (userRole === 'host' || userRole === 'admin');
 
     const sortProperties = (items = []) => {
       const props = [...items];
@@ -397,58 +395,8 @@ export default function useSiteData({ basePath = '/' } = {}) {
       applyVisualData(visual);
     };
 
-    const loadPublicDataFromSdk = async () => {
-      const [propsSnap, companySnap, visualSnap] = await Promise.all([
-        getDocsFromServer(qProps), getDocFromServer(companyRef), getDocFromServer(visualRef),
-      ]);
-      return {
-        props: snapshotToProperties(propsSnap),
-        company: companySnap.exists() ? companySnap.data() : null,
-        visual: visualSnap.exists() ? visualSnap.data() : null,
-      };
-    };
-
-    /**
-     * ทางหลักของผู้เข้าชมทั่วไป — อ่านผ่าน /api/public-data ที่แคชไว้ฝั่ง server
-     * เพื่อไม่ให้เบราว์เซอร์ทุกคนยิงอ่าน Firestore ทั้งคอลเลกชัน (กินโควตาอ่านรายวันจนหมด)
-     */
-    const loadPublicDataFromApi = async () => {
-      const response = await fetch('/api/public-data', { cache: 'no-store' });
-      if (!response.ok) throw new Error(`Public data API failed (${response.status})`);
-      const data = await response.json();
-      if (!Array.isArray(data?.properties) || data.stale) {
-        throw new Error('Public data API returned invalid or stale data');
-      }
-      return { props: data.properties, company: data.company, visual: data.visual };
-    };
-
-    const loadPublicDataFromRest = async () => {
-      const [props, company, visual] = await Promise.all([
-        fetchPublicCollectionRest('properties'),
-        fetchPublicDocumentRest('company_info/main', { cache: 'no-store' }),
-        fetchPublicDocumentRest('site_settings/visual', { cache: 'no-store' }),
-      ]);
-      return { props, company, visual };
-    };
-
-    const withTimeout = (promise, timeoutMs, label) => Promise.race([
-      promise,
-      new Promise((_, reject) => { setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs); }),
-    ]);
-
     if (!canManageSite) {
-      const load = async () => {
-        try {
-          return await withTimeout(loadPublicDataFromApi(), 6000, 'Public data API load');
-        } catch (error) {
-          console.warn('Public API unavailable, checking the source.', error);
-          try {
-            return await withTimeout(loadPublicDataFromRest(), 10000, 'Public data REST load');
-          } catch {
-            return await withTimeout(loadPublicDataFromSdk(), 6000, 'Public data server load');
-          }
-        }
-      };
+      const load = () => loadPublicCatalogue();
       return subscribePublicData({
         observe: (options, onValue, onError) => onSnapshot(
           doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'public_version'),
@@ -484,7 +432,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
     }, (error) => console.warn(error));
 
     return () => { unsubProps(); unsubCompany(); unsubVisual(); unsubUsers(); };
-  }, [user, userRole]);
+  }, [canManageSite]);
 
   /* ---------- การกระทำต่าง ๆ ---------- */
   const handleLogout = useCallback(async () => {
