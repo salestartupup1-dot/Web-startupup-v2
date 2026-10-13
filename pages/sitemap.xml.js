@@ -1,4 +1,4 @@
-import { fetchPublicCollectionRest } from '../lib/firestorePublic';
+import { getPublicProperties } from '../lib/publicDataCache';
 import {
   escapeXml,
   formatSitemapDate,
@@ -36,7 +36,7 @@ export async function getServerSideProps({ res }) {
   let properties = [];
 
   try {
-    properties = await fetchPublicCollectionRest('properties');
+    properties = await getPublicProperties();
   } catch (error) {
     console.error('Unable to load properties for sitemap.xml', error);
   }

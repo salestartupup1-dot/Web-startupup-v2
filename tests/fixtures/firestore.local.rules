@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Emulator-only demo project. Never deploy this file to a real project.
+    match /artifacts/startup-up-realestate/public/data/{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

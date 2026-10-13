@@ -7,8 +7,9 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('CDN-Cache-Control', 'no-store');
   res.setHeader('Vercel-CDN-Cache-Control', 'no-store');
+  if (req.method !== 'GET') return res.status(405).setHeader('Allow', 'GET').end();
   try {
-    const data = await getPublicData();
+    const data = await getPublicData({ includeProperties: req.query.view !== 'detail' });
     res.status(200).json(data);
   } catch (error) {
     res.setHeader('Cache-Control', 'no-store');

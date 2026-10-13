@@ -16,8 +16,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, useId } from 'react';
 import { Home, MapPin, Bed, Bath, Car, Maximize, Phone, MessageCircle, Menu, X, Plus, Trash2, ShieldCheck, CheckCircle, Calculator, Users, FileText, Settings, Edit, Save, Image as ImageIcon, Layout, ChevronLeft, ChevronRight, ChevronDown, Upload, Briefcase, XCircle, Tag, Loader, Video, Check, Copy, Calendar, FolderPlus, Map as MapIcon, Search, AlertTriangle, AlertCircle, Star, ClipboardCheck, Type, LayoutTemplate, Compass, SlidersHorizontal } from 'lucide-react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, signOut, signInAnonymously, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { getFirestore, collection, addDoc as sdkAddDoc, doc, updateDoc as sdkUpdateDoc, deleteDoc as sdkDeleteDoc, onSnapshot, query, setDoc as sdkSetDoc, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { connectAuthEmulator, getAuth, onAuthStateChanged, signOut, signInAnonymously, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { connectFirestoreEmulator, getFirestore, collection, addDoc as sdkAddDoc, doc, updateDoc as sdkUpdateDoc, deleteDoc as sdkDeleteDoc, onSnapshot, query, setDoc as sdkSetDoc, getDoc, serverTimestamp, writeBatch, runTransaction } from 'firebase/firestore';
 import Head from 'next/head';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { makePropertySlug } from '../../lib/firestorePublic';
@@ -28,6 +28,7 @@ import usePropertyLink from './usePropertyLink';
 import usePublicPopup from './usePublicPopup';
 import SalePromotionAdmin from './SalePromotionAdmin';
 import { subscribeSiteSession } from '../../lib/siteSession';
+import { firebaseProjectId, useFirebaseEmulator } from '../../lib/firebaseEnvironment';
 import { createPublicDataWrites } from '../../lib/publicDataWrites';
 import { subscribePublicData } from '../../lib/publicDataSubscription';
 import { loadPublicCatalogue } from '../../lib/publicCatalogueClient';
@@ -49,7 +50,7 @@ const Youtube = ({ size = 24, className = "" }) => (
 const firebaseConfig = {
   apiKey: "AIzaSyDsEeGxKA90-URCn06F-K3U2dvlISf_2Jo",
   authDomain: "startup-up-realestate.firebaseapp.com",
-  projectId: "startup-up-realestate",
+  projectId: firebaseProjectId,
   storageBucket: "startup-up-realestate.firebasestorage.app",
   messagingSenderId: "750265634166",
   appId: "1:750265634166:web:a4f6cd0a59db8c685fbe57",
@@ -59,12 +60,16 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+if (useFirebaseEmulator && !auth.emulatorConfig) {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9097', { disableWarnings: true });
+  connectFirestoreEmulator(db, '127.0.0.1', 8093);
+}
 
 const HOST_EMAIL = 'startup.up.real.estate@gmail.com';
 const appId = "startup-up-realestate";
 
 const { setDoc, updateDoc, addDoc, deleteDoc } = createPublicDataWrites({
-  db, appId, doc, writeBatch, serverTimestamp,
+  db, appId, doc, writeBatch, runTransaction, serverTimestamp,
   sdk: { setDoc: sdkSetDoc, updateDoc: sdkUpdateDoc, addDoc: sdkAddDoc, deleteDoc: sdkDeleteDoc },
 });
 
@@ -3637,8 +3642,10 @@ export default function App() {
     return () => clearTimeout(timeoutId);
   }, [loading]);
 
-  const canManageSite = Boolean(user) && (userRole === 'host' || userRole === 'admin');
+  const canManageSite = Boolean(user) && (userRole === 'host' || userRole === 'admin') && (showAdminPanel || isVisualEditMode);
+  const includeCatalogue = !selectedProperty && !requestedPropSlug;
   useEffect(() => {
+    if (!isRouteReady) return;
     const qProps = query(collection(db, 'artifacts', appId, 'public', 'data', 'properties'));
     const companyRef = doc(db, 'artifacts', appId, 'public', 'data', 'company_info', 'main');
     const visualRef = doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'visual');
@@ -3725,7 +3732,7 @@ export default function App() {
     };
 
     if (!canManageSite) {
-      const load = () => loadPublicCatalogue();
+      const load = () => loadPublicCatalogue({ includeProperties: includeCatalogue });
       return subscribePublicData({
         observe: (options, onValue, onError) => onSnapshot(
           doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'public_version'),
@@ -3760,7 +3767,7 @@ export default function App() {
     }, (error) => console.warn(error));
     
     return () => { unsubProps(); unsubCompany(); unsubVisual(); unsubUsers(); };
-  }, [canManageSite]);
+  }, [canManageSite, includeCatalogue, isRouteReady]);
 
   const handleLogout = async () => {
     await signOut(auth);

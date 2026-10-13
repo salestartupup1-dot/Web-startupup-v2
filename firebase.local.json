@@ -1,0 +1,9 @@
+{
+  "firestore": { "rules": "tests/fixtures/firestore.local.rules" },
+  "emulators": {
+    "auth": { "host": "127.0.0.1", "port": 9097 },
+    "firestore": { "host": "127.0.0.1", "port": 8093 },
+    "ui": { "enabled": false },
+    "singleProjectMode": true
+  }
+}

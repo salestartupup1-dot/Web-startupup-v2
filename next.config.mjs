@@ -74,6 +74,7 @@ const contentSecurityPolicy = [
     "https://securetoken.googleapis.com",
     "https://firebaseinstallations.googleapis.com",
     "https://firestore.googleapis.com",
+    ...(isDevelopment ? ["http://127.0.0.1:8093", "http://127.0.0.1:9097"] : []),
     "https://www.googleapis.com",
     "https://www.googletagmanager.com",
     "https://www.google-analytics.com",

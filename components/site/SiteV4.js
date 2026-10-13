@@ -442,6 +442,7 @@ export default function SiteV4({ basePath = '/v4' }) {
         <main className={`v4-main${isCinemaView ? ' is-cinema' : ''}`}>
           {selectedProperty ? (
             <SalePageV4
+              onNeedRelated={site.loadRelatedProperties}
               property={selectedProperty}
               companyInfo={companyInfo}
               onBack={() => { setRequestedPropSlug(null); setSelectedProperty(null); window.scrollTo(0, 0); }}

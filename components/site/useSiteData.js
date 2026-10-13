@@ -65,6 +65,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
   const [searchParams, setSearchParams] = useState({ type: 'all', value: '', area: '' });
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [requestedPropSlug, setRequestedPropSlug] = useState(null);
+  const [relatedForId, setRelatedForId] = useState(null);
 
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -326,8 +327,11 @@ export default function useSiteData({ basePath = '/' } = {}) {
   }, [loading]);
 
   /* ---------- โหลดข้อมูลสาธารณะ ---------- */
-  const canManageSite = Boolean(user) && (userRole === 'host' || userRole === 'admin');
+  const canManageSite = Boolean(user) && (userRole === 'host' || userRole === 'admin') && (showAdminPanel || isVisualEditMode);
+  const loadRelatedProperties = useCallback(() => setRelatedForId(selectedProperty?.id), [selectedProperty?.id]);
+  const includeCatalogue = (!selectedProperty && !requestedPropSlug) || (!requestedPropSlug && Boolean(selectedProperty?.id) && relatedForId === selectedProperty.id);
   useEffect(() => {
+    if (!isRouteReady) return;
     const qProps = query(collection(db, 'artifacts', appId, 'public', 'data', 'properties'));
     const companyRef = doc(db, 'artifacts', appId, 'public', 'data', 'company_info', 'main');
     const visualRef = doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'visual');
@@ -396,7 +400,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
     };
 
     if (!canManageSite) {
-      const load = () => loadPublicCatalogue();
+      const load = () => loadPublicCatalogue({ includeProperties: includeCatalogue });
       return subscribePublicData({
         observe: (options, onValue, onError) => onSnapshot(
           doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'public_version'),
@@ -432,7 +436,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
     }, (error) => console.warn(error));
 
     return () => { unsubProps(); unsubCompany(); unsubVisual(); unsubUsers(); };
-  }, [canManageSite]);
+  }, [canManageSite, includeCatalogue, isRouteReady]);
 
   /* ---------- การกระทำต่าง ๆ ---------- */
   const handleLogout = useCallback(async () => {
@@ -552,6 +556,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
     authorizedUsers, loading, publicDataError, visualContent, popupData,
     // สถานะหน้าจอ
     activeTab, setActiveTab, isRouteReady, searchParams, selectedProperty,
+    loadRelatedProperties,
     requestedPropSlug, setRequestedPropSlug, setSelectedProperty,
     // โมดัล
     showLoginModal, setShowLoginModal, showAdminPanel, setShowAdminPanel,

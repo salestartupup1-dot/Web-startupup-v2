@@ -125,17 +125,17 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 function subscriberHarness(load) {
   const win = new EventTarget(), page = new EventTarget(), values = [], errors = [];
   page.visibilityState = 'visible';
-  let emit, fail, stopped = false, interval;
+  let emit, fail, stopped = false, interval, now = 0;
   win.setInterval = callback => { interval = callback; return 1; };
   win.clearInterval = () => {};
-  const stop = subscribePublicData({ win, page, load, onData: value => values.push(value), onError: e => errors.push(e),
+  const stop = subscribePublicData({ win, page, load, now: () => now, onData: value => values.push(value), onError: e => errors.push(e),
     observe: (options, next, error) => {
       assert.equal(options.includeMetadataChanges, true);
       emit = next; fail = error;
       return () => { stopped = true; };
     },
   });
-  return { values, errors, win, stop, fail: () => fail(new Error('offline')), retry: () => interval(),
+  return { values, errors, win, stop, advance: () => { now += 30000; }, fail: () => fail(new Error('offline')), retry: () => interval(),
     emit: (version, metadata = {}) => emit({ exists: () => true, data: () => ({ version }), metadata }),
     get stopped() { return stopped; } };
 }
@@ -170,7 +170,7 @@ test('an obsolete response cannot flash an old price after a revision event', as
 test('focus refreshes; a failed listener falls back to retry; cleanup prevents late updates', async () => {
   let reads = 0;
   const h = subscriberHarness(async () => ++reads);
-  await tick(); h.win.dispatchEvent(new Event('focus')); await tick();
+  await tick(); h.advance(); h.win.dispatchEvent(new Event('focus')); await tick();
   assert.equal(reads, 2);
   h.fail(); await tick(); h.retry(); await tick();
   assert.equal(reads, 4);

@@ -1,0 +1,35 @@
+name: Firestore daily read budget
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '3,13,23,33,43,53 * * * *'
+permissions:
+  contents: read
+concurrency:
+  group: firestore-quota
+  cancel-in-progress: false
+jobs:
+  monitor:
+    if: vars.FIRESTORE_QUOTA_MONITOR_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Read budget and alert Peth
+        env:
+          FIREBASE_MONITOR_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_MONITOR_SERVICE_ACCOUNT }}
+          LINE_ALERT_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_ALERT_CHANNEL_ACCESS_TOKEN }}
+          LINE_ALERT_USER_ID: ${{ secrets.LINE_ALERT_USER_ID }}
+        run: node scripts/monitor-quota.mjs
+      - name: Keep usage evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: firestore-quota
+          path: coverage/firestore-quota.json
+          retention-days: 30

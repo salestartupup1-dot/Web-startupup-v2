@@ -23,6 +23,7 @@ test('report inputs use day/month/year without locale ambiguity and preserve Tha
 function memoryDb() {
   const data = new Map();
   const ref = (collection, id) => ({ key: collection + '/' + id, id,
+    async get() { return snap(this); },
     async create(value) { assert.equal(data.has(this.key), false); data.set(this.key, value); } });
   const snap = r => ({ id: r.id, ref: r, exists: data.has(r.key), data: () => data.get(r.key) });
   function collection(name) {
@@ -160,8 +161,10 @@ test('messages update contact status without manufacturing additional visits', a
   const db = memoryDb();
   const event = { type: 'message', timestamp: at, source: { type: 'user', userId: profile.userId } };
   await recordLineEvent(event, db, at);
+  const revision = db.data.get('website_read_snapshots_private/lead_revision').version;
   await recordLineEvent(event, db, at);
   await recordLineEvent({ ...event, timestamp: at + 1000 }, db, at + 1000);
+  assert.equal(db.data.get('website_read_snapshots_private/lead_revision').version, revision);
   let report = await listLeads(day, db);
   assert.equal(report.total, 1); assert.equal(report.counts.unknown, 1);
   await visit(db, 'tiktok', at + 2000);

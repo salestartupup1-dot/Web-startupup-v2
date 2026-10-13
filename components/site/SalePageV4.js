@@ -148,10 +148,20 @@ function SaleHeroImage({ src, alt, onClick }) {
 }
 
 export default function SalePageV4({
-  property, companyInfo, onBack, properties, onSelectProp,
+  property, companyInfo, onBack, properties, onSelectProp, onNeedRelated,
   visualContent, updateVisualContent, isEditMode, openLightbox,
 }) {
   const { promotion, now } = useSalePromotion(db, appId);
+  const relatedTrigger = useRef(null);
+  useEffect(() => {
+    if (!onNeedRelated || !relatedTrigger.current || property?._detailsPending) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) { onNeedRelated(); observer.disconnect(); }
+    }, { rootMargin: '300px' });
+    observer.observe(relatedTrigger.current);
+    return () => observer.disconnect();
+  }, [onNeedRelated, property?.id, property?._detailsPending]);
+
   const detailsPending = Boolean(property?._detailsPending);
   const showPromotion = !detailsPending && promotionAppliesTo(promotion, property, now);
   const [at, setAt] = useState(0);
@@ -672,6 +682,7 @@ export default function SalePageV4({
       </main>
 
       {/* ── โครงการที่คุณอาจสนใจ ── */}
+      <div ref={relatedTrigger} aria-hidden="true" />
       {!detailsPending && relatedProps.length > 0 && (
         <section className="sp4-related reveal-on-scroll">
           <div className="sp4-related-head">

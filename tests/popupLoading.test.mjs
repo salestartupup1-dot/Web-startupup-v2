@@ -7,12 +7,12 @@ function harness() {
   const win = new EventTarget(), page = new EventTarget();
   page.visibilityState = 'visible';
   const pending = [], values = [], timeouts = [];
-  let emit, stopped = false;
+  let emit, stopped = false, now = 0;
   win.setTimeout = fn => { timeouts.push(fn); return timeouts.length; };
   win.clearTimeout = () => {};
   win.setInterval = () => 1;
   win.clearInterval = () => {};
-  const stop = subscribePopup({ win, page,
+  const stop = subscribePopup({ win, page, now: () => now,
     load: options => {
       assert.equal(options.cache, 'no-store');
       return new Promise((resolve, reject) => pending.push({ resolve, reject, options }));
@@ -20,7 +20,7 @@ function harness() {
     observe: (options, next) => { emit = next; return () => { stopped = true; }; },
     onData: data => values.push(data),
   });
-  return { win, pending, values, timeouts, stop, get stopped() { return stopped; },
+  return { win, pending, values, timeouts, stop, advance: () => { now += 30000; }, get stopped() { return stopped; },
     emit: (value, metadata = {}) => emit({ metadata, exists: () => Boolean(value), data: () => value }),
   };
 }
@@ -49,6 +49,7 @@ test('focus shares a pending read; an old timeout cannot abort a later refresh',
   assert.equal(h.pending.length, 1);
   assert.equal(h.pending[0].options.signal.aborted, false);
   h.pending[0].resolve({ imageUrl: 'old.jpg' }); await tick();
+  h.advance();
   h.win.dispatchEvent(new Event('focus'));
   h.timeouts[0]();
   assert.equal(h.pending[1].options.signal.aborted, false);

@@ -31,7 +31,7 @@ test('a save during a shared cache read cannot expose the older price', async ()
   // Only the old key exists; a new version must fetch the new catalogue.
   let oldRead = true;
   const safe = createPublicDataCache({
-    sharedCache: { get: async () => { if (oldRead) { oldRead = false; version = 'new'; return { version: 'old', properties: [{ price: 1 }] }; } }, set: async () => {} },
+    sharedCache: { get: async () => { if (oldRead) { oldRead = false; version = 'new'; return { version: 'old', value: [{ price: 1 }] }; } }, set: async () => {} },
     readDocument: async path => path.endsWith('public_version') ? { version } : {},
     readCollection: async () => { scans++; return [{ price: 2 }]; },
   });

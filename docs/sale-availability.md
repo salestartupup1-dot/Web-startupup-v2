@@ -57,3 +57,63 @@ an explicitly labeled test message without simulating an outage. LINE acceptance
 
 A separate durable export of every application error log and independent content backup require
 choosing/configuring those services. Monitor history alone cannot reconstruct every customer's incident.
+
+## Free-tier read reduction (October 2026)
+
+- Public lists, sitemap and `/api/map-data` share a versioned catalogue. Production cache misses
+  use a private compressed snapshot plus a 30-second Firestore lease so concurrent server
+  instances do not all scan `properties`. Prices are never served when revision checks fail.
+  Production needs the existing `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`,
+  and `FIREBASE_ADMIN_PRIVATE_KEY` for `startup-up-realestate`, with access to the private
+  snapshot collection. Verify a cold catalogue request before promoting the deployment.
+- Public saves atomically update scoped revision markers. Popup/company/visual/promotion
+  saves do not invalidate the houses. An old admin tab writing only the global marker still
+  invalidates all sections; the next modern save repairs the scoped markers.
+- A direct Sale Page loads only settings and the requested fresh house. Its recommendation
+  list loads when the visitor approaches it. Full admin listeners require an open admin panel.
+- Lead Source caches aggregate counts by data revision and date range; page and channel
+  filters reuse them. New visits and legacy migration invalidate the summary; ordinary
+  messages on an existing lead update its profile without rescanning historical counts.
+- Stock Map must be deployed **after** the website exposes `/api/map-data`. It reuses that
+  projection; its override-status summary uses a shared cache with the existing one-hour TTL.
+
+### Optional daily quota monitor — setup required
+
+The new `firestore-quota.yml` workflow is disabled until the Actions variable
+`FIRESTORE_QUOTA_MONITOR_ENABLED=true` is configured. Before enabling it:
+
+1. Configure `FIREBASE_MONITOR_SERVICE_ACCOUNT` as an Actions secret containing a service-account
+   JSON for `startup-up-realestate`. Never commit it or send it in chat. It needs
+   `monitoring.timeSeries.list` (e.g. Monitoring Viewer) and Firestore write access to the
+   private `website_read_snapshots_private/quota_budget` document. Verify Monitoring API access.
+2. Reuse the existing `LINE_ALERT_CHANNEL_ACCESS_TOKEN` and `LINE_ALERT_USER_ID` secrets for Peth.
+3. Run the workflow manually. Inspect the artifact, permissions and notification delivery
+   before considering alerts active. Missing metrics or credentials fail visibly, not as zero usage.
+
+The monitor sums `firestore.googleapis.com/document/read_ops_count` from Pacific midnight,
+including daylight-saving changes, and alerts at 30k/40k/45k. A stable LINE retry key deduplicates
+each daily threshold for LINE's 24-hour retention period. Metrics are sampled every minute and
+can arrive several minutes late; GitHub schedules can also be delayed. It is **not a hard cap**
+and cannot guarantee all applications sharing the Firebase project stay under 50k reads.
+
+When the last recorded count for the current Pacific day is >=45k, new expensive Lead Source
+summary scans pause; existing cached summaries remain usable. The restriction expires on the
+next Pacific day. Public price checks remain live. If saving the budget fails, the workflow
+reports that the guard was not updated. No quota monitor has been activated by this code alone.
+
+### Local data without production reads
+
+Install Java 21+ and Node, then in two terminals:
+
+    npm run emulators
+    npm run dev:offline -- -p 3017
+
+The second command requires the local emulator, seeds synthetic public houses/settings into
+`demo-startupup-website`, then starts Next development mode. It exits if the emulator is absent;
+it does not fall back to production. Production builds ignore the emulator flag. The permissive
+`tests/fixtures/firestore.local.rules` is **only** for the local demo project; never deploy it.
+External integrations such as LINE/CRM, Cloudinary and Master Stock are not offline fixtures;
+do not use them for synthetic writes. Ordinary `npm run dev` retains the existing live-data mode.
+
+References: https://firebase.google.com/docs/firestore/quotas and
+https://docs.cloud.google.com/monitoring/api/metrics_gcp_d_h#firestore

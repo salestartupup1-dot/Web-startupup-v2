@@ -31,7 +31,7 @@ async def main():
                     await route.abort()
             await page.route('**/*', route_request)
             await page.goto(BASE + '/?tab=all')
-            await expect(page.get_by_role('alert')).to_be_visible()
+            await expect(page.locator('[role="alert"]').filter(has_text='ข้อมูล')).to_be_visible()
             await page.wait_for_timeout(500)
             initial = len(calls)
             for _ in range(4):
