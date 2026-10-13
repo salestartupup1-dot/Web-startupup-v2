@@ -4,7 +4,9 @@ import {
 import { loadWebsiteCoords, resolveMapUrls, locateHouses, spreadOverlapping, average } from '../../lib/geo';
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const LIVE_MIN_INTERVAL_MS = 60 * 60 * 1000;
 let cache = { at: 0, payload: null };
+let lastLiveAt = 0;
 
 const emptyCounts = () => GROUP_ORDER.reduce((acc, key) => ({ ...acc, [key]: 0 }), {});
 
@@ -103,7 +105,9 @@ async function buildPayload({ liveCoords = false } = {}) {
 export default async function handler(req, res) {
   const force = req.query.refresh === '1' || req.query.refresh === 'live';
   // refresh=live เท่านั้นที่จะไปอ่านพิกัดจาก Firestore สดๆ (ใช้ตอนเพิ่มบ้านใหม่ในเว็บหลักแล้วยังไม่ได้ deploy)
-  const liveCoords = req.query.refresh === 'live';
+  // ใครก็เรียก URL นี้ได้ จึงจำกัดการอ่านทั้งคอลเลกชันไว้ชั่วโมงละครั้งต่อ instance กันโควตาอ่านรายวันหมด
+  const liveCoords = req.query.refresh === 'live' && Date.now() - lastLiveAt >= LIVE_MIN_INTERVAL_MS;
+  if (liveCoords) lastLiveAt = Date.now();
   const isFresh = cache.payload && Date.now() - cache.at < CACHE_TTL_MS;
 
   try {

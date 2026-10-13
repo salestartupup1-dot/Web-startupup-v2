@@ -48,3 +48,11 @@ html, body {
 .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
 .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5d1; border-radius: 999px; }
 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+
+.house-highlights{border-top:1px solid #dce5df;margin-top:12px;padding-top:12px;width:240px;font-size:12px;line-height:1.7;color:#42564a;overflow-wrap:anywhere}
+.highlights-title{display:flex;align-items:center;justify-content:space-between;gap:8px}.highlights-title h3{color:#0b3d1b;font-weight:600;font-size:13px}
+.house-highlights button{color:#0b3d1b;text-decoration:underline;cursor:pointer;min-height:32px}.house-highlights button:disabled{opacity:.5;cursor:wait}
+.house-highlights ul{list-style:disc;padding-left:18px;margin:8px 0}.house-highlights li{margin:5px 0}.house-highlights p{margin:6px 0!important;font-size:11px}.house-highlights .highlight-source{color:#7a857c}
+.house-highlights label{display:block;margin:8px 0 5px}.house-highlights textarea{display:block;width:100%;border:1px solid #a9bfb1;border-radius:8px;padding:8px;font-family:inherit;font-size:14px;background:#fff;resize:vertical;min-height:120px}
+.house-highlights :focus-visible{outline:2px solid #997829;outline-offset:3px}.highlight-actions{display:flex;gap:14px;align-items:center}.house-highlights .highlight-save{background:#0b3d1b;color:#fff;padding:7px 18px;border-radius:7px;text-decoration:none}.highlight-reset{display:block;margin-top:8px;font-size:11px}.highlight-website{display:block;margin-top:10px;text-decoration:underline}.highlight-error{color:#b42332}.highlight-success{color:#0b3d1b}
+@media(max-width:600px){.leaflet-popup-content-wrapper{max-width:calc(100vw - 48px)}.house-highlights textarea{font-size:16px}}

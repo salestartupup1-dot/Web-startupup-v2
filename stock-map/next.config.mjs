@@ -25,7 +25,8 @@ const contentSecurityPolicy = [
     "script-src",
     "'self'",
     "'unsafe-inline'",
-    isDevelopment ? "'unsafe-eval'" : ""
+    isDevelopment ? "'unsafe-eval'" : "",
+    "https://apis.google.com"
   ].filter(Boolean).join(' '),
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
@@ -36,7 +37,8 @@ const contentSecurityPolicy = [
     "blob:",
     "https://tile.openstreetmap.org"
   ].join(' '),
-  "connect-src 'self'",
+  `connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://www.googleapis.com https://startup-up-realestate.firebaseapp.com${isDevelopment ? ' http://localhost:8092 http://localhost:9098' : ''}`,
+  `frame-src https://startup-up-realestate.firebaseapp.com https://accounts.google.com${isDevelopment ? ' http://localhost:9098' : ''}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "upgrade-insecure-requests"

@@ -79,16 +79,19 @@ choosing/configuring those services. Monitor history alone cannot reconstruct ev
 
 ### Optional daily quota monitor — setup required
 
-The new `firestore-quota.yml` workflow is disabled until the Actions variable
-`FIRESTORE_QUOTA_MONITOR_ENABLED=true` is configured. Before enabling it:
+The `firestore-quota.yml` workflow uses GitHub OIDC / Google Workload Identity Federation,
+with a five-minute access token and no downloaded service-account key. Google trusts only
+repository ID `1218815511`, owner ID `280205260`, branch `main`, and this exact workflow path.
+The `website-quota-monitor` service account has a custom role containing only
+`monitoring.timeSeries.list`, `datastore.entities.create`, and `datastore.entities.update`.
+Firestore IAM write permissions apply across the project; this role has no document read,
+list, delete or IAM-administration permissions. The script writes only the quota budget document.
 
-1. Configure `FIREBASE_MONITOR_SERVICE_ACCOUNT` as an Actions secret containing a service-account
-   JSON for `startup-up-realestate`. Never commit it or send it in chat. It needs
-   `monitoring.timeSeries.list` (e.g. Monitoring Viewer) and Firestore write access to the
-   private `website_read_snapshots_private/quota_budget` document. Verify Monitoring API access.
-2. Reuse the existing `LINE_ALERT_CHANNEL_ACCESS_TOKEN` and `LINE_ALERT_USER_ID` secrets for Peth.
-3. Run the workflow manually. Inspect the artifact, permissions and notification delivery
-   before considering alerts active. Missing metrics or credentials fail visibly, not as zero usage.
+Actions variables: `FIRESTORE_MONITOR_WIF_PROVIDER`, `FIRESTORE_MONITOR_SERVICE_ACCOUNT`,
+and `FIRESTORE_QUOTA_MONITOR_ENABLED=true`. LINE uses the existing
+`LINE_ALERT_CHANNEL_ACCESS_TOKEN` and `LINE_ALERT_USER_ID` secrets for Peth.
+Use workflow_dispatch with `test_line=true` for a clearly labeled end-to-end test.
+Missing metrics or credentials fail visibly, never as zero usage. Credentials are not artifacts.
 
 The monitor sums `firestore.googleapis.com/document/read_ops_count` from Pacific midnight,
 including daylight-saving changes, and alerts at 30k/40k/45k. A stable LINE retry key deduplicates
@@ -99,7 +102,7 @@ and cannot guarantee all applications sharing the Firebase project stay under 50
 When the last recorded count for the current Pacific day is >=45k, new expensive Lead Source
 summary scans pause; existing cached summaries remain usable. The restriction expires on the
 next Pacific day. Public price checks remain live. If saving the budget fails, the workflow
-reports that the guard was not updated. No quota monitor has been activated by this code alone.
+reports that the guard was not updated. Activation and the most recent run must be checked in GitHub Actions; code presence alone is not proof of delivery.
 
 ### Local data without production reads
 

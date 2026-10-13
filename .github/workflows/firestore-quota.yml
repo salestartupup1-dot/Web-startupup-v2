@@ -1,6 +1,11 @@
 name: Firestore daily read budget
 on:
   workflow_dispatch:
+    inputs:
+      test_line:
+        description: Send a labeled quota-monitor test message to Peth
+        type: boolean
+        default: false
   schedule:
     - cron: '3,13,23,33,43,53 * * * *'
 permissions:
@@ -12,17 +17,31 @@ jobs:
   monitor:
     if: vars.FIRESTORE_QUOTA_MONITOR_ENABLED == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     timeout-minutes: 4
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+      - id: google_auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          project_id: startup-up-realestate
+          workload_identity_provider: ${{ vars.FIRESTORE_MONITOR_WIF_PROVIDER }}
+          service_account: ${{ vars.FIRESTORE_MONITOR_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_lifetime: 300s
+          access_token_scopes: https://www.googleapis.com/auth/monitoring.read,https://www.googleapis.com/auth/datastore
+          create_credentials_file: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
       - name: Read budget and alert Peth
         env:
-          FIREBASE_MONITOR_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_MONITOR_SERVICE_ACCOUNT }}
+          FIREBASE_MONITOR_ACCESS_TOKEN: ${{ steps.google_auth.outputs.access_token }}
+          QUOTA_TEST_LINE: ${{ github.event_name == 'workflow_dispatch' && inputs.test_line }}
           LINE_ALERT_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_ALERT_CHANNEL_ACCESS_TOKEN }}
           LINE_ALERT_USER_ID: ${{ secrets.LINE_ALERT_USER_ID }}
         run: node scripts/monitor-quota.mjs

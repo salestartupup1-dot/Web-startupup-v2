@@ -1,0 +1,106 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- ฟังก์ชันช่วยเหลือ (Helper Functions) ---
+    
+    // 1. เช็คว่าล็อกอินด้วยอีเมล Google จริงๆ (ไม่ใช่ผู้เยี่ยมชมเว็บแบบ Anonymous)
+    //    ต้องเป็นอีเมลที่ยืนยันแล้ว — กันการสมัครด้วยอีเมลของ Admin/Host โดยไม่มีสิทธิ์ในกล่องอีเมลนั้น
+    function isRealUser() {
+      return request.auth != null && request.auth.token.email != null
+        && request.auth.token.email_verified == true;
+    }
+    
+    // 2. เช็คว่าเป็นอีเมลเจ้าของระบบตัวจริง (เป็นไม้ตายเผื่อกรณีข้อมูล Role หาย)
+    function isMainHost() {
+      return isRealUser() && request.auth.token.email == 'startup.up.real.estate@gmail.com';
+    }
+
+    // 3. ดึงยศ (Role) ของผู้ใช้งานจากฐานข้อมูล
+    function getUserRole() {
+      return get(/databases/$(database)/documents/artifacts/startup-up-realestate/public/data/users/$(request.auth.token.email)).data.role;
+    }
+
+    // 4. เช็คว่าเป็น Host เท่านั้น (Super Admin)
+    function isHost() {
+      return isMainHost() || (isRealUser() && getUserRole() == 'host');
+    }
+
+    // 5. เช็คว่าเป็น Admin หรือ Host
+    function isAdminOrHost() {
+      return isMainHost() || (isRealUser() && getUserRole() in ['admin', 'host']);
+    }
+
+
+    // --- กฎการเข้าถึงฐานข้อมูลแต่ละส่วน (Collection Rules) ---
+
+    // ส่วนที่ 1: ข้อมูลบ้าน (Properties)
+    match /artifacts/startup-up-realestate/public/data/properties/{docId} {
+      // ให้ทุกคน (รวมถึงลูกค้าที่ไม่ได้ล็อกอิน) อ่านข้อมูลบ้านหน้าเว็บได้
+      allow read: if true;
+      // ให้คนที่เป็น Admin หรือ Host จัดการเพิ่ม/ลบ/แก้ไข ข้อมูลบ้านได้
+      allow write: if isAdminOrHost();
+    }
+
+    // ส่วนที่ 2: ข้อมูลบริษัท (Company Info) และ หน้าตาเว็บ (Site Settings, Popup)
+    match /artifacts/startup-up-realestate/public/data/company_info/{docId} {
+      allow read: if true;
+      allow write: if isHost(); // สงวนให้ Host แก้ไขได้เท่านั้น
+    }
+    
+    match /artifacts/startup-up-realestate/public/data/site_settings/{docId} {
+      allow read: if true;
+      allow write: if isHost(); // สงวนให้ Host ตั้งค่าเว็บและป๊อปอัปได้เท่านั้น
+    }
+
+    // ส่วนที่ 3: ระบบจัดการผู้ดูแลระบบ (Users)
+    match /artifacts/startup-up-realestate/public/data/users/{userId} {
+      // ป้องกันข้อมูลอีเมลรั่วไหล: ให้อ่านได้เฉพาะเจ้าของข้อมูลเอง หรือคนที่เป็น Admin/Host เท่านั้น
+      allow read: if isRealUser() && (request.auth.token.email == userId || isAdminOrHost());
+      
+      // การแก้ไขสิทธิ์ หรือ ลบผู้ดูแลระบบ ต้องเป็น Host เท่านั้น
+      allow update, delete: if isHost();
+      
+      // การเพิ่มผู้ใช้ใหม่
+      allow create: if isHost() || 
+        // อนุญาตให้คนนอกส่งคำขอใช้งานได้ แต่บังคับให้ยศเป็นแค่ 'pending' และต้องใช้อีเมลตัวเองสร้างเท่านั้น
+        (isRealUser() && request.auth.token.email == userId && request.resource.data.role == 'pending'
+          // ช่อง email ต้องตรงกับบัญชีจริง กันการแสดงอีเมลคนอื่นในหน้าอนุมัติ
+          && request.resource.data.keys().hasOnly(['email', 'role', 'name', 'createdAt'])
+          && request.resource.data.email == userId
+          && request.resource.data.get('name', '') is string
+          && request.resource.data.get('name', '').size() <= 200);
+    }
+
+    // ส่วนที่ 4: ปิดตายฐานข้อมูลส่วนอื่นๆ ทั้งหมด ป้องกันแฮกเกอร์แอบสร้างโฟลเดอร์ขยะ
+    // Stock-map highlights: a separate public text document; existing website data is unchanged.
+    match /stock_map_highlights/{houseId} {
+      function canEditHighlights() {
+        return isRealUser() && request.auth.token.email_verified == true && isAdminOrHost();
+      }
+      function validHighlights() {
+        let d = request.resource.data;
+        return houseId.matches('^[a-f0-9]{64}$')
+          && d.keys().hasAll(['project', 'houseNumber', 'mode', 'text', 'revision', 'updatedAt'])
+          && d.keys().hasOnly(['project', 'houseNumber', 'mode', 'text', 'revision', 'updatedAt'])
+          && d.project is string && d.project.size() > 0 && d.project.size() <= 300
+          && d.houseNumber is string && d.houseNumber.size() > 0 && d.houseNumber.size() <= 300
+          && d.mode in ['custom', 'website'] && d.text is string && d.text.size() <= 4000
+          && (d.mode == 'custom' || d.text == '')
+          && d.revision is int && d.revision > 0 && d.updatedAt == request.time;
+      }
+      allow get: if true;
+      allow list: if false;
+      allow create: if canEditHighlights() && validHighlights() && request.resource.data.revision == 1;
+      allow update: if canEditHighlights() && validHighlights()
+        && request.resource.data.project == resource.data.project
+        && request.resource.data.houseNumber == resource.data.houseNumber
+        && request.resource.data.revision == resource.data.revision + 1;
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false; 
+    }
+  }
+}

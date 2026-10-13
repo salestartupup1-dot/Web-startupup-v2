@@ -1,6 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
+import { HighlightAccount } from '../components/HighlightAuth';
+import HighlightsSummary from '../components/HighlightsSummary';
+import { highlightKey } from '../lib/highlights.mjs';
+import { statusOptions, matchesStatus, toggleStatus, isStatusGroup } from '../lib/statusFilters.mjs';
 import {
   Home, MapPin, Hammer, CheckCircle, Users, RefreshCw, ChevronRight, ChevronDown,
   Search, AlertTriangle, Layers, ArrowLeft, ExternalLink
@@ -34,6 +38,7 @@ function StatCard({ icon: Icon, label, value, sub, color, active, onClick }) {
   return (
     <Tag
       onClick={onClick}
+      aria-pressed={onClick ? !!active : undefined}
       className={`text-left bg-white rounded-2xl border p-4 transition ${onClick ? 'hover:shadow-md cursor-pointer' : ''} ${active ? 'border-2 shadow-md' : 'border-gray-200'}`}
       style={active ? { borderColor: color } : undefined}
     >
@@ -126,13 +131,26 @@ export default function StockMapPage({ siteUrl = '' }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [groupFilter, setGroupFilter] = useState(null);
+  const [statusFilter, setStatusFilter] = useState(null);
   const [styleFilter, setStyleFilter] = useState(null);
   const [sizeFilter, setSizeFilter] = useState(null);
   const [search, setSearch] = useState('');
   const [view, setView] = useState({ zone: null, project: null });
   const [activeHouseKey, setActiveHouseKey] = useState(null);
   const [openZones, setOpenZones] = useState({});
+  const [highlightUpdates, setHighlightUpdates] = useState({});
+  const mapSection = useRef(null);
+  const handleHighlightStatus = useCallback((house, hasHighlights) => {
+    const key = highlightKey(house);
+    setHighlightUpdates(previous => ({ ...previous, [key]: { value: hasHighlights, at: Date.now() } }));
+  }, []);
+  const selectMissingHouse = useCallback(house => {
+    setSearch(''); setStatusFilter(null); setStyleFilter(null); setSizeFilter(null);
+    setView({ zone: house.zone, project: house.project });
+    setOpenZones(previous => ({ ...previous, [house.zone]: true }));
+    setActiveHouseKey(house.rowIndex);
+    mapSection.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   const load = useCallback(async (force) => {
     if (force) setRefreshing(true);
@@ -152,6 +170,12 @@ export default function StockMapPage({ siteUrl = '' }) {
 
   useEffect(() => { load(false); }, [load]);
 
+  const statuses = useMemo(() => statusOptions(data?.zones), [data]);
+  const changeStatusFilter = next => {
+    setStatusFilter(next);
+    setActiveHouseKey(null);
+  };
+
   // กรองตามสถานะและคำค้น แล้วคำนวณยอดใหม่ให้ตรงกับสิ่งที่เห็นบนแผนที่
   const zones = useMemo(() => {
     if (!data) return [];
@@ -165,7 +189,7 @@ export default function StockMapPage({ siteUrl = '' }) {
               || normalize(project.name).includes(term)
               || normalize(zone.name).includes(term);
             const houses = project.houses.filter((house) => {
-              if (groupFilter && house.group !== groupFilter) return false;
+              if (!matchesStatus(house, statusFilter)) return false;
               if (styleFilter && house.styleCategory !== styleFilter) return false;
               if (sizeFilter && house.sizeBucket !== sizeFilter) return false;
               if (!term) return true;
@@ -190,7 +214,7 @@ export default function StockMapPage({ siteUrl = '' }) {
         };
       })
       .filter(Boolean);
-  }, [data, groupFilter, styleFilter, sizeFilter, search]);
+  }, [data, statusFilter, styleFilter, sizeFilter, search]);
 
   const visible = useMemo(() => {
     const totals = GROUP_ORDER.reduce((acc, key) => ({ ...acc, [key]: 0 }), {});
@@ -214,7 +238,7 @@ export default function StockMapPage({ siteUrl = '' }) {
     const term = normalize(search);
     const houses = [];
     data.zones.forEach((zone) => zone.projects.forEach((project) => project.houses.forEach((house) => {
-      if (groupFilter && house.group !== groupFilter) return;
+      if (!matchesStatus(house, statusFilter)) return;
       if (term
         && !normalize(project.name).includes(term)
         && !normalize(zone.name).includes(term)
@@ -246,7 +270,7 @@ export default function StockMapPage({ siteUrl = '' }) {
         byStyle: Object.fromEntries(styles.map((s) => [s, count((h) => h.zoneName === name && h.styleCategory === s)])),
       })),
     };
-  }, [data, groupFilter, search]);
+  }, [data, statusFilter, search]);
 
   const handleViewChange = useCallback((next) => {
     setView(next);
@@ -339,11 +363,12 @@ export default function StockMapPage({ siteUrl = '' }) {
                   <MapPin size={20} className="flex-none" /> แผนที่สต๊อกบ้าน
                 </h1>
                 <p className="text-white/70 text-[12px] md:text-[13px] mt-1">
-                  ดูอย่างเดียว · ข้อมูลจาก Master Stock (แท็บ Stockบ้าน) เฉพาะบ้านของ Startup Up ที่ยังไม่ขาย
+                  ข้อมูลจาก Master Stock · ผู้ดูแลสามารถเพิ่มจุดเด่นของบ้านบนแผนที่ได้
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <HighlightAccount />
               {data && (
                 <span className="text-white/60 text-[12px] hidden sm:block">
                   อัปเดต {formatUpdated(data.updatedAt)}
@@ -379,8 +404,8 @@ export default function StockMapPage({ siteUrl = '' }) {
                   value={visible.houses}
                   sub={`${visible.projects} โครงการ · ${visible.zonesCount} ทำเล`}
                   color="#0b3d1b"
-                  active={!groupFilter}
-                  onClick={() => setGroupFilter(null)}
+                  active={statusFilter === null}
+                  onClick={() => changeStatusFilter(null)}
                 />
                 {GROUP_ORDER.map((key) => {
                   const meta = GROUP_META[key];
@@ -393,8 +418,8 @@ export default function StockMapPage({ siteUrl = '' }) {
                       value={visible.totals[key]}
                       sub={meta.desc}
                       color={meta.color}
-                      active={groupFilter === key}
-                      onClick={() => setGroupFilter(groupFilter === key ? null : key)}
+                      active={isStatusGroup(statusFilter, key, statuses)}
+                      onClick={() => changeStatusFilter(isStatusGroup(statusFilter, key, statuses) ? null : statuses.filter(option => option.group === key).map(option => option.key))}
                     />
                   );
                 })}
@@ -406,6 +431,32 @@ export default function StockMapPage({ siteUrl = '' }) {
                   color="#b45309"
                 />
               </div>
+
+              <fieldset className="mt-4 bg-white rounded-2xl border border-gray-200 px-4 pb-4">
+                <legend className="px-2 text-sm font-semibold text-brand-green">กรองสถานะบ้าน</legend>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1 mb-3 text-[12px]">
+                  <span className="text-gray-500">ติ๊กเลือกได้หลายสถานะพร้อมกัน</span>
+                  <button type="button" onClick={() => changeStatusFilter(null)} className="text-brand-green underline min-h-10">เลือกทั้งหมด</button>
+                  <button type="button" onClick={() => changeStatusFilter([])} className="text-gray-600 underline min-h-10">ล้างที่เลือก</button>
+                </div>
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                  {statuses.map(option => {
+                    const checked = statusFilter === null || statusFilter.includes(option.key);
+                    return (
+                      <label key={option.key} className={`flex items-center gap-2 min-h-11 px-3 py-2 rounded-xl border cursor-pointer text-[13px] ${checked ? 'border-brand-green bg-brand-light text-brand-green' : 'border-gray-200 text-gray-600'}`}>
+                        <input type="checkbox" checked={checked} onChange={() => changeStatusFilter(toggleStatus(statusFilter, option.key, statuses))} className="w-4 h-4 shrink-0 accent-[#0b3d1b]" />
+                        <span>{option.key}</span>
+                        <span className="ml-auto text-[12px]" aria-label={`${option.count} หลัง`}>{option.count}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p role="status" className="text-[12px] text-gray-500 mt-3">
+                  {statusFilter?.length === 0 ? 'ยังไม่ได้เลือกสถานะบ้าน' : `แสดง ${visible.houses} หลัง ตามตัวกรองที่เลือก`}
+                </p>
+              </fieldset>
+
+              {data && <HighlightsSummary data={data} updates={highlightUpdates} onStatusChange={handleHighlightStatus} onSelect={selectMissingHouse} />}
 
               {summary && (
                 <div className="mt-3 bg-white rounded-2xl border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-x-2 gap-y-2">
@@ -444,7 +495,7 @@ export default function StockMapPage({ siteUrl = '' }) {
               )}
 
               <div className="grid lg:grid-cols-3 gap-4 mt-4">
-                <section className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <section ref={mapSection} className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-100 flex flex-wrap items-center gap-2 text-[13px]">
                     <button
                       onClick={() => handleViewChange({ zone: null, project: null })}
@@ -502,6 +553,7 @@ export default function StockMapPage({ siteUrl = '' }) {
                     view={view}
                     onViewChange={handleViewChange}
                     activeHouseKey={activeHouseKey}
+                    onHighlightStatusChange={handleHighlightStatus}
                   />
                 </section>
 

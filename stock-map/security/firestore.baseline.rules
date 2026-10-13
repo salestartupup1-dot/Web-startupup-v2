@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- ฟังก์ชันช่วยเหลือ (Helper Functions) ---
+    
+    // 1. เช็คว่าล็อกอินด้วยอีเมล Google จริงๆ (ไม่ใช่ผู้เยี่ยมชมเว็บแบบ Anonymous)
+    function isRealUser() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+    
+    // 2. เช็คว่าเป็นอีเมลเจ้าของระบบตัวจริง (เป็นไม้ตายเผื่อกรณีข้อมูล Role หาย)
+    function isMainHost() {
+      return isRealUser() && request.auth.token.email == 'startup.up.real.estate@gmail.com';
+    }
+
+    // 3. ดึงยศ (Role) ของผู้ใช้งานจากฐานข้อมูล
+    function getUserRole() {
+      return get(/databases/$(database)/documents/artifacts/startup-up-realestate/public/data/users/$(request.auth.token.email)).data.role;
+    }
+
+    // 4. เช็คว่าเป็น Host เท่านั้น (Super Admin)
+    function isHost() {
+      return isMainHost() || (isRealUser() && getUserRole() == 'host');
+    }
+
+    // 5. เช็คว่าเป็น Admin หรือ Host
+    function isAdminOrHost() {
+      return isMainHost() || (isRealUser() && getUserRole() in ['admin', 'host']);
+    }
+
+
+    // --- กฎการเข้าถึงฐานข้อมูลแต่ละส่วน (Collection Rules) ---
+
+    // ส่วนที่ 1: ข้อมูลบ้าน (Properties)
+    match /artifacts/startup-up-realestate/public/data/properties/{docId} {
+      // ให้ทุกคน (รวมถึงลูกค้าที่ไม่ได้ล็อกอิน) อ่านข้อมูลบ้านหน้าเว็บได้
+      allow read: if true;
+      // ให้คนที่เป็น Admin หรือ Host จัดการเพิ่ม/ลบ/แก้ไข ข้อมูลบ้านได้
+      allow write: if isAdminOrHost();
+    }
+
+    // ส่วนที่ 2: ข้อมูลบริษัท (Company Info) และ หน้าตาเว็บ (Site Settings, Popup)
+    match /artifacts/startup-up-realestate/public/data/company_info/{docId} {
+      allow read: if true;
+      allow write: if isHost(); // สงวนให้ Host แก้ไขได้เท่านั้น
+    }
+    
+    match /artifacts/startup-up-realestate/public/data/site_settings/{docId} {
+      allow read: if true;
+      allow write: if isHost(); // สงวนให้ Host ตั้งค่าเว็บและป๊อปอัปได้เท่านั้น
+    }
+
+    // ส่วนที่ 3: ระบบจัดการผู้ดูแลระบบ (Users)
+    match /artifacts/startup-up-realestate/public/data/users/{userId} {
+      // ป้องกันข้อมูลอีเมลรั่วไหล: ให้อ่านได้เฉพาะเจ้าของข้อมูลเอง หรือคนที่เป็น Admin/Host เท่านั้น
+      allow read: if isRealUser() && (request.auth.token.email == userId || isAdminOrHost());
+      
+      // การแก้ไขสิทธิ์ หรือ ลบผู้ดูแลระบบ ต้องเป็น Host เท่านั้น
+      allow update, delete: if isHost();
+      
+      // การเพิ่มผู้ใช้ใหม่
+      allow create: if isHost() || 
+        // อนุญาตให้คนนอกส่งคำขอใช้งานได้ แต่บังคับให้ยศเป็นแค่ 'pending' และต้องใช้อีเมลตัวเองสร้างเท่านั้น
+        (isRealUser() && request.auth.token.email == userId && request.resource.data.role == 'pending');
+    }
+
+    // ส่วนที่ 4: ปิดตายฐานข้อมูลส่วนอื่นๆ ทั้งหมด ป้องกันแฮกเกอร์แอบสร้างโฟลเดอร์ขยะ
+    match /{document=**} {
+      allow read, write: if false; 
+    }
+  }
+}

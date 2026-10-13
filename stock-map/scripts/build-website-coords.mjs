@@ -25,7 +25,7 @@ const readExisting = () => {
 };
 
 try {
-  const { byHouse, byProject, docCount } = await fetchFirestoreCoords();
+  const { byHouse, byProject, properties, docCount } = await fetchFirestoreCoords();
   const houseCount = Object.keys(byHouse).length;
 
   // กันเคสอ่านได้แต่ข้อมูลว่าง — อย่าเขียนทับสแนปช็อตดีๆ ด้วยไฟล์เปล่า
@@ -40,6 +40,7 @@ try {
     note: 'สแนปช็อตพิกัดบ้านจากเว็บหลัก สร้างด้วย `npm run build:coords` (จะถูกเขียนทับทุกครั้งที่ build)',
     byHouse,
     byProject,
+    properties,
   };
   fs.writeFileSync(OUT_PATH, `${JSON.stringify(payload, null, 2)}\n`);
   console.log(`✓ เขียน data/website-coords.json แล้ว — อ่าน ${docCount} หลัง, มีพิกัด ${houseCount} หลัง, ${Object.keys(byProject).length} โครงการ`);

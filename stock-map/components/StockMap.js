@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import HouseHighlights from './HouseHighlights';
 import { GROUP_META } from '../lib/stock';
 
 const MAP_CENTER = [13.99, 100.63];
@@ -51,12 +53,13 @@ const housePopup = (house) => {
     </div>`;
 };
 
-export default function StockMap({ zones, view, onViewChange, activeHouseKey }) {
+export default function StockMap({ zones, view, onViewChange, activeHouseKey, onHighlightStatusChange }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
   const leafletRef = useRef(null);
   const [ready, setReady] = useState(false);
+  const [popup, setPopup] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -144,7 +147,20 @@ export default function StockMap({ zones, view, onViewChange, activeHouseKey }) 
           ),
           zIndexOffset: isActive ? 1000 : 0,
         }).addTo(layer);
-        marker.bindPopup(housePopup(house), { maxWidth: 280 });
+        const popupContent = document.createElement('div');
+        popupContent.innerHTML = housePopup(house);
+        const highlights = document.createElement('div');
+        popupContent.appendChild(highlights);
+        L.DomEvent.disableClickPropagation(popupContent);
+        L.DomEvent.disableScrollPropagation(popupContent);
+        const popupHeight = () => Math.max(220, Math.min(460, map.getSize().y - 100));
+        marker.bindPopup(popupContent, { minWidth: 280, maxWidth: 320, maxHeight: popupHeight() });
+        const popupState = { house, element: highlights, resize: () => {
+          const current = marker.getPopup();
+          if (current) { current.options.maxHeight = popupHeight(); current.update(); }
+        } };
+        marker.on('popupopen', () => setPopup(popupState));
+        marker.on('popupclose', () => setPopup(current => current === popupState ? null : current));
         if (isActive) marker.openPopup();
       });
     } else if (activeZone) {
@@ -184,5 +200,5 @@ export default function StockMap({ zones, view, onViewChange, activeHouseKey }) 
     }
   }, [ready, zones, view, activeHouseKey, onViewChange]);
 
-  return <div ref={containerRef} className="w-full h-[420px] lg:h-[calc(100vh-260px)] lg:min-h-[520px]" />;
+  return <><div ref={containerRef} className="w-full h-[420px] lg:h-[calc(100vh-260px)] lg:min-h-[520px]" />{popup && createPortal(<HouseHighlights key={`${popup.house.project}|${popup.house.houseNumber}`} house={popup.house} onResize={popup.resize} onStatusChange={onHighlightStatusChange} />, popup.element)}</>;
 }
