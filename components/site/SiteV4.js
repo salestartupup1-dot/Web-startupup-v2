@@ -606,7 +606,7 @@ export default function SiteV4({ basePath = '/v4' }) {
               <div className="v4-social">
                 <a href={companyInfo?.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook"><Facebook /></a>
                 <a href="https://youtube.com/@startupupofficial" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><Youtube /></a>
-                <a href={lineContactHref()} target="_blank" rel="noopener noreferrer" aria-label="LINE"><MessageCircle size={26} /></a>
+                <a href={lineContactHref(selectedProperty)} data-contact-property-id={selectedProperty?.id} data-contact-property-name={[selectedProperty?.project_name, selectedProperty?.house_number].filter(Boolean).join(' ')} data-contact-property-slug={selectedProperty ? generatePropSlug(selectedProperty) : undefined} target="_blank" rel="noopener noreferrer" aria-label="LINE"><MessageCircle size={26} /></a>
                 <a href="https://www.instagram.com/startupuprealestate/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><Instagram /></a>
                 <a href="https://www.tiktok.com/@startupupofficial" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><Video size={26} /></a>
               </div>

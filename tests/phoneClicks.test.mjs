@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { recordPhoneClick, listPhoneClicks, phoneClickRecord, PHONE_CLICKS_COLLECTION } from '../lib/phoneClickServer.js';
-import { createPhoneClickTracker, installPhoneClickTracking } from '../lib/phoneClicks.js';
+import { recordPhoneClick, listPhoneClicks, phoneClickRecord, PHONE_CLICKS_COLLECTION, LINE_CLICKS_COLLECTION } from '../lib/phoneClickServer.js';
+import { createPhoneClickTracker, installPhoneClickTracking, phoneClickPayload } from '../lib/phoneClicks.js';
 import { sameOrigin } from '../lib/lineServer.js';
 const at = Date.parse('2026-10-12T12:00:00+07:00');
 const range = { start: '2026-10-12', end: '2026-10-12' };
@@ -100,6 +100,42 @@ test('collection writes require the website origin and JSON body', () => {
   assert.throws(() => sameOrigin({ headers: { origin: 'https://www.startupup-real-estate.com', 'content-type': 'text/plain' } }), { status: 415 });
   assert.doesNotThrow(() => sameOrigin({ headers: { origin: 'https://www.startupup-real-estate.com', 'content-type': 'application/json' } }));
 });
+test('phone and LINE preserve placement; other links are ignored; separate buttons count separately', async () => {
+  const calls = [], runtime = { crypto: { randomUUID }, location: { href: 'https://www.startupup-real-estate.com/?property=h1', pathname: '/' }, navigator: { sendBeacon: () => true }, fetch: async (url, options) => { calls.push(JSON.parse(options.body)); return { ok: true }; } };
+  const anchor = (href, footer, dataset = {}) => ({ href, dataset, getAttribute: () => href, hasAttribute: () => false, closest: selector => selector === 'footer' && footer ? {} : null });
+  const footerPhone = anchor('tel:0624782426', true, { phonePropertyId: 'h1' });
+  const footerLine = anchor('/line/go?via=website&property=h1&name=House', true, { contactPropertySlug: 'h1' });
+  const saleLine = anchor('/line/go?via=website&property=h1&name=House', false, { contactPlacement: 'sale_page' });
+  assert.equal(phoneClickPayload(footerPhone, runtime).placement, 'footer');
+  const line = phoneClickPayload(footerLine, runtime);
+  assert.equal(line.kind, 'line_click'); assert.equal(line.placement, 'footer'); assert.equal(line.property.id, 'h1'); assert.equal(line.property.slug, 'h1');
+  assert.equal(phoneClickPayload(saleLine, runtime).placement, 'sale_page');
+  assert.equal(phoneClickPayload(anchor('/line/go?via=website', true), runtime).property.id, '');
+  for (const href of ['https://facebook.com/test', 'https://line.me.evil.example/', 'javascript:alert(1)', '#', '/admin']) assert.equal(phoneClickPayload(anchor(href, true), runtime), null);
+  const track = createPhoneClickTracker(runtime);
+  const activate = target => track({ target: { closest: () => target }, button: 0 });
+  activate(footerLine); activate(footerLine); activate(saleLine); activate(footerPhone);
+  assert.equal(calls.length, 3);
+  await new Promise(resolve => setImmediate(resolve));
+});
+
+test('LINE clicks are isolated from phone/people counts and cursors are type-scoped', async () => {
+  const db = memoryDb(), line = { ...body(), kind: 'line_click', phone: undefined, placement: 'footer' };
+  await recordPhoneClick(body(), db, at);
+  await recordPhoneClick(line, db, at); await recordPhoneClick(line, db, at + 1);
+  for (let i = 0; i < 50; i++) await recordPhoneClick({ ...line, eventId: randomUUID(), placement: 'sale_page' }, db, at);
+  assert.equal((await listPhoneClicks(range, db)).total, 1);
+  const first = await listPhoneClicks({ ...range, kind: 'line' }, db);
+  assert.equal(first.total, 51); assert.equal(first.clicks.length, 50);
+  assert.equal((await listPhoneClicks({ ...range, kind: 'line', cursor: first.nextCursor }, db)).clicks.length, 1);
+  await assert.rejects(listPhoneClicks({ ...range, kind: 'phone', cursor: first.nextCursor }, db), { status: 400 });
+  await assert.rejects(listPhoneClicks({ ...range, kind: 'invalid' }, db), { status: 400 });
+  assert.throws(() => phoneClickRecord({ ...line, kind: 'message' }), { status: 400 });
+  assert.equal(phoneClickRecord({ ...line, placement: 'injected' }).placement, 'unknown');
+  assert.equal(phoneClickRecord(body()).placement, 'unknown');
+  assert.ok([...db.data.keys()].every(key => key.startsWith(PHONE_CLICKS_COLLECTION + '/') || key.startsWith(LINE_CLICKS_COLLECTION + '/')));
+});
+
 function memoryDb() {
   const data = new Map();
   const ref = (collection, id) => ({ key: collection + '/' + id, id,

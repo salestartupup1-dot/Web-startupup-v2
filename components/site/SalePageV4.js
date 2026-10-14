@@ -588,6 +588,7 @@ export default function SalePageV4({
               <a
                 className={`sp4-act call${isEditMode ? ' is-off' : ''}`}
                 href={isEditMode ? '#' : `tel:${companyInfo?.phone}`}
+                data-contact-placement="sale_page"
                 data-phone-property-id={property.id}
                 data-phone-property-name={[property.project_name, property.house_number].filter(Boolean).join(' ')}
                 data-phone-property-slug={generatePropSlug(property)}
@@ -598,6 +599,10 @@ export default function SalePageV4({
               <a
                 className={`sp4-act line${isEditMode ? ' is-off' : ''}`}
                 href={isEditMode ? '#' : lineContactHref(property)}
+                data-contact-placement="sale_page"
+                data-contact-property-id={property.id}
+                data-contact-property-name={[property.project_name, property.house_number].filter(Boolean).join(' ')}
+                data-contact-property-slug={generatePropSlug(property)}
                 target="_blank" rel="noopener noreferrer"
                 onClick={() => trackContact('contact_line')}
               >
