@@ -100,7 +100,7 @@ test('collection writes require the website origin and JSON body', () => {
   assert.throws(() => sameOrigin({ headers: { origin: 'https://www.startupup-real-estate.com', 'content-type': 'text/plain' } }), { status: 415 });
   assert.doesNotThrow(() => sameOrigin({ headers: { origin: 'https://www.startupup-real-estate.com', 'content-type': 'application/json' } }));
 });
-test('phone and LINE preserve placement; other links are ignored; separate buttons count separately', async () => {
+test('contact metadata preserves placement but only phone activations are recorded', async () => {
   const calls = [], runtime = { crypto: { randomUUID }, location: { href: 'https://www.startupup-real-estate.com/?property=h1', pathname: '/' }, navigator: { sendBeacon: () => true }, fetch: async (url, options) => { calls.push(JSON.parse(options.body)); return { ok: true }; } };
   const anchor = (href, footer, dataset = {}) => ({ href, dataset, getAttribute: () => href, hasAttribute: () => false, closest: selector => selector === 'footer' && footer ? {} : null });
   const footerPhone = anchor('tel:0624782426', true, { phonePropertyId: 'h1' });
@@ -112,10 +112,14 @@ test('phone and LINE preserve placement; other links are ignored; separate butto
   assert.equal(phoneClickPayload(saleLine, runtime).placement, 'sale_page');
   assert.equal(phoneClickPayload(anchor('/line/go?via=website', true), runtime).property.id, '');
   for (const href of ['https://facebook.com/test', 'https://line.me.evil.example/', 'javascript:alert(1)', '#', '/admin']) assert.equal(phoneClickPayload(anchor(href, true), runtime), null);
+  runtime.sessionStorage = { getItem: () => JSON.stringify([{ payload: line, queuedAt: Date.now() }]), setItem: () => {} };
   const track = createPhoneClickTracker(runtime);
+  track.flush();
+  assert.equal(calls.length, 0, 'old queued LINE activations are discarded');
   const activate = target => track({ target: { closest: () => target }, button: 0 });
   activate(footerLine); activate(footerLine); activate(saleLine); activate(footerPhone);
-  assert.equal(calls.length, 3);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].kind, 'phone_click');
   await new Promise(resolve => setImmediate(resolve));
 });
 
