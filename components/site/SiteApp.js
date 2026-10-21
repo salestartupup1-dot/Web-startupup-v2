@@ -24,7 +24,7 @@ import { lineContactHref } from '../../lib/lineAttribution';
 import { makePropertySlug } from '../../lib/firestorePublic';
 import { buildPageSeo, buildStructuredData, safeJsonLd } from '../../lib/seo';
 import { PROPERTY_OWNERS, DEFAULT_PROPERTY_OWNER, getPropertyOwner, selectPublicProperties } from '../../lib/propertyOwners';
-import { normalizeHouseKey, houseAliasKey } from '../../lib/masterStock';
+import { getPropertyStockAlert } from '../../lib/stockMatching';
 import usePropertyLink from './usePropertyLink';
 import usePublicPopup from './usePublicPopup';
 import SalePromotionAdmin from './SalePromotionAdmin';
@@ -2379,20 +2379,7 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
 
     useEffect(() => { loadStockCheck(); }, [loadStockCheck]);
 
-    const getStockAlert = (prop) => {
-        if (!stockIndex?.houses) return null;
-        if (!stockIndex.coversPartners && getPropertyOwner(prop) !== DEFAULT_PROPERTY_OWNER) return null;
-        const key = normalizeHouseKey(prop?.house_number);
-        if (!key) return null;
-
-        // บางหลังในเว็บกรอกบ้านเลขที่ไม่ครบ (เว็บ "904" ชีต "11/904") ลองจับคู่ด้วยโครงการ+เลขท้าย
-        const aliasKey = houseAliasKey(prop?.project_name, key);
-        const hit = stockIndex.houses[key]
-            || (aliasKey && stockIndex.aliases?.[aliasKey] ? stockIndex.houses[stockIndex.aliases[aliasKey]] : null);
-        if (!hit) return { type: 'missing', label: 'ไม่มีใน Master Stock แล้ว', title: `ไม่พบบ้านเลขที่ ${prop.house_number} ใน Master Stock ของ All in One — ควรลบออกจากเว็บ` };
-        if (hit.sold && prop?.badge !== 'Sold Out') return { type: 'sold', label: 'Master Stock ขึ้นว่าขายแล้ว', title: `${hit.source}: สถานะ "${hit.status}" — ควรลบออกจากเว็บ หรือติดป้าย Sold Out` };
-        return null;
-    };
+    const getStockAlert = (prop) => getPropertyStockAlert(stockIndex, prop);
 
     const PENDING_PREVIEW_COUNT = 8;
 
@@ -2825,7 +2812,7 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
                                             <p className="text-xs text-gray-400 mt-1 flex items-center gap-1 flex-wrap">
                                                 เทียบกับ
                                                 <a href={stockIndex.sheetUrl} target="_blank" rel="noreferrer" className="underline hover:text-brand-green">Master Stock</a>
-                                                ของ All in One ({stockIndex.houseCount} หลัง) แล้ว — หลังที่มีป้าย <AlertTriangle size={11} className="text-red-500"/> คือไม่อยู่ในสต๊อกแล้ว ควรลบออกจากเว็บ
+                                                ของ All in One ({stockIndex.houseCount} รายการ) แล้ว — ป้าย <AlertTriangle size={11} className="text-red-500"/> คือรายการที่ควรตรวจสอบกับชีตต้นทางก่อนแก้ไขหรือลบ
                                                 <button
                                                     type="button"
                                                     onClick={() => loadStockCheck({ force: true })}
@@ -2836,7 +2823,7 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
                                                 </button>
                                             </p>
                                             {!stockIndex.coversPartners && (
-                                                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1"><AlertTriangle size={12}/> อ่านชีตได้ไม่ครบ — ข้ามการเช็คบ้าน Partner ไว้ก่อน</p>
+                                                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1"><AlertTriangle size={12}/> อ่านชีตได้ไม่ครบ — ยังไม่สรุปสถานะของเจ้าของที่อ่านข้อมูลไม่ได้</p>
                                             )}
                                         </>
                                     ) : null}
