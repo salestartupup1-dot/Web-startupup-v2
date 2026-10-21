@@ -19,6 +19,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { connectAuthEmulator, getAuth, onAuthStateChanged, signOut, signInAnonymously, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore, collection, addDoc as sdkAddDoc, doc, updateDoc as sdkUpdateDoc, deleteDoc as sdkDeleteDoc, onSnapshot, query, setDoc as sdkSetDoc, getDoc, serverTimestamp, writeBatch, runTransaction } from 'firebase/firestore';
 import Head from 'next/head';
+import dynamic from 'next/dynamic';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { makePropertySlug } from '../../lib/firestorePublic';
 import { buildPageSeo, buildStructuredData, safeJsonLd } from '../../lib/seo';
@@ -36,6 +37,8 @@ import PublicDataNotice from './PublicDataNotice';
 import { getPendingStockHouses, groupAdminStock } from '../../lib/adminStock';
 import { groupPropertyMapZones, propertyMapZone } from '../../lib/propertyMap';
 
+
+const AdminLocationFields = dynamic(() => import('./AdminLocationFields'));
 
 const Facebook = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
@@ -2772,7 +2775,6 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
         });
     };
 
-    const safeLocations = locations || [];
 
     return (
         <div className="fixed inset-0 z-[60] bg-gray-50 flex flex-col font-sans">
@@ -3020,22 +3022,12 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
 
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                                         <h4 className="font-medium mb-6 pb-2 border-b">ทำเลแสดงผลบนหน้าเว็บ (ตามหมวดหมู่)</h4>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="label">ทำเล (หลัก)</label>
-                                                <select className="input-modern" value={formData.main_location} onChange={e => setFormData({...formData, main_location: e.target.value, sub_location: ''})}>
-                                                    <option value="">- เลือกทำเลหลัก -</option>
-                                                    {safeLocations.map(loc => <option key={loc.area} value={loc.area}>{loc.area}</option>)}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="label">ทำเลย่อย</label>
-                                                <select className="input-modern" value={formData.sub_location} onChange={e => setFormData({...formData, sub_location: e.target.value})} disabled={!formData.main_location}>
-                                                    <option value="">- เลือกทำเลย่อย -</option>
-                                                    {formData.main_location && safeLocations.find(l => l.area === formData.main_location)?.sub_areas?.map(sub => <option key={sub} value={sub}>{sub}</option>)}
-                                                </select>
-                                            </div>
-                                        </div>
+                                        <AdminLocationFields
+                                            locations={locations}
+                                            main={formData.main_location}
+                                            sub={formData.sub_location}
+                                            onChange={selection => setFormData(previous => ({ ...previous, ...selection }))}
+                                        />
                                     </div>
 
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
