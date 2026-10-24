@@ -974,7 +974,7 @@ export default function CinemaHero({
               </form>
 
               <div className="intro-copy">
-                <h1 className="intro-lead">บ้านมือสองรีโนเวท รังสิต คลองหลวง<br />ลำลูกกา ปทุมธานี</h1>
+                <h1 className="intro-lead">จุดเริ่มต้นของคนอยากมีบ้าน</h1>
                 <div className="cine-quick-actions" ref={quickActionsRef}>
                   <button type="button" disabled={isEditMode} onClick={onShowAllHomes}>
                     <span>ดูบ้านทั้งหมด</span>
