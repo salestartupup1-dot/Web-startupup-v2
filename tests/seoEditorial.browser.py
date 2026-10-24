@@ -22,7 +22,7 @@ for slug, source in [
     assert 'ช่วงราคาบ้านที่เปิดรับจอง' in body
     assert body.count('<h1') == 1
     schemas = [json.loads(s) for s in re.findall(r'<script[^>]+type="application/ld\+json"[^>]*>(.*?)</script>', body, re.S)]
-    faq = next(s for s in schemas if s.get('@type') == 'FAQPage')
+    faq = next(s for group in schemas for s in (group if isinstance(group,list) else [group]) if s.get('@type') == 'FAQPage')
     assert 'ราคาประกาศ' in faq['mainEntity'][0]['acceptedAnswer']['text']
 print('PASS: house facts and all five location guides are present in server HTML', flush=True)
 
