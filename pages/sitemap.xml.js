@@ -2,6 +2,7 @@ import { SEO_LOCATIONS, locationPath } from '../lib/seoLocations';
 import { getSeoStock, includePropertyInSitemap } from '../lib/seoStock';
 import { getPublicProperties } from '../lib/publicDataCache';
 import { withCanonicalPropertyPaths } from '../lib/propertyCanonicalLinks';
+import { withWebsiteInventory, indexableSeoLandings } from '../lib/websiteInventory';
 import {
   escapeXml,
   formatSitemapDate,
@@ -60,7 +61,10 @@ export async function getServerSideProps({ res }) {
       priority: property.badge === 'Promotion' ? '0.9' : '0.8',
     }));
 
-  const routes = [...new Map([...STATIC_ROUTES, ...propertyRoutes].map(route => [route.loc, route])).values()];
+  // Reuse the same stock snapshot as house URLs: no extra database request.
+  const landingRoutes = indexableSeoLandings(properties.map(property => withWebsiteInventory(property, stock)))
+    .map(landing => ({ loc: toAbsoluteUrl(locationPath(landing)), changefreq: 'daily', priority: '0.8' }));
+  const routes = [...new Map([...STATIC_ROUTES, ...landingRoutes, ...propertyRoutes].map(route => [route.loc, route])).values()];
   const xml = buildSitemapXml(routes);
 
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');

@@ -27,6 +27,12 @@
 .guide a { color:#173e2c; text-decoration:underline; text-underline-offset:4px; }
 .guideQuestions { margin-top:48px; }
 .guideQuestions .faq:last-child { border-bottom:1px solid #d7e0d8; }
+.landingLinks ul { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px 24px; list-style:none; padding:0; margin:16px 0; }
+.landingLinks a { display:flex; align-items:center; min-height:44px; padding:8px 0; text-decoration:underline; text-underline-offset:4px; }
+.landingLinks a:focus-visible { outline:3px solid #b49250; outline-offset:4px; }
+.footerLinks { width:100%; max-width:1200px; margin:0 auto; padding:0 28px 24px; }
+.footerLinks ul { grid-template-columns:repeat(3,minmax(0,1fr)); border-top:1px solid #ffffff30; padding-top:20px; }
+.footerLinks li a { font-size:15px; color:#fdf1e1; text-decoration:underline; }
 .section a:focus-visible,.header a:focus-visible,.faq summary:focus-visible { outline:3px solid #9a6a1d; outline-offset:4px; }
 @media(max-width:900px) { .grid {grid-template-columns:repeat(2,minmax(0,1fr));} }
-@media(max-width:560px) { .section {padding:36px 20px;} .grid {grid-template-columns:1fr;} .links a {font-size:.88rem;} }
+@media(max-width:560px) { .section {padding:36px 20px;} .grid {grid-template-columns:1fr;} .links a {font-size:.88rem;} .landingLinks ul {grid-template-columns:1fr;} }

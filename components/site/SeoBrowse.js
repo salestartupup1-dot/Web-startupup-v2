@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- Cloudinary applies responsive card resizing without an additional image proxy. */
 /* eslint-disable @next/next/no-html-link-for-pages -- Full document navigation refreshes SSR prices; prefetching house pages would consume database reads. */
 import { SEO_LOCATIONS, locationPath } from '../../lib/seoLocations';
+import { SEO_LANDINGS } from '../../lib/seoLandings';
 import { formatPrice, getPropertyPath } from '../../lib/seo';
 import styles from './SeoBrowse.module.css';
 const cardImage = property => {
@@ -11,6 +12,14 @@ const cardImage = property => {
 export function LocationLinks() {
   return <nav className={styles.links} aria-label="เลือกบ้านตามทำเล">
     {SEO_LOCATIONS.map(location => <a key={location.slug} href={locationPath(location)}>บ้านมือสอง{location.name}</a>)}
+  </nav>;
+}
+
+export function LandingLinks({ footer = false }) {
+  return <nav className={`${styles.landingLinks}${footer ? ` ${styles.footerLinks}` : ''}`} aria-label={footer ? 'ค้นหาบ้านตามประเภทและงบประมาณท้ายเว็บ' : 'ค้นหาบ้านตามประเภทและงบประมาณ'}>
+    <ul>{SEO_LANDINGS.map(landing => <li key={landing.slug}>
+      <a href={locationPath(landing)}>{landing.name}</a>
+    </li>)}</ul>
   </nav>;
 }
 
@@ -45,6 +54,11 @@ export default function SeoBrowse() {
     </article>
     <section className={styles.guideQuestions} aria-labelledby="home-faq-title">
       <h2 id="home-faq-title">คำถามที่พบบ่อย</h2>
+      <details className={styles.faq} open>
+        <summary>เลือกบ้านตามประเภท โครงการ หรืองบประมาณได้ที่ไหน?</summary>
+        <p>เลือกหัวข้อที่ตรงความต้องการ เพื่อดูบ้านพร้อมขายพร้อมข้อมูลประกอบการตัดสินใจ</p>
+        <LandingLinks />
+      </details>
       <details className={styles.faq}>
         <summary>เลือกอ่านข้อมูลแต่ละทำเลได้ที่ไหน?</summary>
         <p>อ่านข้อมูลและดูรายการในทำเลที่สนใจได้ที่ {SEO_LOCATIONS.map((location, index) => <span key={location.slug}>

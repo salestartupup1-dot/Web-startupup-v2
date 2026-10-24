@@ -1805,6 +1805,13 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-16 min-h-screen flex flex-col reveal-on-scroll">
+      {locationLanding?.kind && <nav aria-label="เส้นทางหน้าปัจจุบัน" className="mb-5 text-sm text-brand-green">
+        <ol className="flex flex-wrap items-center gap-2">
+          <li><a href="/" className="underline underline-offset-4 focus-visible:outline focus-visible:outline-2">หน้าหลัก</a></li>
+          <li aria-hidden="true">/</li>
+          <li aria-current="page">{locationLanding.name}</li>
+        </ol>
+      </nav>}
       {locationLanding && <p className="mb-4 text-brand-green">{locationLanding.intro}</p>}
       {hasUnverifiedLocation && <p role="status" className="mb-4 text-sm text-gray-600">บางรายการอยู่ระหว่างยืนยันสถานะ จึงยังไม่รวมในจำนวนบ้านที่เปิดรับจอง กรุณาสอบถามทีมงานหากไม่พบหลังที่สนใจ</p>}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">

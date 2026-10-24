@@ -22,7 +22,7 @@ import {
 
 import useSiteData from './useSiteData';
 import PublicDataNotice from './PublicDataNotice';
-import SeoBrowse from './SeoBrowse';
+import SeoBrowse, { LandingLinks } from './SeoBrowse';
 import LocationGuide from './LocationGuide';
 import { seoLocationFromSearch } from '../../lib/seoLocations';
 import CinemaHero from './CinemaHero';
@@ -623,6 +623,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
               </div>
             </div>
           </div>
+          <LandingLinks footer />
           <div className="v4-footer-base">
             © {new Date().getFullYear()} {companyInfo?.name || 'Startup Up Real Estate'}. All Rights Reserved.
           </div>
