@@ -50,7 +50,7 @@ export default function MobileHome({
           <span className={styles.pictureCaption}>STARTUP UP · REAL ESTATE</span>
         </div>
         <div className={styles.heroContent}>
-          <h1 id="mobile-home-title">จุดเริ่มต้นของ<br />คนอยากมีบ้าน</h1>
+          <h1 id="mobile-home-title">บ้านมือสองรีโนเวท<br />รังสิต ปทุมธานี</h1>
           <p className={styles.lead}>เลือกบ้านและทำเลที่คุณสนใจ<br />ให้เราช่วยดูแลตั้งแต่เริ่มต้น</p>
           <div className={styles.actions}>
             <Link prefetch={false} className={styles.primary} href="/?tab=all" onClick={event => follow(event, onShowAll)}>
@@ -77,7 +77,7 @@ export default function MobileHome({
             return (
               <a key={location.area} className={styles.location} href={searchResultHref('main_location', location.area)}
                 onClick={event => follow(event, () => onFilter('main_location', location.area))}>
-                <SmartImage src={LOCATION_IMAGES[location.area] || location.img} alt="" width={400} height={250} sizes="(max-width: 700px) 50vw, 25vw" loading="lazy" />
+                <SmartImage src={LOCATION_IMAGES[location.area] || location.img} alt={`บรรยากาศทำเล${location.area}`} width={400} height={250} sizes="(max-width: 700px) 50vw, 25vw" loading="lazy" />
                 <div><h3>{location.area}</h3><span>{loading ? 'กำลังโหลดบ้าน…' : `${count} หลัง`}</span><ArrowRight size={18} aria-hidden="true" /></div>
               </a>
             );

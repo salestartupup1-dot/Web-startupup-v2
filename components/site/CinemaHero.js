@@ -329,6 +329,7 @@ function CineText({ tag = 'p', field, copy, onChange, isEditMode }) {
 }
 
 export default function CinemaHero({
+  loading = false,
   properties = [],
   onSelectProp,
   onSelectLocation,
@@ -405,9 +406,9 @@ export default function CinemaHero({
     return list.map(loc => ({
       ...loc,
       img: LOCATION_IMG[loc.area] || loc.img,
-      count: properties.filter(p => matchesMainArea(p, loc.area)).length,
+      count: loading ? null : properties.filter(p => p.badge !== 'Sold Out' && matchesMainArea(p, loc.area)).length,
     }));
-  }, [visualContent, properties]);
+  }, [visualContent, properties, loading]);
 
   const openLocation = useCallback((event, area) => {
     if (event.ctrlKey || event.metaKey || event.button) return;
@@ -911,7 +912,7 @@ export default function CinemaHero({
               <img
                 className={`scene-main cine-poster${videoReady && !videoFailed ? ' is-hidden' : ''}`}
                 src={MEDIA.poster}
-                alt=""
+                alt="บรรยากาศบ้านและสวน STARTUP UP"
               />
 
               {mode !== 'poster' && !videoFailed && (
@@ -952,10 +953,10 @@ export default function CinemaHero({
               พอความสูงจอเปลี่ยน ระยะบน-ล่างจึงไม่เท่ากัน กลุ่มข้อความเลยลอยสูงกว่ากลางจอ
             */}
             <div className="hero-stack">
-              <h1 className="hero-title">
+              <div className="hero-title">
                 <span className="hero-title-main">{companyName}</span>
                 <span className="hero-title-sub">Real Estate</span>
-              </h1>
+              </div>
 
               {/* ช่องค้นหาอยู่ใต้ชื่อบริษัทบนจอแรก — ข้อความในช่องใช้ homeTitle ของหน้าเว็บหลัก แก้จากหลังบ้านได้ */}
               <form className="hero-search" ref={searchRef} onSubmit={submitSearch}>
@@ -973,7 +974,7 @@ export default function CinemaHero({
               </form>
 
               <div className="intro-copy">
-                <p className="intro-lead">{tagline}</p>
+                <h1 className="intro-lead">บ้านมือสองรีโนเวท รังสิต คลองหลวง<br />ลำลูกกา ปทุมธานี</h1>
                 <div className="cine-quick-actions" ref={quickActionsRef}>
                   <button type="button" disabled={isEditMode} onClick={onShowAllHomes}>
                     <span>ดูบ้านทั้งหมด</span>

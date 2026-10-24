@@ -390,7 +390,7 @@ export default function SalePageV4({
       <div className="sp4-masthead">
         {property.category && <p className="sp4-eyebrow">{property.category}</p>}
         <p className="sp4-title-key">ชื่อโครงการ</p>
-        <h1 className="sp4-title">{property.project_name}</h1>
+        <h1 className="sp4-title">{property.category} {property.project_name}</h1>
         <div className="sp4-idents">
           {houseAndSoi.hn && (
             <span className="sp4-ident">
@@ -420,7 +420,7 @@ export default function SalePageV4({
           <SaleHeroImage
             key={`${propId}:${images[at]}`}
             src={images[at]}
-            alt={property.project_name}
+            alt={`${property.category || 'บ้าน'} ${property.project_name} บ้านเลขที่ ${property.house_number || ''} ภาพที่ ${at + 1}`}
             onClick={() => openLightbox && openLightbox(images, at)}
           />
 

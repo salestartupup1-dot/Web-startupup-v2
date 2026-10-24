@@ -22,6 +22,7 @@ import {
 
 import useSiteData from './useSiteData';
 import PublicDataNotice from './PublicDataNotice';
+import SeoBrowse, { LocationLinks } from './SeoBrowse';
 import CinemaHero from './CinemaHero';
 import { CINEMA_STATIONS } from './CinemaNavigation';
 import MobileHome, { scrollToHomeLocations } from './MobileHome';
@@ -85,8 +86,8 @@ function Waiting() {
   );
 }
 
-export default function SiteV4({ basePath = '/v4' }) {
-  const site = useSiteData({ basePath });
+export default function SiteV4({ basePath = '/v4', initialData }) {
+  const site = useSiteData({ basePath, initialData });
   const {
     userRole, userEmail, authReady, properties, publicProperties, companyInfo, authorizedUsers,
     loading, publicDataError, visualContent, popupData,
@@ -475,6 +476,7 @@ export default function SiteV4({ basePath = '/v4' }) {
                       isEditMode={isVisualEditMode}
                     /> : <>
                     <CinemaHero
+                      loading={loading}
                       properties={publicProperties}
                       onSelectProp={handleSelectProperty}
                       onSelectLocation={handleFilterSelect}
@@ -496,6 +498,7 @@ export default function SiteV4({ basePath = '/v4' }) {
 
                       แถบทำเลกับแผนที่หมุดถูกยกขึ้นไปอยู่ในฉากภาพยนตร์แล้ว จึงปิดทั้งคู่ตรงนี้
                       ไม่งั้นจะเห็นของซ้ำสองรอบในหน้าเดียว */}
+                  {!requestedPropSlug && <SeoBrowse properties={publicProperties} loading={loading} />}
                   {isWaiting ? <Waiting /> : (
                     <HomeSection
                       showLocationMarquee={false}
@@ -581,6 +584,7 @@ export default function SiteV4({ basePath = '/v4' }) {
 
         {/* ---------- ท้ายเว็บ ---------- */}
         <footer className="v4-footer">
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}><LocationLinks /></div>
           <div className="v4-footer-inner">
             <div>
               <h3>{companyInfo?.name || 'STARTUP UP'}</h3>

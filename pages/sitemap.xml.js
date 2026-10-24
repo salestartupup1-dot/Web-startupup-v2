@@ -1,15 +1,18 @@
+import { SEO_LOCATIONS, locationPath } from '../lib/seoLocations';
+import { getSeoStock, includePropertyInSitemap } from '../lib/seoStock';
 import { getPublicProperties } from '../lib/publicDataCache';
 import {
   escapeXml,
   formatSitemapDate,
   getPropertyLastModified,
   getPropertyUrl,
-  isIndexableProperty,
   toAbsoluteUrl,
 } from '../lib/seo';
 
 const STATIC_ROUTES = [
   { loc: toAbsoluteUrl('/'), changefreq: 'daily', priority: '1.0' },
+  { loc: toAbsoluteUrl('/?tab=all'), changefreq: 'daily', priority: '0.9' },
+  ...SEO_LOCATIONS.map(location => ({ loc: toAbsoluteUrl(locationPath(location)), changefreq: 'daily', priority: '0.8' })),
   { loc: toAbsoluteUrl('/?tab=promo'), changefreq: 'daily', priority: '0.8' },
   { loc: toAbsoluteUrl('/?tab=location'), changefreq: 'weekly', priority: '0.7' },
   { loc: toAbsoluteUrl('/?tab=calculator'), changefreq: 'monthly', priority: '0.4' },
@@ -33,16 +36,21 @@ const buildSitemapXml = (urls) => [
 ].join('\n');
 
 export async function getServerSideProps({ res }) {
-  let properties = [];
+  let properties = [], stock;
 
   try {
-    properties = await getPublicProperties();
+    [properties, stock] = await Promise.all([getPublicProperties(), getSeoStock()]);
   } catch (error) {
-    console.error('Unable to load properties for sitemap.xml', error);
+    console.error('Unable to verify sitemap inventory:', error?.code || error?.name);
+    res.statusCode = 503;
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Retry-After', '60');
+    res.end('Sitemap temporarily unavailable. Please retry.');
+    return { props: {} };
   }
 
   const propertyRoutes = properties
-    .filter(isIndexableProperty)
+    .filter(property => includePropertyInSitemap(property, stock))
     .map((property) => ({
       loc: getPropertyUrl(property),
       lastmod: formatSitemapDate(getPropertyLastModified(property)),
@@ -50,10 +58,11 @@ export async function getServerSideProps({ res }) {
       priority: property.badge === 'Promotion' ? '0.9' : '0.8',
     }));
 
-  const xml = buildSitemapXml([...STATIC_ROUTES, ...propertyRoutes]);
+  const routes = [...new Map([...STATIC_ROUTES, ...propertyRoutes].map(route => [route.loc, route])).values()];
+  const xml = buildSitemapXml(routes);
 
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=86400');
+  res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=60');
   res.write(xml);
   res.end();
 

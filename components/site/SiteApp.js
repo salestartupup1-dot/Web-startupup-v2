@@ -22,7 +22,7 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { makePropertySlug } from '../../lib/firestorePublic';
-import { buildPageSeo, buildStructuredData, safeJsonLd } from '../../lib/seo';
+import { buildPageSeo, buildStructuredData, safeJsonLd, getPropertyPath } from '../../lib/seo';
 import { PROPERTY_OWNERS, DEFAULT_PROPERTY_OWNER, getPropertyOwner, selectPublicProperties } from '../../lib/propertyOwners';
 import { getPropertyStockAlert } from '../../lib/stockMatching';
 import usePropertyLink from './usePropertyLink';
@@ -478,8 +478,7 @@ const generatePropSlug = (p) => {
 };
 
 const getPropertySharePath = (property) => {
-  const slug = generatePropSlug(property);
-  return slug ? `/api/share?property=${slug}` : '/';
+  return getPropertyPath(property);
 };
 
 // --- Lightbox Component ---

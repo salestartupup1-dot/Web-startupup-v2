@@ -1,0 +1,26 @@
+.section { max-width:1200px; margin:0 auto; padding:64px 24px; color:#173e2c; line-height:1.9; }
+.section h1 { font-size:clamp(1.8rem,4vw,3rem); line-height:1.35; font-weight:600; margin:16px 0 24px; }
+.section h2 { font-size:clamp(1.25rem,2.4vw,1.8rem); line-height:1.5; font-weight:600; margin:28px 0 16px; }
+.section p { margin:12px 0; }
+.eyebrow { letter-spacing:.12em; font-size:.78rem; color:#506655; }
+.links { display:flex; flex-wrap:wrap; gap:10px; margin:24px 0 36px; }
+.links a,.button { border:1px solid #aac1ae; border-radius:24px; padding:10px 20px; min-height:44px; background:#f6f3eb; display:inline-flex; align-items:center; color:#123b2c; text-decoration:none; }
+.links a:hover,.button:hover { background:#e6eddf; }
+.button { margin-top:24px; }
+.grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; }
+.card { border:1px solid #d7e0d8; border-radius:18px; overflow:hidden; background:#fff; }
+.card a { display:block; height:100%; color:inherit; text-decoration:none; }
+.card img { width:100%; height:auto; aspect-ratio:640/420; object-fit:cover; background:#eef2ed; }
+.cardBody { padding:20px; }
+.card h3 { font-size:1.15rem; font-weight:600; line-height:1.5; }
+.card p { font-size:.85rem; margin:8px 0; color:#536156; }
+.card strong { display:block; font-size:1.2rem; }
+.detail { display:block; margin-top:16px; font-size:.9rem; text-decoration:underline; text-underline-offset:4px; }
+.header { border-bottom:1px solid #d7e0d8; padding:20px 24px; display:flex; align-items:center; justify-content:space-between; gap:20px; color:#123b2c; background:#faf8f1; }
+.header a { padding:8px 0; min-height:44px; display:inline-flex; align-items:center; }
+.prose { max-width:850px; }
+.faq { border-top:1px solid #d7e0d8; padding:20px 0; }
+.faq summary { font-weight:600; cursor:pointer; min-height:44px; }
+.section a:focus-visible,.header a:focus-visible,.faq summary:focus-visible { outline:3px solid #9a6a1d; outline-offset:4px; }
+@media(max-width:900px) { .grid {grid-template-columns:repeat(2,minmax(0,1fr));} }
+@media(max-width:560px) { .section {padding:36px 20px;} .grid {grid-template-columns:1fr;} .links a {font-size:.88rem;} }

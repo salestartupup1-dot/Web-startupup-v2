@@ -26,6 +26,7 @@ import {
   getDoc, serverTimestamp,
 } from 'firebase/firestore';
 
+import { propertyPath, propertyIdFromPath } from '../../lib/propertyRoutes';
 import { buildPageSeo, buildStructuredData } from '../../lib/seo';
 import { selectPublicProperties } from '../../lib/propertyOwners';
 import usePropertyLink from './usePropertyLink';
@@ -46,24 +47,24 @@ import {
  * หน้าเดิมอยู่ที่ '/' ส่วนดีไซน์ใหม่อยู่ที่ '/v4' ถ้าไม่บอกไว้ การเปลี่ยนแท็บบน /v4
  * จะเขียน URL กลับไปเป็น '/' แล้วพอรีเฟรชจะเด้งไปหน้าเดิม
  */
-export default function useSiteData({ basePath = '/' } = {}) {
+export default function useSiteData({ basePath = '/', initialData } = {}) {
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [userEmail, setUserEmail] = useState('');
-  const [properties, setProperties] = useState([]);
-  const [companyInfo, setCompanyInfo] = useState(DEFAULT_COMPANY_INFO);
+  const [properties, setProperties] = useState(initialData?.properties || []);
+  const [companyInfo, setCompanyInfo] = useState({ ...DEFAULT_COMPANY_INFO, ...initialData?.company });
   const [authorizedUsers, setAuthorizedUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialData);
   const [publicDataError, setPublicDataError] = useState(false);
 
   // หน้าเว็บฝั่งลูกค้าใช้เฉพาะบ้านของ Startup Up — บ้าน Partner ยังอยู่ครบใน properties สำหรับหลังบ้าน
   const publicProperties = useMemo(() => selectPublicProperties(properties), [properties]);
 
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState(initialData?.activeTab || 'home');
   const [isRouteReady, setIsRouteReady] = useState(false);
-  const [searchParams, setSearchParams] = useState({ type: 'all', value: '', area: '' });
-  const [selectedProperty, setSelectedProperty] = useState(null);
+  const [searchParams, setSearchParams] = useState(initialData?.searchParams || { type: 'all', value: '', area: '' });
+  const [selectedProperty, setSelectedProperty] = useState(initialData?.selectedProperty || null);
   const [requestedPropSlug, setRequestedPropSlug] = useState(null);
   const [relatedForId, setRelatedForId] = useState(null);
 
@@ -71,11 +72,12 @@ export default function useSiteData({ basePath = '/' } = {}) {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   const [isVisualEditMode, setIsVisualEditMode] = useState(false);
-  const [visualContent, setVisualContent] = useState(DEFAULT_VISUAL_CONTENT);
+  const [visualContent, setVisualContent] = useState({ ...DEFAULT_VISUAL_CONTENT, ...initialData?.visual });
   const [pastVisual, setPastVisual] = useState([]);
   const [futureVisual, setFutureVisual] = useState([]);
   const [isSavingVisual, setIsSavingVisual] = useState(false);
 
+  const seedAvailable = useRef(Boolean(initialData));
   const popupData = usePublicPopup(db, appId);
   const [showPopupModal, setShowPopupModal] = useState(false);
   const [isSnoozeChecked, setIsSnoozeChecked] = useState(false);
@@ -119,18 +121,21 @@ export default function useSiteData({ basePath = '/' } = {}) {
 
   /* ---------- อ่านสถานะจาก URL ---------- */
   useIsomorphicLayoutEffect(() => {
+    let firstSync = true;
     const syncFromUrl = () => {
       try {
         const params = new URLSearchParams(window.location.search);
         const tab = params.get('tab') || 'home';
-        const propSlug = params.get('property');
+        const propSlug = propertyIdFromPath(window.location.pathname) || params.get('property');
         const sType = params.get('sType');
         const sValue = params.get('sValue');
 
         setActiveTab(tab);
         if (sType && sValue) setSearchParams({ type: sType, value: sValue, area: params.get('sArea') || '' });
-        setRequestedPropSlug(propSlug);
-        setSelectedProperty(null);
+        const seeded = firstSync && initialData?.selectedProperty?.id === propSlug;
+        setRequestedPropSlug(seeded ? null : propSlug);
+        if (!seeded) setSelectedProperty(null);
+        firstSync = false;
       } catch (e) {
         console.warn('Cannot read URL parameters in this environment.');
       }
@@ -156,8 +161,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
     let targetPath = basePath;
 
     if (selectedProperty) {
-      targetPath = '/api/share';
-      params.set('property', generatePropSlug(selectedProperty));
+      targetPath = propertyPath(selectedProperty);
     } else {
       if (activeTab !== 'home') params.set('tab', activeTab);
       if (activeTab === 'search_result' && searchParams.value) {
@@ -400,8 +404,12 @@ export default function useSiteData({ basePath = '/' } = {}) {
     };
 
     if (!canManageSite) {
+      const seed = seedAvailable.current && initialData?.version
+        && (!includeCatalogue || Array.isArray(initialData.properties)) ? initialData : null;
+      seedAvailable.current = false;
       const load = () => loadPublicCatalogue({ includeProperties: includeCatalogue });
       return subscribePublicData({
+        initialVersion: seed?.version,
         observe: (options, onValue, onError) => onSnapshot(
           doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'public_version'),
           options, onValue, onError),
@@ -436,7 +444,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
     }, (error) => console.warn(error));
 
     return () => { unsubProps(); unsubCompany(); unsubVisual(); unsubUsers(); };
-  }, [canManageSite, includeCatalogue, isRouteReady]);
+  }, [canManageSite, includeCatalogue, isRouteReady, activeTab === 'portfolio']);
 
   /* ---------- การกระทำต่าง ๆ ---------- */
   const handleLogout = useCallback(async () => {
@@ -536,7 +544,7 @@ export default function useSiteData({ basePath = '/' } = {}) {
 
   const handleSelectProperty = useCallback((p) => {
     setSelectedProperty(createPropertyPreview(p));
-    setRequestedPropSlug(generatePropSlug(p));
+    setRequestedPropSlug(p.id || generatePropSlug(p));
     jumpTop();
   }, [jumpTop]);
 

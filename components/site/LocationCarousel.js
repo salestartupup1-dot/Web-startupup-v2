@@ -201,12 +201,12 @@ export default function LocationCarousel({
               tabIndex={far ? -1 : 0}
               aria-hidden={far ? 'true' : undefined}
               aria-label={i === active
-                ? `ทำเล ${loc.area} มี ${loc.count} โครงการ กดเพื่อดูบ้านในทำเลนี้`
+                ? `ทำเล ${loc.area} กดเพื่อดูบ้านในทำเลนี้`
                 : `เลื่อนไปที่ทำเล ${loc.area}`}
             >
               <img
                 src={imageUrl ? imageUrl(loc) : undefined}
-                alt=""
+                alt={`บรรยากาศทำเล${loc.area}`}
                 draggable="false"
                 loading={Math.abs(off) <= 1 ? 'eager' : 'lazy'}
                 decoding="async"
@@ -214,7 +214,7 @@ export default function LocationCarousel({
               />
               <span className="lg-shade" aria-hidden="true" />
               <span className="lg-body">
-                <em>{loc.count} โครงการ</em>
+                <em>{loc.count == null ? 'ดูบ้านในทำเลนี้' : `${loc.count} หลัง`}</em>
                 <strong>{loc.area}</strong>
                 <i aria-hidden="true" />
               </span>
