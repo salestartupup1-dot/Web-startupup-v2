@@ -1594,7 +1594,7 @@ function SalePage({ property, companyInfo, onBack, properties, onSelectProp, vis
                             e.preventDefault();
                             try {
                                 await copyShortShareUrl(property);
-                                alert('คัดลอกลิงก์สั้นเรียบร้อยแล้ว!');
+                                alert('คัดลอกลิงก์เรียบร้อยแล้ว!');
                             } catch { alert('คัดลอกไม่สำเร็จ กรุณาลองอีกครั้ง'); }
                         }}
                         className="flex items-center gap-1.5 bg-brand-green text-white px-3 py-1.5 rounded-full text-[11px] font-medium hover:bg-opacity-90 transition-all shadow-sm flex-shrink-0"

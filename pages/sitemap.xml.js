@@ -1,7 +1,7 @@
 import { SEO_LOCATIONS, locationPath } from '../lib/seoLocations';
 import { getSeoStock, includePropertyInSitemap } from '../lib/seoStock';
 import { getPublicProperties } from '../lib/publicDataCache';
-import { withCanonicalPropertyPaths } from '../lib/propertyShortLinks';
+import { withCanonicalPropertyPaths } from '../lib/propertyCanonicalLinks';
 import {
   escapeXml,
   formatSitemapDate,

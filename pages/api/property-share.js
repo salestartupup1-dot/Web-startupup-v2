@@ -1,5 +1,5 @@
-import { propertyShortLinks } from '../../lib/propertyShortLinks';
-import { privateResponse } from '../../lib/serverPageData';
+import { withCanonicalPropertyPath } from '../../lib/propertyCanonicalLinks';
+import { privateResponse, readSeoProperty } from '../../lib/serverPageData';
 
 export default async function handler(req, res) {
   privateResponse(res);
@@ -8,7 +8,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   try {
-    const path = await propertyShortLinks.create(req.body?.propertyId);
+    const id = req.body?.propertyId;
+    if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) return res.status(400).json({ error: 'Invalid property' });
+    const property = await readSeoProperty(id, { documentId: id }).promise;
+    if (!property) return res.status(404).json({ error: 'Property not found' });
+    const { canonicalPath: path } = await withCanonicalPropertyPath(property);
     return res.status(200).json({ path });
   } catch (error) {
     const status = [400, 404].includes(error.status) ? error.status : 503;

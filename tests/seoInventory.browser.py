@@ -78,7 +78,7 @@ with sync_playwright() as p:
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         page.screenshot(path=str(output/('location-mobile.png' if mobile else 'location-desktop.png')),full_page=True)
         # A full-page house navigation and Back must keep the location list intact.
-        house_href=page.locator('a[href]').evaluate_all("els=>els.map(e=>e.getAttribute('href')).find(h=>/^\\/[a-f0-9]{6}$/.test(h))")
+        house_href=page.locator('a[href]').evaluate_all("els=>els.map(e=>e.getAttribute('href')).find(h=>h.startsWith('/') && /-\\d/.test(decodeURIComponent(h)) && !h.includes('?'))")
         house_link=page.locator('a[href="'+house_href+'"]').first if house_href else page.locator('a[data-no-property]')
         if house_link.count():
             house_link.click();expect(page.locator('.sp4-title')).to_be_visible(timeout=20000)

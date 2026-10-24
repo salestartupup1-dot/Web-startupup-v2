@@ -1,6 +1,6 @@
 import { readSeoProperty, privateResponse } from '../../lib/serverPageData';
 import { getPropertyPath } from '../../lib/seo';
-import { withCanonicalPropertyPath } from '../../lib/propertyShortLinks';
+import { withCanonicalPropertyPath } from '../../lib/propertyCanonicalLinks';
 
 // Legacy links remain valid for people, Google and social preview crawlers alike.
 export default async function handler(req, res) {

@@ -26,7 +26,7 @@ import {
   getDoc, serverTimestamp,
 } from 'firebase/firestore';
 
-import { propertyPath, propertyIdFromPath } from '../../lib/propertyRoutes';
+import { propertyPath, propertyIdFromPath, canonicalPropertyPath } from '../../lib/propertyRoutes';
 import { buildPageSeo, buildStructuredData } from '../../lib/seo';
 import { seoLocationFromPath, seoLocationFromSearch, locationPath } from '../../lib/seoLocations';
 import { selectPublicProperties } from '../../lib/propertyOwners';
@@ -128,7 +128,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
         const params = new URLSearchParams(window.location.search);
         const location = seoLocationFromPath(window.location.pathname);
         const tab = location ? 'search_result' : params.get('tab') || 'home';
-        const shortPath = /^\/[a-f0-9]{6}$/.test(window.location.pathname);
+        const shortPath = !location && Boolean(canonicalPropertyPath(window.location.pathname));
         const shortId = shortPath && (initialData?.selectedProperty?.canonicalPath === window.location.pathname
           ? initialData.selectedProperty.id
           : window.history.state?.propertyPath === window.location.pathname ? window.history.state.propertyId : null);

@@ -373,7 +373,7 @@ export default function SalePageV4({
             onClick={async () => {
               try {
                 await copyShortShareUrl(property);
-                say('คัดลอกลิงก์สั้นเรียบร้อยแล้ว');
+                say('คัดลอกลิงก์เรียบร้อยแล้ว');
               } catch {
                 say('คัดลอกไม่สำเร็จ กรุณาลองอีกครั้ง');
               }

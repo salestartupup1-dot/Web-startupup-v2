@@ -1,5 +1,5 @@
 import { enrichWebsiteProperty } from '../../lib/seoStock.js';
-import { withCanonicalPropertyPath } from '../../lib/propertyShortLinks.js';
+import { withCanonicalPropertyPath } from '../../lib/propertyCanonicalLinks.js';
 import { randomUUID } from 'node:crypto';
 import { createPropertyReader } from '../../lib/propertyReadService.js';
 

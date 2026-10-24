@@ -8,13 +8,15 @@ def fetch(path):
     with urllib.request.urlopen(BASE+path,timeout=60) as r:return r.read().decode(),r.url
 catalogue=json.loads(fetch('/api/public-data')[0])
 properties=catalogue['properties']
-assert all(re.fullmatch(r'/[a-f0-9]{6}',p.get('canonicalPath','')) for p in properties)
+assert all(p.get('canonicalPath','').startswith('/') and '-' in urllib.parse.unquote(p['canonicalPath']) and '/homes/' not in p['canonicalPath'] for p in properties)
 assert len({p['canonicalPath'] for p in properties})==len(properties)
 public=[p for p in properties if p.get('property_owner','Startup Up').replace(' ','').lower()=='startupup']
 chosen=[next(p for p in public if p.get('inventoryState')==state) for state in ['available','reserved','sold']]
 for p in chosen:
     path=p['canonicalPath'];body,url=fetch(path)
     assert url==BASE+path
+    request=urllib.request.Request(BASE+'/api/property-share',data=json.dumps({'propertyId':p['id']}).encode(),headers={'Content-Type':'application/json'})
+    with urllib.request.urlopen(request,timeout=60) as r: assert json.load(r)['path']==path
     data=json.loads(re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>',body,re.S).group(1))['props']['pageProps']['initialData']
     assert data['selectedProperty']['id']==p['id']
     assert f'href="https://www.startupup-real-estate.com{path}"' in body
@@ -26,7 +28,9 @@ for p in chosen:
         assert fetch('/?property='+urllib.parse.quote(p['custom_id']))[1]==BASE+path
 sitemap=fetch('/sitemap.xml')[0]
 assert '/homes/' not in sitemap and '/h/' not in sitemap and '?property=' not in sitemap
-print('PASS raw HTML: unique canonical short URLs, metadata, headings, aliases, sitemap',flush=True)
+for old,expected in [('/642467','/เจษฎา-4-38-59'),('/f35895','/ไทยสมบูรณ์-3-48-195'),('/44bd3d','/ไทยสมบรูณ์-2-34-74')]:
+    assert urllib.parse.unquote(fetch(old)[1])==BASE+expected
+print('PASS raw HTML: readable canonical URLs, metadata, headings, old short aliases, sitemap',flush=True)
 
 with sync_playwright() as pw:
     for engine,mobile in [(pw.chromium,False),(pw.webkit,True)]:
