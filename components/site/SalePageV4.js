@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { gtagSendEvent } from '../../lib/googleAdsConversion';
 import { propertySharePath } from '../../lib/propertyRoutes';
+import { copyShortShareUrl } from '../../lib/propertyShareClient';
 import {
   ChevronLeft, ChevronRight, MapPin, Phone, Calendar,
 } from 'lucide-react';
@@ -374,9 +375,8 @@ export default function SalePageV4({
             type="button"
             className="sp4-share"
             onClick={async () => {
-              const url = `https://www.startupup-real-estate.com${propertySharePath(property)}`;
               try {
-                await navigator.clipboard.writeText(url);
+                await copyShortShareUrl(property);
                 say('คัดลอกลิงก์สั้นเรียบร้อยแล้ว');
               } catch {
                 say('คัดลอกไม่สำเร็จ กรุณาลองอีกครั้ง');

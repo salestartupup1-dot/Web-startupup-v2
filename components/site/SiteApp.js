@@ -22,7 +22,7 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { makePropertySlug } from '../../lib/firestorePublic';
-import { propertySharePath } from '../../lib/propertyRoutes';
+import { copyShortShareUrl } from '../../lib/propertyShareClient';
 import { buildPageSeo, buildStructuredData, safeJsonLd, getPropertyPath } from '../../lib/seo';
 import { SEO_LOCATIONS, matchesSeoLocation, seoLocationFromSearch, locationPath } from '../../lib/seoLocations';
 import { PROPERTY_OWNERS, DEFAULT_PROPERTY_OWNER, getPropertyOwner, selectPublicProperties } from '../../lib/propertyOwners';
@@ -1589,11 +1589,12 @@ function SalePage({ property, companyInfo, onBack, properties, onSelectProp, vis
                     </div>
                     
                     <button 
-                        onClick={(e) => {
+                        onClick={async (e) => {
                             e.preventDefault();
-                            const shareUrl = `https://www.startupup-real-estate.com${propertySharePath(property)}`;
-                            navigator.clipboard.writeText(shareUrl);
-                            alert('คัดลอกลิงก์สำหรับแชร์เรียบร้อยแล้ว!');
+                            try {
+                                await copyShortShareUrl(property);
+                                alert('คัดลอกลิงก์สั้นเรียบร้อยแล้ว!');
+                            } catch { alert('คัดลอกไม่สำเร็จ กรุณาลองอีกครั้ง'); }
                         }}
                         className="flex items-center gap-1.5 bg-brand-green text-white px-3 py-1.5 rounded-full text-[11px] font-medium hover:bg-opacity-90 transition-all shadow-sm flex-shrink-0"
                     >
@@ -2415,21 +2416,9 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
     const toggleOwnerExpand = (owner) => setExpandedOwners(prev => ({ ...prev, [owner]: !prev[owner] }));
 
     const copyPropertyUrl = async (prop) => {
-        const url = `https://www.startupup-real-estate.com${propertySharePath(prop)}`;
-        let copied = false;
         try {
-            if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(url); copied = true; }
-        } catch { copied = false; }
-        if (!copied) {
-            try {
-                const ta = document.createElement('textarea');
-                ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
-                document.body.appendChild(ta); ta.focus(); ta.select();
-                copied = document.execCommand('copy');
-                document.body.removeChild(ta);
-            } catch { copied = false; }
-        }
-        if (!copied) { showAlert('คัดลอกไม่สำเร็จ', url, 'warning'); return; }
+            await copyShortShareUrl(prop);
+        } catch { showAlert('คัดลอกไม่สำเร็จ', 'กรุณาลองอีกครั้ง', 'warning'); return; }
         setCopiedPropId(prop.id);
         setTimeout(() => setCopiedPropId(curr => (curr === prop.id ? null : curr)), 2000);
     };
