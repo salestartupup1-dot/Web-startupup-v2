@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
+import localFont from 'next/font/local';
 import LocationCarousel from './LocationCarousel';
 import FeaturedHomes from './FeaturedHomes';
 import CinemaNavigation, { CINEMA_STATIONS as STATIONS } from './CinemaNavigation';
@@ -24,6 +25,14 @@ import {
   EditableText, getOptimizedImg, PropertyMap, DEFAULT_VISUAL_CONTENT,
   normalizeLocations, visibleLocations, matchesMainArea, searchResultHref,
 } from './SiteApp';
+
+const taglineFont = localFont({
+  src: '../../public/fonts/charmonman-thai-regular.woff2',
+  weight: '400',
+  style: 'normal',
+  display: 'swap',
+  variable: '--font-tagline',
+});
 
 /**
  * ระยะเลื่อนทั้งเรื่อง
@@ -974,7 +983,7 @@ export default function CinemaHero({
               </form>
 
               <div className="intro-copy">
-                <h1 className="intro-lead">จุดเริ่มต้นของคนอยากมีบ้าน</h1>
+                <h1 className={`intro-lead ${taglineFont.variable}`}>จุดเริ่มต้นของคนอยากมีบ้าน</h1>
                 <div className="cine-quick-actions" ref={quickActionsRef}>
                   <button type="button" disabled={isEditMode} onClick={onShowAllHomes}>
                     <span>ดูบ้านทั้งหมด</span>
@@ -1278,7 +1287,14 @@ const cinemaCss = `
   background: #fdf1e1; font-size: 0.9rem; font-weight: 500;
   box-shadow: 0 12px 30px rgba(0,0,0,0.22);
 }
-.cinema-scroll .intro-lead { display: block; }
+.cinema-scroll .intro-lead {
+  display: block; width: fit-content; max-width: 100%; margin: 0 auto 10px;
+  font-family: var(--font-tagline), cursive; font-size: clamp(22px, 4.8vw, 30px);
+  font-weight: 400; font-style: normal; line-height: 1.7; letter-spacing: 0;
+  white-space: nowrap; color: #fdf1e1;
+  background: transparent; border: 0; box-shadow: none;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
 
 /* ตัวเลขเล่าแบรนด์ โชว์ตั้งแต่หน้าจอแรก */
 .cinema-scroll .hero-stats {
