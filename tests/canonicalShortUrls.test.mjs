@@ -46,7 +46,7 @@ test('copy, listing, preview, canonical and schema use the same short identity',
   const url=await getShortShareUrl(property);
   assert.equal(buildPageSeo({selectedProperty:property}).canonicalUrl,url);
   assert.equal(buildPropertyJsonLd(property).url,url);
-  assert.equal(getPropertyHeading(property),'ไทยสมบูรณ์ 3');
+  assert.equal(getPropertyHeading(property),'ทาวน์เฮาส์ ไทยสมบูรณ์ 3'); // No district is invented when absent.
   const meta=buildPageSeo({selectedProperty:property});
   for(const value of ['ทาวน์เฮาส์','คลองหลวง','2,790,000']) assert.ok(meta.title.includes(value));
 });

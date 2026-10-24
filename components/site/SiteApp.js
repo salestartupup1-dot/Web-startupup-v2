@@ -699,7 +699,7 @@ function HeroSection({ visualContent, updateVisualContent, isEditMode }) {
                   <SmartImage 
                       key={heroImg}
                       src={getOptimizedImg(heroImg, 1600)} 
-                      alt={`Hero ${currentIndex + 1}`} 
+                      alt={`ภาพบ้านและบรรยากาศ STARTUP UP ภาพที่ ${currentIndex + 1}`}
                       width={1600}
                       height={900}
                       sizes="100vw"
@@ -1923,7 +1923,7 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
 }
 
 // --- PortfolioSection Component ---
-function PortfolioSection({ companyInfo, properties, visualContent, updateVisualContent, isEditMode, openLightbox, listing, onListingChange, basePath = '/' }) {
+function PortfolioSection({ soldHomes, companyInfo, properties, visualContent, updateVisualContent, isEditMode, openLightbox, listing, onListingChange, basePath = '/' }) {
   const soldOutProperties = properties.filter(p => p.badge === 'Sold Out');
   const portfolioYears = companyInfo?.portfolio_years || [];
   
@@ -1995,7 +1995,7 @@ function PortfolioSection({ companyInfo, properties, visualContent, updateVisual
         
       {portfolioYears.length > 0 && (
          <div className="mb-16">
-            <h3 className="text-xl font-light text-gray-500 mb-6 uppercase tracking-widest border-b pb-2">อัลบั้มผลงาน</h3>
+            <h2 className="text-xl font-light text-gray-500 mb-6 uppercase tracking-widest border-b pb-2">อัลบั้มผลงาน</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                {[...portfolioYears].sort((a,b) => Number(b.year) - Number(a.year)).map((yearGroup, idx) => {
                   const coverImg = (yearGroup.images && yearGroup.images.length > 0) ? yearGroup.images[0] : "https://placehold.co/400x400?text=No+Image";
@@ -2009,7 +2009,7 @@ function PortfolioSection({ companyInfo, properties, visualContent, updateVisual
                               <div className="absolute bottom-4 left-4 right-4 text-white">
                                   <div className="flex items-center gap-2 mb-1">
                                       <FolderPlus size={18} className="text-brand-light" />
-                                      <h4 className="text-lg md:text-xl font-medium">ผลงานปี {yearGroup.year}</h4>
+                                      <h3 className="text-lg md:text-xl font-medium">ผลงานปี {yearGroup.year}</h3>
                                   </div>
                                   <p className="text-sm font-light opacity-90">{imageCount} รูปภาพ</p>
                               </div>
@@ -2020,6 +2020,7 @@ function PortfolioSection({ companyInfo, properties, visualContent, updateVisual
             </div>
          </div>
       )}
+      {soldHomes}
     </div>
   );
 }

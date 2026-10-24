@@ -24,6 +24,7 @@ import useSiteData from './useSiteData';
 import PublicDataNotice from './PublicDataNotice';
 import SeoBrowse, { LandingLinks } from './SeoBrowse';
 import LocationGuide from './LocationGuide';
+import SoldHomes from './SoldHomes';
 import { seoLocationFromSearch } from '../../lib/seoLocations';
 import CinemaHero from './CinemaHero';
 import { CINEMA_STATIONS } from './CinemaNavigation';
@@ -528,6 +529,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
 
               {!isHomeScene && isWaiting && <Waiting />}
 
+
               {activeTab === 'all' && !isWaiting && (
                 <PropertiesList
                   listing={listing} onListingChange={updateListing} activeTab="all" basePath={basePath}
@@ -583,6 +585,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
 
               {activeTab === 'portfolio' && !isWaiting && (
                 <PortfolioSection
+                  soldHomes={<SoldHomes properties={publicProperties} listing={listing} />}
                   listing={listing} onListingChange={updateListing} basePath={basePath}
                   companyInfo={companyInfo}
                   properties={publicProperties}

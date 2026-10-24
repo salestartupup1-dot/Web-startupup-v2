@@ -63,7 +63,7 @@ with sync_playwright() as p:
         data['company']['description'] = 'Updated company description'
         data['visual']['navAll'] = 'รวมบ้านล่าสุด'
         page.evaluate("window.dispatchEvent(new Event('focus'))")
-        expect(page.locator('.intro-lead')).to_have_text('Updated company description')
+        expect(page.locator('.v4-footer p')).to_have_text('Updated company description')
         if touch:
             page.get_by_role('button', name='เมนู', exact=True).click()
             page.locator('#site-mobile-menu').get_by_role('button', name='รวมบ้านล่าสุด', exact=True).click()

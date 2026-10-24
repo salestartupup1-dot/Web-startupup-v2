@@ -1,0 +1,29 @@
+.page { max-width:1240px; margin:0 auto; padding:0; color:#173e2c; line-height:1.8; }
+.breadcrumb { display:flex; flex-wrap:wrap; gap:10px; list-style:none; padding:0; margin:0 0 32px; font-size:.9rem; }
+.breadcrumb a { text-decoration:underline; text-underline-offset:4px; }
+.heading { max-width:850px; margin-bottom:36px; }
+.eyebrow { font-size:.85rem; letter-spacing:.06em; }
+.heading h2 { font-size:clamp(1.8rem,4vw,2.8rem); font-weight:600; line-height:1.5; margin:8px 0 16px; }
+.heading h2 span { display:inline-block; font-size:1rem; font-weight:400; color:#536156; white-space:nowrap; }
+.heading p { margin:12px 0; }
+.heading .note { color:#536156; font-size:.95rem; }
+.browse { display:inline-flex; align-items:center; min-height:44px; padding:10px 22px; border-radius:24px; border:1px solid #173e2c; margin:12px 0; text-decoration:none; }
+.browse:hover { background:#e7ede2; }
+.grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; margin-bottom:40px; }
+.card { background:#fff; border:1px solid #dce3db; border-radius:18px; overflow:hidden; }
+.cardLink { display:block; height:100%; color:inherit; text-decoration:none; }
+.card figure { margin:0; }
+.card img,.noImage { width:100%; aspect-ratio:4/3; object-fit:cover; background:#edf1eb; }
+.noImage { display:grid; place-items:center; color:#536156; font-size:.9rem; }
+.card figcaption { padding:8px 20px 0; color:#536156; font-size:.8rem; }
+.cardBody { padding:16px 20px 24px; }
+.soldLabel { display:inline-block; font-size:.8rem; padding:3px 12px; background:#e9eee3; border-radius:20px; }
+.card h3 { margin:12px 0 8px; font-size:1.15rem; line-height:1.55; font-weight:600; }
+.card p { font-size:.9rem; color:#536156; margin:8px 0; }
+.detail { display:block; font-size:.9rem; margin-top:16px; text-decoration:underline; text-underline-offset:4px; }
+.cardLink:hover .detail { color:#34733e; }
+.page a:focus-visible { outline:3px solid #a87b33; outline-offset:4px; }
+.cardLink:focus-visible { outline-offset:-4px; }
+.empty { padding:40px 0; }
+@media(max-width:960px) { .grid {grid-template-columns:repeat(2,minmax(0,1fr));} }
+@media(max-width:600px) { .grid {grid-template-columns:1fr;} }

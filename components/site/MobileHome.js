@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { HOME_H1 } from '../../lib/seo';
 import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowRight, Bed, Bath, Home, MapPin, Play, Search } from 'lucide-react';
 import {
@@ -50,7 +51,7 @@ export default function MobileHome({
           <span className={styles.pictureCaption}>STARTUP UP · REAL ESTATE</span>
         </div>
         <div className={styles.heroContent}>
-          <h1 id="mobile-home-title">บ้านมือสองรีโนเวท<br />รังสิต ปทุมธานี</h1>
+          <h1 id="mobile-home-title">{HOME_H1}</h1>
           <p className={styles.lead}>เลือกบ้านและทำเลที่คุณสนใจ<br />ให้เราช่วยดูแลตั้งแต่เริ่มต้น</p>
           <div className={styles.actions}>
             <Link prefetch={false} className={styles.primary} href="/?tab=all" onClick={event => follow(event, onShowAll)}>
@@ -112,7 +113,7 @@ export default function MobileHome({
           <div className={styles.houses}>
             {available.slice(0, 3).map(property => (
               <a key={property.id} className={styles.house} href={getPropertySharePath(property)} onClick={event => follow(event, () => onSelectProp(property))}>
-                <SmartImage src={getOptimizedImg(property.images?.[0] || property.imageUrl || '/featured/townhouse.jpg', 650)} alt={property.project_name} width={650} height={430} sizes="(max-width: 700px) 100vw, 33vw" loading="lazy" />
+                <SmartImage src={getOptimizedImg(property.images?.[0] || property.imageUrl || '/featured/townhouse.jpg', 650)} alt={[property.category || 'บ้าน', property.project_name, property.district].filter(Boolean).join(' ')} width={650} height={430} sizes="(max-width: 700px) 100vw, 33vw" loading="lazy" />
                 <div className={styles.houseInfo}>
                   <p className={styles.area}><MapPin size={16} aria-hidden="true" />{property.main_location || property.district || property.category}</p>
                   <h3>{property.project_name}</h3>

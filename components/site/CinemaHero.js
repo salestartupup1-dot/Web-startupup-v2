@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
+import { HOME_H1 } from '../../lib/seo';
 import LocationCarousel from './LocationCarousel';
 import FeaturedHomes from './FeaturedHomes';
 import CinemaNavigation, { CINEMA_STATIONS as STATIONS } from './CinemaNavigation';
@@ -974,7 +975,7 @@ export default function CinemaHero({
               </form>
 
               <div className="intro-copy">
-                <h1 className="intro-lead">จุดเริ่มต้นของคนอยากมีบ้าน</h1>
+                <h1 className="intro-lead">{HOME_H1}</h1>
                 <div className="cine-quick-actions" ref={quickActionsRef}>
                   <button type="button" disabled={isEditMode} onClick={onShowAllHomes}>
                     <span>ดูบ้านทั้งหมด</span>

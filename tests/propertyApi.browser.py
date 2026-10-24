@@ -30,7 +30,7 @@ with sync_playwright() as p:
             assert responses[-1].status == 200
             assert responses[-1].headers.get('cache-control') == 'no-store'
             expected = responses[-1].json()['property']
-            expect(page.locator('.sp4-masthead h1')).to_have_text(expected['project_name'])
+            expect(page.locator('.sp4-masthead h1')).to_contain_text(expected['project_name'])
             price = int(str(expected['price']).replace(',', ''))
             expect(page.locator('.sp4-price')).to_contain_text(format(price, ','))
             page.reload(wait_until='domcontentloaded')

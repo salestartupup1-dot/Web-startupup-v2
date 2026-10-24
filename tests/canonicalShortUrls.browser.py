@@ -1,9 +1,11 @@
 """Read-only release smoke test; clipboard is intercepted, Ads/lead calls blocked."""
-import json, os, re, urllib.request, urllib.parse
+import html, json, os, re, urllib.request, urllib.parse
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 
 BASE=os.environ.get('SITE_TEST_BASE_URL','http://localhost:3026')
+def property_heading(p):
+    return ' '.join(str(v).strip() for v in [p.get('category'),p.get('project_name'),re.sub(r'^(?:อำเภอ|อ\.|เขต)\s*','',p.get('district',''))] if v)
 def fetch(path):
     with urllib.request.urlopen(BASE+path,timeout=60) as r:return r.read().decode(),r.url
 catalogue=json.loads(fetch('/api/public-data')[0])
@@ -20,7 +22,7 @@ for p in chosen:
     data=json.loads(re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>',body,re.S).group(1))['props']['pageProps']['initialData']
     assert data['selectedProperty']['id']==p['id']
     assert f'href="https://www.startupup-real-estate.com{path}"' in body
-    assert re.search(r'<h1[^>]*>'+re.escape(p['project_name'])+r'</h1>',body)
+    assert html.unescape(re.search(r'<h1[^>]*>(.*?)</h1>',body,re.S).group(1))==property_heading(p)
     assert format(int(str(data['selectedProperty']['price']).replace(',','')),',') in body
     for old in ['/h/'+p['id'],'/homes/old-name--'+p['id']]:
         assert fetch(old)[1]==BASE+path
@@ -48,11 +50,11 @@ with sync_playwright() as pw:
         page=ctx.new_page();errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
         p=chosen[0];target=BASE+p['canonicalPath']
         page.goto(target,wait_until='networkidle',timeout=60000)
-        expect(page.locator('h1')).to_have_text(p['project_name'])
+        expect(page.locator('h1')).to_have_text(property_heading(p))
         page.locator('.sp4-share').click()
         page.wait_for_function('window.__copied === location.origin + location.pathname')
         assert page.url==target
-        page.reload(wait_until='networkidle');expect(page.locator('h1')).to_have_text(p['project_name'])
+        page.reload(wait_until='networkidle');expect(page.locator('h1')).to_have_text(property_heading(p))
         assert page.url==target
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
         output=Path(os.environ.get('TEMP','.'))/'startupup-short-canonical';output.mkdir(exist_ok=True)
@@ -60,9 +62,9 @@ with sync_playwright() as pw:
         page.goto(BASE+'/?tab=all',wait_until='networkidle',timeout=60000)
         link=page.locator('a[href="'+p['canonicalPath']+'"]').first
         expect(link).to_be_visible(timeout=15000);link.click()
-        page.wait_for_url(target);expect(page.locator('h1')).to_have_text(p['project_name'])
+        page.wait_for_url(target);expect(page.locator('h1')).to_have_text(property_heading(p))
         page.go_back(wait_until='domcontentloaded');expect(page.locator('h1.sp4-title')).to_have_count(0)
-        page.go_forward(wait_until='domcontentloaded');expect(page.locator('h1')).to_have_text(p['project_name'])
+        page.go_forward(wait_until='domcontentloaded');expect(page.locator('h1')).to_have_text(property_heading(p))
         assert page.url==target
         # WebKit reports the intentionally blocked public Firestore listener as a pageerror.
         unexpected=[e for e in errors if not ('firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?' in e and 'access control checks' in e)]
