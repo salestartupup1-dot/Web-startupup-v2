@@ -3,6 +3,7 @@ import { getPropertyHeading } from '../../lib/seo';
 import { inventoryLabel, primaryPropertyLocation, relatedAvailableProperties } from '../../lib/websiteInventory';
 import { locationPath } from '../../lib/seoLocations';
 import { monthlyMortgage } from '../../lib/mortgage';
+import { propertyEditorialSections, propertyFactSummary, propertyHighlightBlocks } from '../../lib/propertyEditorial';
 /**
  * SalePageV4 — หน้าบ้านรายหลัง ดีไซน์ใหม่สำหรับ /v4
  *
@@ -80,24 +81,6 @@ const track = (name, params) => {
 };
 
 const baht = (v) => Number(String(v || 0).replace(/,/g, '')).toLocaleString();
-
-/** แปลงข้อความ highlights ที่เก็บ "-" นำหน้า ให้เป็นย่อหน้ากับรายการจุดกลม */
-function parseHighlights(text) {
-  const out = [];
-  String(text || '').split('\n').forEach((raw) => {
-    const line = raw.trim();
-    if (!line) { out.push(null); return; }
-    const m = line.match(/^[-•*–]\s*(.+)$/);
-    if (m) {
-      const last = out[out.length - 1];
-      if (last && last.type === 'list') last.items.push(m[1]);
-      else out.push({ type: 'list', items: [m[1]] });
-    } else {
-      out.push({ type: 'text', text: line });
-    }
-  });
-  return out.filter(Boolean);
-}
 
 function SunDial({ deg }) {
   return (
@@ -341,7 +324,8 @@ export default function SalePageV4({
 
   if (!property) return null;
 
-  const blocks = parseHighlights(property.highlights);
+  const blocks = propertyHighlightBlocks(property.highlights);
+  const factSummary = propertyFactSummary(property);
   const badge = property.badge;
   const areaPage = primaryPropertyLocation(property);
   const estimatedPayment = monthlyMortgage(property.price);
@@ -520,6 +504,14 @@ export default function SalePageV4({
             <p>ตัวอย่างกู้เต็มราคาประกาศ ดอกเบี้ยคงที่ 3% ต่อปี ระยะเวลา 30 ปี คำนวณด้วยสูตรเดียวกับเครื่องคำนวณสินเชื่อ ตัวเลขนี้เป็นเพียงประมาณการ ไม่รวมค่าธรรมเนียมและประกัน ไม่ใช่ข้อเสนอหรือผลอนุมัติจากธนาคาร</p>
             <a href="/?tab=calculator">ปรับวงเงิน ดอกเบี้ย และระยะเวลากู้</a>
           </section>}
+          {!detailsPending && factSummary && <section className="sp4-block">
+            <h2>ข้อมูลบ้าน{property.project_name ? ` ${property.project_name}` : ''}</h2>
+            <p>{factSummary}</p>
+          </section>}
+          {!detailsPending && propertyEditorialSections(property).map(section => <section className="sp4-block" key={section.key}>
+            <h2>{section.heading}</h2>
+            <p style={{ whiteSpace: 'pre-line' }}>{section.text}</p>
+          </section>)}
           {blocks.length > 0 && (
             <section className="sp4-block reveal-on-scroll">
               <h2>รายละเอียด</h2>
@@ -528,7 +520,7 @@ export default function SalePageV4({
                   <ul className="sp4-hl-list" key={i}>
                     {b.items.map((it, k) => <li key={k}><span>{it}</span></li>)}
                   </ul>
-                ) : (
+                ) : b.type === 'heading' ? <h3 key={i} style={{ fontWeight: 600, marginTop: 20 }}>{b.text}</h3> : (
                   <p key={i}>{b.text}</p>
                 )))}
               </div>

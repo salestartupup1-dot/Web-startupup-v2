@@ -1,4 +1,5 @@
 import { monthlyMortgage } from '../../lib/mortgage';
+import PropertyEditorialFields from './PropertyEditorialFields';
 import { isSaleAvailable, inventoryLabel } from '../../lib/websiteInventory';
 /*
  * === คำแนะนำการตั้งค่า Tailwind CSS ===
@@ -3008,6 +3009,7 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
                                                 </select>
                                             </div>
                                             <div className="sm:col-span-2"><label className="label">รายละเอียด (จุดเด่น)</label><textarea rows="4" className="input-modern" value={formData.highlights} onChange={e=>setFormData({...formData, highlights: e.target.value})}/></div>
+                                            <PropertyEditorialFields value={formData} onChange={setFormData} />
                                             <div className="sm:col-span-2"><label className="label">ลิงก์ YouTube (Optional)</label><input className="input-modern" placeholder="https://youtube.com/..." value={formData.youtubeUrl} onChange={e=>setFormData({...formData, youtubeUrl: e.target.value})}/></div>
                                         </div>
                                     </div>

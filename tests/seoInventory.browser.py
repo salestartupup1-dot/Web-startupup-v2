@@ -28,7 +28,7 @@ for p in chosen:
     assert schemas
     paths.append(urllib.parse.urlsplit(url).path)
 for slug in ['บ้านมือสอง-คลองหลวง','บ้านมือสอง-ลำลูกกา']:
-    body,_=fetch('/'+urllib.parse.quote(slug));assert '<h1' in body and 'ราคาเริ่มต้น' in body
+    body,_=fetch('/'+urllib.parse.quote(slug));assert '<h1' in body and 'ช่วงราคาบ้านที่เปิดรับจอง' in body
     assert body.count('<summary>')==5
 sitemap,_=fetch('/sitemap.xml');urls=re.findall(r'<loc>(.*?)</loc>',sitemap)
 assert len(urls)==len(set(urls));assert '?property=' not in sitemap
