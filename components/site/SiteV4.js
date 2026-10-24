@@ -498,7 +498,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
 
                       แถบทำเลกับแผนที่หมุดถูกยกขึ้นไปอยู่ในฉากภาพยนตร์แล้ว จึงปิดทั้งคู่ตรงนี้
                       ไม่งั้นจะเห็นของซ้ำสองรอบในหน้าเดียว */}
-                  {!requestedPropSlug && <SeoBrowse properties={publicProperties} loading={loading} />}
+                  {!requestedPropSlug && <SeoBrowse />}
                   {isWaiting ? <Waiting /> : (
                     <HomeSection
                       showLocationMarquee={false}

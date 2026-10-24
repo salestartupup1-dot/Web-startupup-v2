@@ -21,6 +21,12 @@
 .prose { max-width:850px; }
 .faq { border-top:1px solid #d7e0d8; padding:20px 0; }
 .faq summary { font-weight:600; cursor:pointer; min-height:44px; }
+.guide { max-width:960px; }
+.guide h3 { font-size:1.1rem; line-height:1.6; font-weight:600; margin:28px 0 8px; }
+.guide p { color:#43554a; }
+.guide a { color:#173e2c; text-decoration:underline; text-underline-offset:4px; }
+.guideQuestions { margin-top:48px; }
+.guideQuestions .faq:last-child { border-bottom:1px solid #d7e0d8; }
 .section a:focus-visible,.header a:focus-visible,.faq summary:focus-visible { outline:3px solid #9a6a1d; outline-offset:4px; }
 @media(max-width:900px) { .grid {grid-template-columns:repeat(2,minmax(0,1fr));} }
 @media(max-width:560px) { .section {padding:36px 20px;} .grid {grid-template-columns:1fr;} .links a {font-size:.88rem;} }
