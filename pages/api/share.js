@@ -1,5 +1,6 @@
 import { readSeoProperty, privateResponse } from '../../lib/serverPageData';
 import { getPropertyPath } from '../../lib/seo';
+import { withCanonicalPropertyPath } from '../../lib/propertyShortLinks';
 
 // Legacy links remain valid for people, Google and social preview crawlers alike.
 export default async function handler(req, res) {
@@ -12,7 +13,7 @@ export default async function handler(req, res) {
     const params = new URLSearchParams(req.url.split('?')[1] || '');
     params.delete('property');
     const suffix = params.toString();
-    return res.redirect(308, getPropertyPath(property) + (suffix ? `?${suffix}` : ''));
+    return res.redirect(308, getPropertyPath(await withCanonicalPropertyPath(property)) + (suffix ? `?${suffix}` : ''));
   } catch {
     res.setHeader('Retry-After', '60');
     return res.status(503).send('Property data temporarily unavailable. Please retry.');

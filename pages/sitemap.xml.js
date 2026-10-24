@@ -1,6 +1,7 @@
 import { SEO_LOCATIONS, locationPath } from '../lib/seoLocations';
 import { getSeoStock, includePropertyInSitemap } from '../lib/seoStock';
 import { getPublicProperties } from '../lib/publicDataCache';
+import { withCanonicalPropertyPaths } from '../lib/propertyShortLinks';
 import {
   escapeXml,
   formatSitemapDate,
@@ -40,6 +41,7 @@ export async function getServerSideProps({ res }) {
 
   try {
     [properties, stock] = await Promise.all([getPublicProperties(), getSeoStock()]);
+    properties = await withCanonicalPropertyPaths(properties.filter(property => includePropertyInSitemap(property, stock)));
   } catch (error) {
     console.error('Unable to verify sitemap inventory:', error?.code || error?.name);
     res.statusCode = 503;

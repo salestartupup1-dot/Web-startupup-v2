@@ -96,6 +96,7 @@ export default function usePropertyLink({
       observe: (options, onValue, onError) => onSnapshot(propertyRef, options, onValue, onError),
       onProperty: property => setSelectedProperty(current => current?.id === selectedId ? {
         ...property,
+        canonicalPath: current.canonicalPath,
         // Firestore updates prices directly; derived stock metadata comes from the server.
         inventoryState: property.project_name === current.project_name && property.house_number === current.house_number
           && property.property_owner === current.property_owner ? current.inventoryState : 'unknown',

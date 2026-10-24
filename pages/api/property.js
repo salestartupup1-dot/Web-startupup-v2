@@ -1,4 +1,5 @@
 import { enrichWebsiteProperty } from '../../lib/seoStock.js';
+import { withCanonicalPropertyPath } from '../../lib/propertyShortLinks.js';
 import { randomUUID } from 'node:crypto';
 import { createPropertyReader } from '../../lib/propertyReadService.js';
 
@@ -47,4 +48,4 @@ export const createPropertyHandler = ({ lookup, timeoutMs = 8000, readDocument, 
   }
 };
 
-export default createPropertyHandler({ enrichProperty: enrichWebsiteProperty });
+export default createPropertyHandler({ enrichProperty: async property => enrichWebsiteProperty(await withCanonicalPropertyPath(property)) });

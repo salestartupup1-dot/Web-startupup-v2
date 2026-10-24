@@ -10,7 +10,7 @@ import { subscribePublicData } from '../lib/publicDataSubscription.js';
 const house = { id: 'houseA', project_name: 'ไทยสมบูรณ์ 3', house_number: '48/195', custom_id: '48-195', price: 2790000,
   category: 'ทาวน์เฮาส์', main_location: 'คลองหลวง', sub_location: 'คลองสาม', area_wah: 28.4, bedrooms: 3, bathrooms: 2, property_owner: 'Startup Up' };
 const response = () => ({ headers: {}, setHeader(key, value) { this.headers[key] = value; } });
-const deps = { enrichProperty: async p => p, readProperty: () => ({ promise: Promise.resolve(house) }), readCatalogue: async () => ({ version: 'a', properties: [house] }) };
+const deps = { canonicalize: async p => p, enrichProperty: async p => p, readProperty: () => ({ promise: Promise.resolve(house) }), readCatalogue: async () => ({ version: 'a', properties: [house] }) };
 
 test('house identity survives duplicate numbers, Thai labels and renamed projects', () => {
   const second = { ...house, id: 'houseB', project_name: 'พฤกษา 32' };
@@ -34,13 +34,13 @@ test('short share links resolve by complete ID and redirect to the current canon
   let requested;
   const context = { query: { utm_source: 'line' }, resolvedUrl: '/h/houseA?utm_source=line', res: response() };
   const renamed = { ...house, project_name: 'ชื่อโครงการใหม่' };
-  const result = await loadSitePage(context, { readProperty: (id, options) => {
+  const result = await loadSitePage(context, { canonicalize: async p => p, readProperty: (id, options) => {
     requested = { id, options }; return { promise: Promise.resolve(renamed) };
   }, readCatalogue: () => { throw new Error('A share redirect must not load the catalogue'); } });
   assert.deepEqual(requested, { id: 'houseA', options: { documentId: 'houseA' } });
   assert.deepEqual(result.redirect, { permanent: true, destination: `${propertyPath(renamed)}?utm_source=line` });
-  assert.deepEqual(await loadSitePage(context, { readProperty: () => ({ promise: Promise.resolve(null) }) }), { notFound: true });
-  const failed = await loadSitePage(context, { readProperty: () => ({ promise: Promise.reject(new Error('offline')) }) });
+  assert.deepEqual(await loadSitePage(context, { canonicalize: async p => p, readProperty: () => ({ promise: Promise.resolve(null) }) }), { notFound: true });
+  const failed = await loadSitePage(context, { canonicalize: async p => p, readProperty: () => ({ promise: Promise.reject(new Error('offline')) }) });
   assert.equal(context.res.statusCode, 503);
   assert.equal(failed.props.unavailable, true);
 });

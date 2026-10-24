@@ -128,7 +128,11 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
         const params = new URLSearchParams(window.location.search);
         const location = seoLocationFromPath(window.location.pathname);
         const tab = location ? 'search_result' : params.get('tab') || 'home';
-        const propSlug = propertyIdFromPath(window.location.pathname) || params.get('property');
+        const shortPath = /^\/[a-f0-9]{6}$/.test(window.location.pathname);
+        const shortId = shortPath && (initialData?.selectedProperty?.canonicalPath === window.location.pathname
+          ? initialData.selectedProperty.id
+          : window.history.state?.propertyPath === window.location.pathname ? window.history.state.propertyId : null);
+        const propSlug = shortId || propertyIdFromPath(window.location.pathname) || params.get('property');
         const sType = params.get('sType');
         const sValue = params.get('sValue');
 
@@ -192,7 +196,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
       const currentUrl = window.location.pathname + window.location.search;
       const newUrl = targetPath + queryString;
       if (currentUrl !== newUrl && !requestedPropSlug) {
-        window.history.pushState({}, '', newUrl);
+        window.history.pushState({ propertyId: selectedProperty?.id, propertyPath: targetPath }, '', newUrl);
       }
     } catch (e) { /* ไม่มี history ก็ข้ามไป */ }
   }, [activeTab, selectedProperty, searchParams, requestedPropSlug, basePath, isRouteReady, showAdminPanel]);

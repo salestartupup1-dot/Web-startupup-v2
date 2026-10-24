@@ -78,10 +78,11 @@ with sync_playwright() as p:
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         page.screenshot(path=str(output/('location-mobile.png' if mobile else 'location-desktop.png')),full_page=True)
         # A full-page house navigation and Back must keep the location list intact.
-        house_link=page.locator('a[href*="/homes/"]').first
+        house_href=page.locator('a[href]').evaluate_all("els=>els.map(e=>e.getAttribute('href')).find(h=>/^\\/[a-f0-9]{6}$/.test(h))")
+        house_link=page.locator('a[href="'+house_href+'"]').first if house_href else page.locator('a[data-no-property]')
         if house_link.count():
             house_link.click();expect(page.locator('.sp4-title')).to_be_visible(timeout=20000)
-            page.wait_for_url('**/homes/**',timeout=20000)
+            page.wait_for_url(BASE+house_href,timeout=20000)
             page.go_back(wait_until='domcontentloaded');expect(page.locator('h1')).to_contain_text('ลำลูกกา')
         assert not errors,errors
         print('PASS browser',engine.name,'mobile' if mobile else 'desktop','contact events, FAQ, navigation, overflow',flush=True)
