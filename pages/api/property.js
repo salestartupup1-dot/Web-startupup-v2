@@ -1,7 +1,8 @@
+import { enrichWebsiteProperty } from '../../lib/seoStock.js';
 import { randomUUID } from 'node:crypto';
 import { createPropertyReader } from '../../lib/propertyReadService.js';
 
-export const createPropertyHandler = ({ lookup, timeoutMs = 8000, readDocument,
+export const createPropertyHandler = ({ lookup, timeoutMs = 8000, readDocument, enrichProperty = async property => property,
   reader = createPropertyReader({ lookup, readDocument, timeoutMs }),
   log = entry => console[entry.status >= 500 ? 'warn' : 'info'](JSON.stringify(entry)),
 } = {}) => async (req, res) => {
@@ -29,7 +30,7 @@ export const createPropertyHandler = ({ lookup, timeoutMs = 8000, readDocument,
     const property = await read.promise;
     status = property ? 200 : 404;
     return res.status(status).json(property
-      ? { property, checkedAt: new Date().toISOString(), requestId }
+      ? { property: await enrichProperty(property), checkedAt: new Date().toISOString(), requestId }
       : { error: 'Property not found', requestId });
   } catch (error) {
     failure = error;
@@ -46,4 +47,4 @@ export const createPropertyHandler = ({ lookup, timeoutMs = 8000, readDocument,
   }
 };
 
-export default createPropertyHandler();
+export default createPropertyHandler({ enrichProperty: enrichWebsiteProperty });

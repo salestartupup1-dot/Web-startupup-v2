@@ -10,7 +10,7 @@ import { subscribePublicData } from '../lib/publicDataSubscription.js';
 const house = { id: 'houseA', project_name: 'ไทยสมบูรณ์ 3', house_number: '48/195', custom_id: '48-195', price: 2790000,
   category: 'ทาวน์เฮาส์', main_location: 'คลองหลวง', sub_location: 'คลองสาม', area_wah: 28.4, bedrooms: 3, bathrooms: 2, property_owner: 'Startup Up' };
 const response = () => ({ headers: {}, setHeader(key, value) { this.headers[key] = value; } });
-const deps = { readProperty: () => ({ promise: Promise.resolve(house) }), readCatalogue: async () => ({ version: 'a', properties: [house] }) };
+const deps = { enrichProperty: async p => p, readProperty: () => ({ promise: Promise.resolve(house) }), readCatalogue: async () => ({ version: 'a', properties: [house] }) };
 
 test('house identity survives duplicate numbers, Thai labels and renamed projects', () => {
   const second = { ...house, id: 'houseB', project_name: 'พฤกษา 32' };
@@ -159,4 +159,12 @@ test('SSR revision seed avoids an immediate duplicate fetch but reloads changed 
   assert.equal(loads, 1);
   assert.equal(data.price, 2690000);
   stop();
+});
+
+test('related inventory failure does not remove a readable detail page', async () => {
+  const result = await loadSitePage({ query: {}, resolvedUrl: propertyPath(house), res: response() }, {
+    ...deps, readCatalogue: async options => { if (options?.includeProperties !== false) throw new Error('catalogue offline'); return { company: { name: 'Startup Up' } }; },
+  });
+  assert.equal(result.props.initialData.selectedProperty.id, house.id);
+  assert.deepEqual(result.props.initialData.properties, []);
 });

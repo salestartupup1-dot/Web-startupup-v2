@@ -1,3 +1,8 @@
+import Head from 'next/head';
+import { getPropertyHeading } from '../../lib/seo';
+import { inventoryLabel, primaryPropertyLocation, relatedAvailableProperties } from '../../lib/websiteInventory';
+import { locationPath } from '../../lib/seoLocations';
+import { monthlyMortgage } from '../../lib/mortgage';
 /**
  * SalePageV4 — หน้าบ้านรายหลัง ดีไซน์ใหม่สำหรับ /v4
  *
@@ -120,6 +125,9 @@ function SaleHeroImage({ src, alt, onClick }) {
   const [attempt, setAttempt] = useState(0);
   const imageRef = useRef(null);
   const resolvedSrc = useOriginal ? src : optimized;
+  const responsive = !useOriginal && optimized !== src
+    ? [480, 768, 1024, 1400].map(width => `${getOptimizedImg(src, width)} ${width}w`).join(', ') : undefined;
+  const imageSizes = '(max-width: 767px) 100vw, (max-width: 1200px) 90vw, 1100px';
   const failed = useCallback(() => {
     if (!useOriginal && src && optimized !== src) setUseOriginal(true);
     else setStatus('error');
@@ -135,10 +143,11 @@ function SaleHeroImage({ src, alt, onClick }) {
   }, [resolvedSrc, attempt, failed]);
 
   return <>
+    <Head><link rel="preload" as="image" href={resolvedSrc} imageSrcSet={responsive} imageSizes={imageSizes} fetchPriority="high" /></Head>
     {status === 'loading' && <div className="sp4-skel sp4-skel-hero" aria-hidden="true" />}
     <SmartImage
       key={`${resolvedSrc}:${attempt}`} ref={imageRef}
-      src={resolvedSrc} alt={alt} width={1400} height={900} sizes="100vw"
+      src={resolvedSrc} srcSet={responsive} alt={alt} width={1400} height={900} sizes={imageSizes}
       priority loading="eager" decoding="async" className="sp4-hero"
       onLoad={() => setStatus('ready')} onError={failed} onClick={onClick}
     />
@@ -203,7 +212,17 @@ export default function SalePageV4({
     setBookOpen(false); setPickDate(null); setHour(''); setMinute('');
   }, [property?.id]);
 
-  useEffect(() => { preloadImagesAround(images, at, 1400, 1); }, [images, at]);
+  useEffect(() => {
+    // Let the current high-priority responsive hero finish before fetching neighbours.
+    const timer = setTimeout(() => {
+      const width = window.matchMedia('(max-width: 767px)').matches ? 768 : 1400;
+      if (images.length > 1) {
+        preloadImage(images[(at + 1) % images.length], width);
+        if (at > 0) preloadImage(images[at - 1], width);
+      }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [images, at]);
 
   useEffect(() => () => {
     clearTimeout(wipeTimer.current);
@@ -240,32 +259,7 @@ export default function SalePageV4({
     say(on ? 'บันทึกไว้แล้ว ดูได้ในเครื่องนี้' : 'เอาออกจากรายการที่บันทึกแล้ว');
   }, [say]);
 
-  const relatedProps = useMemo(() => {
-    const name = String(property?.project_name || '').trim();
-    const subDist = String(property?.subdistrict || '').trim();
-    const subLoc = String(property?.sub_location || '').trim();
-    const dist = String(property?.district || '').trim();
-    const mainLoc = String(property?.main_location || '').trim();
-    return (properties || [])
-      .filter((p) => p && p.id && p.id !== property?.id)
-      .map((p) => {
-        let score = 0;
-        const pName = String(p.project_name || '').trim();
-        if (pName && name && pName === name) score += 1000;
-        if (String(p.subdistrict) === subDist || String(p.sub_location) === subLoc) score += 100;
-        if (String(p.district) === dist || String(p.main_location) === mainLoc) score += 50;
-        if (p.category === property?.category) score += 10;
-        const diff = Math.abs(
-          (Number(String(p.price || 0).replace(/,/g, '')) || 0)
-          - (Number(String(property?.price || 0).replace(/,/g, '')) || 0),
-        );
-        return { ...p, relevanceScore: score, priceDiff: diff };
-      })
-      .sort((a, b) => (b.relevanceScore !== a.relevanceScore
-        ? b.relevanceScore - a.relevanceScore
-        : a.priceDiff - b.priceDiff))
-      .slice(0, 8);
-  }, [properties, property]);
+  const relatedProps = useMemo(() => relatedAvailableProperties(property, properties), [properties, property]);
 
   const houseAndSoi = useMemo(() => {
     const hn = String(property?.house_number || '').trim();
@@ -349,6 +343,8 @@ export default function SalePageV4({
 
   const blocks = parseHighlights(property.highlights);
   const badge = property.badge;
+  const areaPage = primaryPropertyLocation(property);
+  const estimatedPayment = monthlyMortgage(property.price);
   const hasMap = property.lat && property.lng
     && String(property.lat).trim() !== '' && String(property.lng).trim() !== '';
 
@@ -393,9 +389,13 @@ export default function SalePageV4({
 
       {/* ── ชื่อบ้าน อยู่ก่อนรูปเหมือน SalePage เดิม ── */}
       <div className="sp4-masthead">
-        {property.category && <p className="sp4-eyebrow">{property.category}</p>}
-        <p className="sp4-title-key">ชื่อโครงการ</p>
-        <h1 className="sp4-title">{property.category} {property.project_name}</h1>
+        <nav aria-label="เส้นทางนำทาง" className="sp4-breadcrumb">
+          <a href="/">หน้าหลัก</a><span aria-hidden="true"> › </span>
+          <a href={areaPage ? locationPath(areaPage) : '/?tab=all'}>{areaPage ? `บ้านมือสอง${areaPage.name}` : 'บ้านทั้งหมด'}</a>
+          <span aria-hidden="true"> › </span><span aria-current="page">{property.project_name} {property.house_number}</span>
+        </nav>
+        <h1 className="sp4-title">{getPropertyHeading(property)}</h1>
+        {!detailsPending && <p className="sp4-availability" role="status">{inventoryLabel(property)}</p>}
         <div className="sp4-idents">
           {houseAndSoi.hn && (
             <span className="sp4-ident">
@@ -435,7 +435,7 @@ export default function SalePageV4({
             </div>
           )}
 
-          {badge === 'Sold Out'
+          {(badge === 'Sold Out' || property.inventoryState === 'sold')
             ? <SoldOutRibbon size="lg" />
             : badge && <span className="sp4-flag">{badge === 'Promotion' ? 'โปรโมชั่น' : badge === 'New' ? 'มาใหม่' : badge}</span>}
 
@@ -462,7 +462,7 @@ export default function SalePageV4({
               onMouseEnter={() => preloadImage(img, 1400)}
               onClick={() => goTo(i, i > at ? 1 : -1)}
             >
-              <SmartImage src={getOptimizedImg(img, 260)} alt={`รูปที่ ${i + 1}`} width={130} height={90} sizes="92px" loading="lazy" decoding="async" />
+              <SmartImage src={getOptimizedImg(img, 260)} alt={`${property.category || "บ้าน"} ${property.project_name} บ้านเลขที่ ${property.house_number || ""} ภาพที่ ${i + 1}`} width={130} height={90} sizes="92px" loading="lazy" decoding="async" />
             </button>
           ))}
         </div>
@@ -514,6 +514,12 @@ export default function SalePageV4({
             <SalePromotionCard key={promotion.images.join('|')} promotion={promotion} onExpand={openLightbox} />
           </div>}
 
+          {!detailsPending && estimatedPayment > 0 && <section className="sp4-block">
+            <h2>ประมาณการผ่อนบ้าน</h2>
+            <p>ประมาณ {Math.round(estimatedPayment).toLocaleString('th-TH')} บาทต่อเดือน</p>
+            <p>ตัวอย่างกู้เต็มราคาประกาศ ดอกเบี้ยคงที่ 3% ต่อปี ระยะเวลา 30 ปี คำนวณด้วยสูตรเดียวกับเครื่องคำนวณสินเชื่อ ตัวเลขนี้เป็นเพียงประมาณการ ไม่รวมค่าธรรมเนียมและประกัน ไม่ใช่ข้อเสนอหรือผลอนุมัติจากธนาคาร</p>
+            <a href="/?tab=calculator">ปรับวงเงิน ดอกเบี้ย และระยะเวลากู้</a>
+          </section>}
           {blocks.length > 0 && (
             <section className="sp4-block reveal-on-scroll">
               <h2>รายละเอียด</h2>
@@ -696,7 +702,7 @@ export default function SalePageV4({
       {!detailsPending && relatedProps.length > 0 && (
         <section className="sp4-related reveal-on-scroll">
           <div className="sp4-related-head">
-            <h2>โครงการที่คุณอาจสนใจ</h2>
+            <h2>บ้านใกล้เคียงที่เปิดรับจอง</h2>
             <div className="sp4-railnav">
               <button type="button" aria-label="เลื่อนไปทางซ้าย" onClick={() => railRef.current?.scrollBy({ left: -256, behavior: 'smooth' })}><ChevronLeft size={16} /></button>
               <button type="button" aria-label="เลื่อนไปทางขวา" onClick={() => railRef.current?.scrollBy({ left: 256, behavior: 'smooth' })}><ChevronRight size={16} /></button>
@@ -714,7 +720,7 @@ export default function SalePageV4({
                     {p.badge === 'Sold Out' && <SoldOutRibbon size="sm" />}
                   </div>
                   <h3>{p.project_name}</h3>
-                  <div className="sp4-pcard-loc">{p.main_location || p.district}</div>
+                  <div className="sp4-pcard-loc">{p.main_location || p.district} · {inventoryLabel(p)}</div>
                   <div className="sp4-pcard-amt">฿ {baht(p.price)}</div>
                 </a>
                 <button
@@ -1093,6 +1099,10 @@ const css = `
 .sp4-calc .input-modern.bg-gray-50,
 .sp4-calc .bg-gray-50 { background-color: #fff !important; border: 1px solid var(--line-firm) !important; }
 
+.sp4-breadcrumb { font-size:14px; line-height:1.8; margin-bottom:20px; }
+.sp4-breadcrumb a, .sp4-block a { text-decoration:underline; text-underline-offset:4px; }
+.sp4-breadcrumb a:focus-visible { outline:2px solid currentColor; outline-offset:4px; }
+.sp4-availability { display:inline-block; padding:8px 16px; margin:16px 0; border-radius:20px; background:#e7ede3; color:#123b2c; }
 .sp4-related { max-width: var(--shell); margin: 0 auto; padding: var(--s6) var(--gutter); }
 .sp4-related-head {
   display: flex; align-items: center; justify-content: space-between; gap: var(--s3);

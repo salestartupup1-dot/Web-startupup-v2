@@ -560,7 +560,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
                   updateVisualContent={updateVisualContent}
                   isEditMode={isVisualEditMode}
                 />
-                {locationLanding && <LocationGuide location={locationLanding} />}
+                {locationLanding && <LocationGuide location={locationLanding} properties={publicProperties} companyInfo={companyInfo} />}
                 </>
               )}
 

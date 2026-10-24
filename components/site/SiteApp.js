@@ -1,3 +1,5 @@
+import { monthlyMortgage } from '../../lib/mortgage';
+import { isSaleAvailable, inventoryLabel } from '../../lib/websiteInventory';
 /*
  * === คำแนะนำการตั้งค่า Tailwind CSS ===
  * เพื่อให้สีและฟอนต์ (brand-green, brand-light) แสดงผลได้สมบูรณ์แบบ
@@ -1391,8 +1393,7 @@ function CalculatorSection({ defaultPrice, minimalist = false, visualContent, up
   const handleCalculate = () => {
     const rawLoan = Number(String(loanAmount).replace(/,/g, ''));
     if (years <= 0 || !rawLoan) { setMonthlyPayment(0); return; }
-    const r = interest / 100 / 12; const n = years * 12;
-    const payment = (rawLoan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    const payment = monthlyMortgage(rawLoan, interest, years);
     setMonthlyPayment(isNaN(payment) ? 0 : payment.toFixed(0));
   };
 
@@ -1752,7 +1753,7 @@ function SalePage({ property, companyInfo, onBack, properties, onSelectProp, vis
 function PropertiesList({ properties, searchParams, onSelectProp, visualContent, updateVisualContent, isEditMode, locationLanding }) {
   const Heading = locationLanding ? 'h1' : 'h2';
   const CardHeading = locationLanding ? 'h2' : 'h4';
-  const [sortOption, setSortOption] = useState('latest');
+  const [sortOption, setSortOption] = useState(locationLanding ? 'price_asc' : 'latest');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -1788,6 +1789,7 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
       return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [dropdownRef]);
 
+  const hasUnverifiedLocation = locationLanding && properties.some(p => matchesSeoLocation(p, locationLanding) && (!p.inventoryState || p.inventoryState === 'unknown'));
   let displayProps = [...properties];
   let title = 'รายการทั้งหมด';
 
@@ -1821,6 +1823,8 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
       });
       title = `ผลการค้นหา: "${searchParams.value}"`;
   }
+
+  if (locationLanding) displayProps = displayProps.filter(isSaleAvailable);
 
   /* ตัวกรองทับผลของหัวข้อหน้าอีกชั้น
      ติ๊กหลายอันในกลุ่มเดียวกันคือ "อย่างใดอย่างหนึ่ง" ข้ามกลุ่มคือ "ต้องเข้าทั้งสองกลุ่ม"
@@ -1879,8 +1883,10 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-16 min-h-screen flex flex-col reveal-on-scroll">
+      {locationLanding && <p className="mb-4 text-brand-green">{locationLanding.intro}</p>}
+      {hasUnverifiedLocation && <p role="status" className="mb-4 text-sm text-gray-600">บางรายการอยู่ระหว่างยืนยันสถานะ จึงยังไม่รวมในจำนวนบ้านที่เปิดรับจอง กรุณาสอบถามทีมงานหากไม่พบหลังที่สนใจ</p>}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
-          <Heading className="text-2xl font-light text-brand-green">{locationLanding ? `บ้านมือสอง${locationLanding.name}` : title} <span className="text-sm text-gray-400 ml-2">({displayProps.length} รายการ)</span></Heading>
+          <Heading className="text-2xl font-light text-brand-green">{locationLanding ? `บ้านมือสอง${locationLanding.name}` : title} <span className="text-sm text-gray-400 ml-2">{hasUnverifiedLocation && displayProps.length === 0 ? 'กำลังยืนยันรายการ' : `(${displayProps.length} รายการ)`}</span></Heading>
           
           <div className="flex items-center gap-2 flex-wrap">
           {/* ตัวกรอง : ติ๊กเลือกทำเลและประเภทบ้านพร้อมกันได้ */}
@@ -1971,6 +1977,7 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
                                     </div>
                <div className="p-5 flex flex-col flex-grow pointer-events-none">
                    <CardHeading className="font-bold text-gray-800 text-[18px] mb-2 line-clamp-2 leading-snug">{p.project_name}</CardHeading>
+                   {p.inventoryState && <p className="text-sm text-brand-green mb-2">{inventoryLabel(p)}</p>}
                    <div className="text-[13px] text-gray-500 flex items-center gap-1.5 mb-4"><MapPin size={15} className="flex-shrink-0 text-gray-400" /><span className="font-light truncate">{p.main_location || p.district} {p.sub_location || p.subdistrict ? `- ${p.sub_location || p.subdistrict}` : ''}</span></div>
                    <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
                        <span className="text-[20px] font-bold text-brand-green"><span className="text-[16px] mr-1">฿</span>{Number(String(p.price || 0).replace(/,/g, '')).toLocaleString()}</span>

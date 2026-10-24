@@ -1,4 +1,4 @@
-import { getPublicData } from '../../lib/publicDataCache';
+import { getWebsiteData as getPublicData } from '../../lib/websiteData';
 import { randomUUID } from 'node:crypto';
 
 export default async function handler(req, res) {

@@ -112,8 +112,8 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
 
   /* ---------- SEO ---------- */
   const seoMeta = useMemo(
-    () => buildPageSeo({ selectedProperty, activeTab, searchParams, companyInfo }),
-    [selectedProperty, activeTab, searchParams, companyInfo]
+    () => buildPageSeo({ selectedProperty, activeTab, searchParams, companyInfo, properties: publicProperties }),
+    [selectedProperty, activeTab, searchParams, companyInfo, publicProperties]
   );
   const structuredData = useMemo(
     () => buildStructuredData({ companyInfo, selectedProperty, location: activeTab === 'search_result' ? seoLocationFromSearch(searchParams) : undefined }),
