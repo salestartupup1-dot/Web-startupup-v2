@@ -102,6 +102,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
     handleLocationImageUpdate, handleRemoveLocationImage, enterVisualEditMode,
     handleLogout, handleGoogleLogin, goTab, handleFilterSelect, handleGlobalSearch, handleSelectProperty,
     seoMeta, structuredData,
+    listing, updateListing,
   } = site;
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -529,6 +530,8 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
 
               {activeTab === 'all' && !isWaiting && (
                 <PropertiesList
+                  listing={listing} onListingChange={updateListing} activeTab="all" basePath={basePath}
+                  pageHeading="บ้านมือสองรีโนเวท รังสิต ปทุมธานี ทั้งหมด"
                   properties={publicProperties}
                   onSelectProp={handleSelectProperty}
                   visualContent={visualContent}
@@ -539,6 +542,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
 
               {activeTab === 'promo' && !isWaiting && (
                 <PropertiesList
+                  listing={listing} onListingChange={updateListing} activeTab="promo" basePath={basePath}
                   properties={publicProperties}
                   searchParams={{ type: 'promo' }}
                   onSelectProp={handleSelectProperty}
@@ -552,6 +556,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
                 <>
                 <PropertiesList
                   key={locationLanding?.slug || 'search'}
+                  listing={listing} onListingChange={updateListing} activeTab="search_result" basePath={basePath}
                   locationLanding={locationLanding}
                   properties={publicProperties}
                   searchParams={searchParams}
@@ -578,6 +583,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
 
               {activeTab === 'portfolio' && !isWaiting && (
                 <PortfolioSection
+                  listing={listing} onListingChange={updateListing} basePath={basePath}
                   companyInfo={companyInfo}
                   properties={publicProperties}
                   visualContent={visualContent}

@@ -6,7 +6,7 @@ import { SEO_LOCATIONS, matchesSeoLocation } from '../lib/seoLocations.js';
 import { buildPageSeo, buildPropertyJsonLd } from '../lib/seo.js';
 import { includePropertyInSitemap } from '../lib/seoStock.js';
 import { monthlyMortgage } from '../lib/mortgage.js';
-const property = { id: 'one', house_number: '1/2', project_name: 'ทดสอบ', main_location: 'คลองหลวง', sub_location: 'คลองสาม', property_owner: 'Startup Up', price: 2000000 };
+const property = { id: 'one', house_number: '1/2', project_name: 'ทดสอบ', district: 'คลองหลวง', main_location: 'คลองหลวง', sub_location: 'คลองสาม', property_owner: 'Startup Up', price: 2000000 };
 const stock = statuses => ({ coveredOwners: ['Startup Up'], rows: statuses.map(status => ({ key: '1/2', project: 'ทดสอบ', owner: 'Startup Up', status, sold: false })) });
 test('the visible status, robots, schema and sitemap agree across all inventory states', () => {
   for (const [status, state, available] of [['ว่าง','available',true],['ยังไม่เสร็จ','renovating',true],['ยื่นกู้ ยื่นซ้อนได้','backup',true],['ประเมิน','reserved',false],['ยื่นกู้','reserved',false],['รอโอน','reserved',false],['ขายแล้ว','sold',false],['','unknown',false]]) {
@@ -26,21 +26,21 @@ test('missing, stale, conflicting stock never becomes an available or falsely so
   }
   assert.equal(withWebsiteInventory({...property,badge:'Sold Out'},stock(['ว่าง'])).inventoryState,'sold');
 });
-test('marketing groups handle canal boundaries, Phayom and Sai Mai without claiming wrong provinces', () => {
+test('location pages use administrative districts instead of old marketing canal groups', () => {
   const area=name=>SEO_LOCATIONS.find(x=>x.name===name);
   const matches=(p,name)=>matchesSeoLocation(p,area(name));
   const canal4={...property,sub_location:'คลองสี่'};
-  assert.equal(matches(canal4,'ธัญบุรี'),true); assert.equal(matches(canal4,'คลองหลวง'),false);
+  assert.equal(matches(canal4,'ธัญบุรี'),false); assert.equal(matches(canal4,'คลองหลวง'),true);
   assert.equal(matches(canal4,'รังสิต'),true);
-  assert.equal(matches({...property,sub_location:'คลอง 12'},'คลองหลวง'),false);
-  const phayom={main_location:'พยอม',province:'พระนครศรีอยุธยา'};
-  assert.equal(matches(phayom,'คลองหลวง'),true); assert.equal(matches(phayom,'รังสิต'),true);assert.equal(matches(phayom,'ปทุมธานี'),false);
-  const saimai={main_location:'สายไหม',province:'กรุงเทพมหานคร'};
-  assert.equal(matches(saimai,'ลำลูกกา'),true); assert.equal(matches(saimai,'ปทุมธานี'),false);
+  assert.equal(matches({...property,sub_location:'คลอง 12'},'คลองหลวง'),true);
+  const phayom={district:'วังน้อย',main_location:'พยอม',province:'พระนครศรีอยุธยา'};
+  assert.equal(matches(phayom,'คลองหลวง'),false); assert.equal(matches(phayom,'รังสิต'),false);assert.equal(matches(phayom,'ปทุมธานี'),false);
+  const saimai={district:'สายไหม',main_location:'สายไหม',province:'กรุงเทพมหานคร'};
+  assert.equal(matches(saimai,'ลำลูกกา'),false); assert.equal(matches(saimai,'ปทุมธานี'),false);
 });
 test('related houses exclude self, other areas, reserved, sold and unverified stock', () => {
   const candidates=['available','reserved','sold','unknown'].map((inventoryState,i)=>({...property,id:String(i),inventoryState}));
-  assert.deepEqual(relatedAvailableProperties(property,[...candidates,{...property,id:'far',main_location:'นนทบุรี',inventoryState:'available'}, {...property,inventoryState:'available'}]).map(p=>p.id),['0']);
+  assert.deepEqual(relatedAvailableProperties(property,[...candidates,{...property,id:'far',district:'เมืองนนทบุรี',main_location:'นนทบุรี',inventoryState:'available'}, {...property,inventoryState:'available'}]).map(p=>p.id),['0']);
 });
 test('mortgage formula supports zero interest and invalid inputs without NaN',()=>{
   assert.equal(monthlyMortgage(360000,0,30),1000);

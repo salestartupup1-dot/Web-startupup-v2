@@ -1,5 +1,7 @@
 import { monthlyMortgage } from '../../lib/mortgage';
 import PropertyEditorialFields from './PropertyEditorialFields';
+import ListingPagination from './ListingPagination';
+import { emptyListing, listingHref, listingPage, selectListingProperties, LISTING_PAGE_SIZE } from '../../lib/listingPagination';
 import { isSaleAvailable, inventoryLabel } from '../../lib/websiteInventory';
 /*
  * === คำแนะนำการตั้งค่า Tailwind CSS ===
@@ -1751,17 +1753,23 @@ function SalePage({ property, companyInfo, onBack, properties, onSelectProp, vis
 }
 
 // --- PropertiesList Component ---
-function PropertiesList({ properties, searchParams, onSelectProp, visualContent, updateVisualContent, isEditMode, locationLanding }) {
-  const Heading = locationLanding ? 'h1' : 'h2';
-  const CardHeading = locationLanding ? 'h2' : 'h4';
-  const [sortOption, setSortOption] = useState(locationLanding ? 'price_asc' : 'latest');
+function PropertiesList({ properties, searchParams, onSelectProp, visualContent, updateVisualContent, isEditMode, locationLanding, pageHeading, listing, onListingChange, activeTab = 'all', basePath = '/' }) {
+  const Heading = locationLanding || pageHeading ? 'h1' : 'h2';
+  const CardHeading = locationLanding || pageHeading ? 'h2' : 'h4';
+  const [fallbackListing, setFallbackListing] = useState(emptyListing);
+  const state = listing || fallbackListing;
+  const changeListing = patch => onListingChange ? onListingChange(patch) : setFallbackListing(previous => ({ ...previous, ...patch, page: patch.page || 1 }));
+  const sortOption = state.sort || (locationLanding ? 'price_asc' : 'latest');
+  const setSortOption = sort => changeListing({ sort });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   /* ตัวกรองแบบติ๊กหลายช่อง — เลือกทำเลและประเภทบ้านพร้อมกันได้
      เก็บเป็น array เพราะต้องใส่ใน dependency ของ useEffect ซึ่ง Set เทียบไม่ได้ */
-  const [pickedAreas, setPickedAreas] = useState([]);
-  const [pickedCats, setPickedCats] = useState([]);
+  const pickedAreas = state.areas;
+  const setPickedAreas = areas => changeListing({ areas });
+  const pickedCats = state.categories;
+  const setPickedCats = categories => changeListing({ categories });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const filterRef = useRef(null);
   const toggleIn = (list, setList, value) => {
@@ -1769,13 +1777,6 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
   };
   const areaOptions = visibleLocations(normalizeLocations(visualContent?.locations)).map((l) => l.area);
   const filterCount = pickedAreas.length + pickedCats.length;
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 20;
-
-  useEffect(() => {
-      setCurrentPage(1);
-  }, [searchParams, sortOption, pickedAreas, pickedCats]);
 
   useEffect(() => {
       function handleClickOutside(event) {
@@ -1791,103 +1792,23 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
   }, [dropdownRef]);
 
   const hasUnverifiedLocation = locationLanding && properties.some(p => matchesSeoLocation(p, locationLanding) && (!p.inventoryState || p.inventoryState === 'unknown'));
-  let displayProps = [...properties];
-  let title = 'รายการทั้งหมด';
-
-  if (searchParams?.type === 'promo') {
-      displayProps = properties.filter(p => p.badge === 'Promotion');
-      title = visualContent?.navPromo || DEFAULT_VISUAL_CONTENT.navPromo;
-  } else if (searchParams?.type === 'location_group') {
-      const location = SEO_LOCATIONS.find(item => item.name === searchParams.value);
-      displayProps = location ? properties.filter(p => matchesSeoLocation(p, location)) : [];
-      title = `ทำเล: ${searchParams.value}`;
-  } else if (searchParams?.type === 'main_location' || searchParams?.type === 'district') {
-      displayProps = properties.filter(p => matchesMainArea(p, searchParams.value));
-      title = `ทำเล: ${searchParams.value}`;
-  } else if (searchParams?.type === 'sub_location') {
-      // ต้องกรองด้วยทำเลหลักที่กดมาด้วย ไม่งั้นคลองหนึ่งของคลองหลวงจะไปโผล่ในคลองหนึ่งของธัญบุรี
-      const area = searchParams.area;
-      displayProps = properties.filter(p => matchesSubArea(p, searchParams.value) && (!area || matchesMainArea(p, area)));
-      title = `ทำเล: ${area ? `${area} - ` : ''}${searchParams.value}`;
-  } else if (searchParams?.type === 'category') {
-      if (searchParams.value === 'ทาวน์เฮาส์') {
-          displayProps = properties.filter(p => p.category?.includes('ทาวน์เฮาส์'));
-      } else {
-          displayProps = properties.filter(p => p.category === searchParams.value);
-      }
-      title = `หมวดหมู่: ${searchParams.value}`;
-  } else if (searchParams?.type === 'keyword') {
-      const keyword = normalizeThaiSearch(searchParams.value); 
-      displayProps = properties.filter(p => {
-          const propString = normalizeThaiSearch(`${p.custom_id} ${p.main_location} ${p.sub_location} ${p.district} ${p.subdistrict} ${p.province} ${p.zipcode} ${p.project_name} ${p.house_number} ${p.soi} ${p.highlights} ${p.category} ${p.badge} ${p.price}`);
-          return propString.includes(keyword);
-      });
-      title = `ผลการค้นหา: "${searchParams.value}"`;
-  }
-
-  if (locationLanding) displayProps = displayProps.filter(isSaleAvailable);
-
-  /* ตัวกรองทับผลของหัวข้อหน้าอีกชั้น
-     ติ๊กหลายอันในกลุ่มเดียวกันคือ "อย่างใดอย่างหนึ่ง" ข้ามกลุ่มคือ "ต้องเข้าทั้งสองกลุ่ม"
-     ทาวน์เฮาส์ใช้ includes เพราะในสต๊อกมีทั้งหลังริมและชั้นเดียวที่ขึ้นต้นเหมือนกัน */
-  if (pickedAreas.length > 0) {
-      displayProps = displayProps.filter(p => pickedAreas.some(a => matchesMainArea(p, a)));
-  }
-  if (pickedCats.length > 0) {
-      displayProps = displayProps.filter(p => pickedCats.some(c => (
-          c === 'ทาวน์เฮาส์' ? p.category?.includes('ทาวน์เฮาส์') : p.category === c
-      )));
-  }
-
-  let sortedProps = [...displayProps];
-  if (sortOption === 'price_asc') {
-      sortedProps.sort((a, b) => (Number(String(a.price).replace(/,/g,'')) || 0) - (Number(String(b.price).replace(/,/g,'')) || 0));
-  } else if (sortOption === 'price_desc') {
-      sortedProps.sort((a, b) => (Number(String(b.price).replace(/,/g,'')) || 0) - (Number(String(a.price).replace(/,/g,'')) || 0));
-  }
-
-  const totalPages = Math.ceil(sortedProps.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const currentProps = sortedProps.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-  const handlePageChange = (page) => {
-      setCurrentPage(page);
-      window.scrollTo(0, 0); 
-  };
-
-  const renderPageNumbers = () => {
-      const pages = [];
-      let startPage = Math.max(1, currentPage - 2);
-      let endPage = Math.min(totalPages, startPage + 4);
-
-      if (endPage - startPage < 4) {
-          startPage = Math.max(1, endPage - 4);
-      }
-
-      for (let i = startPage; i <= endPage; i++) {
-          pages.push(
-              <button
-                  key={i}
-                  onClick={() => handlePageChange(i)}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm transition ${
-                      currentPage === i
-                          ? 'bg-brand-green text-white font-medium shadow-md'
-                          : 'bg-white border border-gray-200 text-gray-600 hover:border-brand-green hover:text-brand-green'
-                  }`}
-              >
-                  {i}
-              </button>
-          );
-      }
-      return pages;
-  };
+  const displayProps = selectListingProperties(properties, searchParams, state, locationLanding);
+  const currentPage = state.page;
+  const totalPages = Math.ceil(displayProps.length / LISTING_PAGE_SIZE);
+  const currentProps = listingPage(displayProps, currentPage);
+  const title = pageHeading || (locationLanding ? (locationLanding.heading || `บ้านมือสอง${locationLanding.name}`)
+    : searchParams?.type === 'promo' ? (visualContent?.navPromo || DEFAULT_VISUAL_CONTENT.navPromo)
+    : searchParams?.type === 'category' ? `หมวดหมู่: ${searchParams.value}`
+    : searchParams?.type === 'keyword' ? `ผลการค้นหา: "${searchParams.value}"`
+    : searchParams?.value ? `ทำเล: ${searchParams.area ? `${searchParams.area} - ` : ''}${searchParams.value}` : 'รายการทั้งหมด');
+  const hrefForPage = page => listingHref({ activeTab, searchParams, location: locationLanding, listing: state, page, basePath });
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-16 min-h-screen flex flex-col reveal-on-scroll">
       {locationLanding && <p className="mb-4 text-brand-green">{locationLanding.intro}</p>}
       {hasUnverifiedLocation && <p role="status" className="mb-4 text-sm text-gray-600">บางรายการอยู่ระหว่างยืนยันสถานะ จึงยังไม่รวมในจำนวนบ้านที่เปิดรับจอง กรุณาสอบถามทีมงานหากไม่พบหลังที่สนใจ</p>}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
-          <Heading className="text-2xl font-light text-brand-green">{locationLanding ? `บ้านมือสอง${locationLanding.name}` : title} <span className="text-sm text-gray-400 ml-2">{hasUnverifiedLocation && displayProps.length === 0 ? 'กำลังยืนยันรายการ' : `(${displayProps.length} รายการ)`}</span></Heading>
+          <Heading className="text-2xl font-light text-brand-green">{title} <span className="text-sm text-gray-400 ml-2">{hasUnverifiedLocation && displayProps.length === 0 ? 'กำลังยืนยันรายการ' : `(${displayProps.length} รายการ)`}</span></Heading>
           
           <div className="flex items-center gap-2 flex-wrap">
           {/* ตัวกรอง : ติ๊กเลือกทำเลและประเภทบ้านพร้อมกันได้ */}
@@ -1906,7 +1827,7 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
                       <div className="flex items-center justify-between mb-3">
                           <span className="text-sm font-medium text-brand-green">ทำเล</span>
                           {filterCount > 0 && (
-                              <button onClick={() => { setPickedAreas([]); setPickedCats([]); }} className="text-xs text-gray-400 hover:text-brand-green transition">ล้างทั้งหมด</button>
+                              <button onClick={() => { changeListing({ areas: [], categories: [] }); }} className="text-xs text-gray-400 hover:text-brand-green transition">ล้างทั้งหมด</button>
                           )}
                       </div>
                       <div className="grid grid-cols-1 gap-1 mb-4">
@@ -1989,63 +1910,26 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
         )) : <p className="text-gray-400 col-span-full text-center py-20 font-light w-full">ไม่พบรายการในหมวดหมู่นี้</p>}
       </div>
 
-      {totalPages > 1 && (
-          <div className="flex justify-center items-center mt-16 gap-2 w-full">
-              <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="w-10 h-10 rounded-full flex items-center justify-center bg-white border border-gray-200 text-gray-600 hover:text-brand-green hover:border-brand-green disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
-              >
-                  <ChevronLeft size={20} />
-              </button>
-
-              <div className="flex gap-2 mx-2">
-                  {renderPageNumbers()}
-              </div>
-
-              <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="w-10 h-10 rounded-full flex items-center justify-center bg-white border border-gray-200 text-gray-600 hover:text-brand-green hover:border-brand-green disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
-              >
-                  <ChevronRight size={20} />
-              </button>
-          </div>
-      )}
+      <ListingPagination page={currentPage} totalPages={totalPages} hrefForPage={hrefForPage} />
     </div>
   );
 }
 
 // --- PortfolioSection Component ---
-function PortfolioSection({ companyInfo, properties, visualContent, updateVisualContent, isEditMode, openLightbox }) {
+function PortfolioSection({ companyInfo, properties, visualContent, updateVisualContent, isEditMode, openLightbox, listing, onListingChange, basePath = '/' }) {
   const soldOutProperties = properties.filter(p => p.badge === 'Sold Out');
   const portfolioYears = companyInfo?.portfolio_years || [];
   
-  const [activeAlbum, setActiveAlbum] = useState(null); 
-  const [currentPage, setCurrentPage] = useState(1);
-  const IMAGES_PER_PAGE = 20; 
-
-  const handleOpenAlbum = (year) => {
-      setActiveAlbum(year);
-      setCurrentPage(1);
-      window.scrollTo(0, 0);
-  };
-
-  const handleCloseAlbum = () => {
-      setActiveAlbum(null);
-      setCurrentPage(1);
-      window.scrollTo(0, 0);
-  };
-
-  const handlePageChange = (page) => {
-      setCurrentPage(page);
-      window.scrollTo(0, 0);
-  };
+  const [fallbackListing] = useState(emptyListing);
+  const state = listing || fallbackListing;
+  const activeAlbum = state.year;
+  const currentPage = state.page;
+  const IMAGES_PER_PAGE = LISTING_PAGE_SIZE;
+  const hrefForPage = page => listingHref({ activeTab: 'portfolio', listing: state, page, basePath });
 
   if (activeAlbum) {
-      const activeYearData = portfolioYears.find(y => y.year === activeAlbum);
+      const activeYearData = portfolioYears.find(y => String(y.year) === activeAlbum);
       if (!activeYearData) {
-          setActiveAlbum(null);
           return null; 
       }
 
@@ -2054,29 +1938,13 @@ function PortfolioSection({ companyInfo, properties, visualContent, updateVisual
       const startIndex = (currentPage - 1) * IMAGES_PER_PAGE;
       const currentImages = totalImages.slice(startIndex, startIndex + IMAGES_PER_PAGE);
 
-      const renderPageNumbers = () => {
-          const pages = [];
-          let startPage = Math.max(1, currentPage - 2);
-          let endPage = Math.min(totalPages, startPage + 4);
-          if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
-
-          for (let i = startPage; i <= endPage; i++) {
-              pages.push(
-                  <button key={i} onClick={() => handlePageChange(i)} className={`w-10 h-10 rounded-full flex items-center justify-center text-sm transition ${currentPage === i ? 'bg-brand-green text-white font-medium shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:border-brand-green hover:text-brand-green'}`}>
-                      {i}
-                  </button>
-              );
-          }
-          return pages;
-      };
-
       return (
         <div className="max-w-7xl mx-auto px-4 py-16 reveal-on-scroll">
-            <button onClick={handleCloseAlbum} className="flex items-center gap-2 text-gray-500 hover:text-brand-green transition-colors text-sm uppercase tracking-wide inline-flex mb-8 cursor-pointer hover:-translate-x-2 transition-transform">
+            <a href={listingHref({ activeTab: 'portfolio', basePath })} className="flex items-center gap-2 text-gray-500 hover:text-brand-green transition-colors text-sm uppercase tracking-wide inline-flex mb-8 cursor-pointer hover:-translate-x-2 transition-transform">
                 <ChevronLeft size={16} /> ย้อนกลับไปหน้าผลงาน
-            </button>
+            </a>
             <div className="text-center mb-12">
-                <h2 className="text-3xl font-light text-brand-green inline-block">ผลงานปี {activeAlbum}</h2>
+                <h1 className="text-3xl font-light text-brand-green inline-block">ผลงานบ้านมือสองรีโนเวท ปี {activeAlbum}</h1>
             </div>
             
             {currentImages.length > 0 ? (
@@ -2101,19 +1969,7 @@ function PortfolioSection({ companyInfo, properties, visualContent, updateVisual
                 <p className="text-center text-gray-400 py-20">ยังไม่มีรูปภาพในอัลบั้มนี้</p>
             )}
 
-            {totalPages > 1 && (
-                <div className="flex justify-center items-center mt-16 gap-2 w-full">
-                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="w-10 h-10 rounded-full flex items-center justify-center bg-white border border-gray-200 text-gray-600 hover:text-brand-green hover:border-brand-green disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm">
-                        <ChevronLeft size={20} />
-                    </button>
-                    <div className="flex gap-2 mx-2">
-                        {renderPageNumbers()}
-                    </div>
-                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="w-10 h-10 rounded-full flex items-center justify-center bg-white border border-gray-200 text-gray-600 hover:text-brand-green hover:border-brand-green disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm">
-                        <ChevronRight size={20} />
-                    </button>
-                </div>
-            )}
+            <ListingPagination page={currentPage} totalPages={totalPages} hrefForPage={hrefForPage} />
         </div>
       );
   }
@@ -2121,7 +1977,7 @@ function PortfolioSection({ companyInfo, properties, visualContent, updateVisual
   return (
     <div className="max-w-7xl mx-auto px-4 py-16 reveal-on-scroll">
       <div className="text-center mb-16">
-         <EditableText tag="h2" fieldKey="portfolioTitle" content={visualContent} updateContent={updateVisualContent} isEditMode={isEditMode} className="text-3xl font-light text-brand-green inline-block" />
+         <h1 className="text-3xl font-light text-brand-green inline-block">ผลงานบ้านมือสองรีโนเวท ปทุมธานีและพื้นที่ใกล้เคียง</h1>
       </div>
         
       {soldOutProperties.length === 0 && portfolioYears.length === 0 && (
@@ -2139,7 +1995,7 @@ function PortfolioSection({ companyInfo, properties, visualContent, updateVisual
                   const imageCount = yearGroup.images ? yearGroup.images.length : 0;
                   
                   return (
-                      <div key={idx} onClick={() => handleOpenAlbum(yearGroup.year)} className="group cursor-pointer animate-pop" style={{ animationDelay: `${idx * 30}ms` }}>
+                      <a key={idx} href={listingHref({ activeTab: 'portfolio', listing: { year: String(yearGroup.year) }, basePath })} className="group cursor-pointer animate-pop" style={{ animationDelay: `${idx * 30}ms` }}>
                           <div className="aspect-square rounded-2xl overflow-hidden bg-gray-100 relative shadow-sm group-hover:shadow-md transition-all duration-300">
                               <SmartImage src={getOptimizedImg(coverImg, 500)} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt={`Portfolio ${yearGroup.year}`} width={500} height={500} sizes="(max-width: 768px) 50vw, 25vw" loading="lazy" decoding="async" />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-80 group-hover:opacity-90 transition-opacity"></div>
@@ -2151,7 +2007,7 @@ function PortfolioSection({ companyInfo, properties, visualContent, updateVisual
                                   <p className="text-sm font-light opacity-90">{imageCount} รูปภาพ</p>
                               </div>
                           </div>
-                      </div>
+                      </a>
                   );
                })}
             </div>
@@ -3953,7 +3809,6 @@ export default function App() {
         <meta name="description" content={seoMeta.description} />
         <meta name="robots" content={seoMeta.robots} />
         <meta name="googlebot" content={seoMeta.robots} />
-        <meta name="google-site-verification" content="yM2oXyforQdUzBPi710gJZOV8eMPIQQqlAYmuO7b73E" />
         <meta name="facebook-domain-verification" content="4p7fie704kzdg66pjcn4c3w8511r5s" />
         <link rel="canonical" href={seoMeta.canonicalUrl} />
         <link rel="alternate" hrefLang="th-TH" href={seoMeta.canonicalUrl} />

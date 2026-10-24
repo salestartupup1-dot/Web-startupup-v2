@@ -22,10 +22,10 @@ test('existing descriptions keep facts, order and bullets; only explicit heading
 
 test('market range excludes other locations, sold, unknown, invalid prices and duplicate IDs', () => {
   const location = SEO_LOCATIONS.find(item => item.name === 'คลองหลวง');
-  const house = { id: 'a', inventoryState: 'available', main_location: 'คลองหลวง', price: '1,790,000' };
+  const house = { id: 'a', inventoryState: 'available', district: 'คลองหลวง', main_location: 'คลองหลวง', price: '1,790,000' };
   const properties = [house, house, { ...house, id: 'b', price: 2790000 },
     { ...house, id: 'c', price: 100, inventoryState: 'sold' }, { ...house, id: 'd', price: 200, inventoryState: 'unknown' },
-    { ...house, id: 'e', price: 300, main_location: 'ลำลูกกา' }, { ...house, id: 'f', price: 'Infinity' }];
+    { ...house, id: 'e', price: 300, district: 'ลำลูกกา', main_location: 'ลำลูกกา' }, { ...house, id: 'f', price: 'Infinity' }];
   assert.deepEqual(locationMarket(location, properties), { count: 3, pricedCount: 2, min: 1790000, max: 2790000 });
   assert.match(locationFaq(location, properties)[0][1], /1,790,000 ถึง 2,790,000/);
   assert.deepEqual(locationMarket(location, []), { count: 0, pricedCount: 0, min: null, max: null });

@@ -85,6 +85,7 @@ export default function App({ Component, pageProps }) {
     <>
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1" key="viewport" />
+        <meta name="google-site-verification" content="yM2oXyforQdUzBPi710gJZOV8eMPIQQqlAYmuO7b73E" key="google-site-verification" />
       </Head>
       {!privateRoute && <><Script id="google-tag-manager" strategy="afterInteractive">
         {`

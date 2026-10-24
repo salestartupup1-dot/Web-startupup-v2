@@ -8,7 +8,7 @@ import { SEO_LOCATIONS, matchesSeoLocation, locationPath, seoLocationFromPath, s
 import { subscribePublicData } from '../lib/publicDataSubscription.js';
 
 const house = { id: 'houseA', project_name: 'ไทยสมบูรณ์ 3', house_number: '48/195', custom_id: '48-195', price: 2790000,
-  category: 'ทาวน์เฮาส์', main_location: 'คลองหลวง', sub_location: 'คลองสาม', area_wah: 28.4, bedrooms: 3, bathrooms: 2, property_owner: 'Startup Up' };
+  category: 'ทาวน์เฮาส์', district: 'คลองหลวง', main_location: 'คลองหลวง', sub_location: 'คลองสาม', area_wah: 28.4, bedrooms: 3, bathrooms: 2, property_owner: 'Startup Up' };
 const response = () => ({ headers: {}, setHeader(key, value) { this.headers[key] = value; } });
 const deps = { canonicalize: async p => p, enrichProperty: async p => p, readProperty: () => ({ promise: Promise.resolve(house) }), readCatalogue: async () => ({ version: 'a', properties: [house] }) };
 
@@ -136,7 +136,7 @@ test('all five location pages use explicit districts, not keyword substring coll
   assert.equal(SEO_LOCATIONS.length, 5);
   assert.ok(matchesSeoLocation(house, SEO_LOCATIONS[0]));
   assert.ok(matchesSeoLocation(house, SEO_LOCATIONS[1]));
-  assert.ok(!matchesSeoLocation({ ...house, main_location: 'กรุงเทพมหานคร', sub_location: 'คลองสามวา' }, SEO_LOCATIONS[1]));
+  assert.ok(!matchesSeoLocation({ ...house, district: 'คลองสามวา', main_location: 'กรุงเทพมหานคร', sub_location: 'คลองสามวา' }, SEO_LOCATIONS[1]));
   assert.ok(matchesSeoLocation({ ...house, main_location: 'ปทุมธานี', sub_location: 'คลองหลวง' }, SEO_LOCATIONS[1]));
 });
 

@@ -36,6 +36,7 @@ import usePublicPopup from './usePublicPopup';
 import { subscribeSiteSession } from '../../lib/siteSession';
 import { subscribePublicData } from '../../lib/publicDataSubscription';
 import { loadPublicCatalogue } from '../../lib/publicCatalogueClient';
+import { readListingQuery, emptyListing, appendListingQuery, isListingTab } from '../../lib/listingPagination';
 
 import {
   db, auth, appId, HOST_EMAIL, setDoc,
@@ -63,6 +64,8 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
   const publicProperties = useMemo(() => selectPublicProperties(properties), [properties]);
 
   const [activeTab, setActiveTab] = useState(initialData?.activeTab || 'home');
+  const [listing, setListing] = useState(initialData?.listing || emptyListing);
+  const updateListing = useCallback(patch => setListing(previous => ({ ...previous, ...patch, page: patch.page || 1 })), []);
   const [isRouteReady, setIsRouteReady] = useState(false);
   const [searchParams, setSearchParams] = useState(initialData?.searchParams || { type: 'all', value: '', area: '' });
   const [selectedProperty, setSelectedProperty] = useState(initialData?.selectedProperty || null);
@@ -112,8 +115,8 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
 
   /* ---------- SEO ---------- */
   const seoMeta = useMemo(
-    () => buildPageSeo({ selectedProperty, activeTab, searchParams, companyInfo, properties: publicProperties }),
-    [selectedProperty, activeTab, searchParams, companyInfo, publicProperties]
+    () => buildPageSeo({ selectedProperty, activeTab, searchParams, companyInfo, properties: publicProperties, listing }),
+    [selectedProperty, activeTab, searchParams, companyInfo, publicProperties, listing]
   );
   const structuredData = useMemo(
     () => buildStructuredData({ companyInfo, selectedProperty, location: activeTab === 'search_result' ? seoLocationFromSearch(searchParams) : undefined }),
@@ -137,6 +140,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
         const sValue = params.get('sValue');
 
         setActiveTab(tab);
+        setListing(readListingQuery(params));
         if (location) setSearchParams({ type: 'location_group', value: location.name, area: '' });
         else if (sType && sValue) setSearchParams({ type: sType, value: sValue, area: params.get('sArea') || '' });
         const seeded = firstSync && initialData?.selectedProperty?.id === propSlug;
@@ -180,6 +184,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
       }
     }
 
+    if (!selectedProperty && isListingTab(activeTab)) appendListingQuery(params, listing);
     try {
       const currentParams = new URLSearchParams(window.location.search);
       currentParams.forEach((value, key) => {
@@ -199,7 +204,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
         window.history.pushState({ propertyId: selectedProperty?.id, propertyPath: targetPath }, '', newUrl);
       }
     } catch (e) { /* ไม่มี history ก็ข้ามไป */ }
-  }, [activeTab, selectedProperty, searchParams, requestedPropSlug, basePath, isRouteReady, showAdminPanel]);
+  }, [activeTab, selectedProperty, searchParams, requestedPropSlug, basePath, isRouteReady, showAdminPanel, listing]);
 
   /* ---------- ป็อปอัปโปรโมชั่น ---------- */
   useEffect(() => {
@@ -529,6 +534,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
   }, []);
 
   const goTab = useCallback((tab) => {
+    setListing(emptyListing());
     setRequestedPropSlug(null);
     setActiveTab(tab);
     setSelectedProperty(null);
@@ -536,6 +542,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
   }, [jumpTop]);
 
   const handleFilterSelect = useCallback((type, value, area = '') => {
+    setListing(emptyListing());
     setRequestedPropSlug(null);
     setSearchParams({ type, value, area });
     setActiveTab('search_result');
@@ -544,6 +551,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
   }, [jumpTop]);
 
   const handleGlobalSearch = useCallback((keyword) => {
+    setListing(emptyListing());
     setRequestedPropSlug(null);
     setSearchParams({ type: 'keyword', value: keyword, area: '' });
     setActiveTab('search_result');
@@ -573,6 +581,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
     authorizedUsers, loading, publicDataError, visualContent, popupData,
     // สถานะหน้าจอ
     activeTab, setActiveTab, isRouteReady, searchParams, selectedProperty,
+    listing, updateListing,
     loadRelatedProperties,
     requestedPropSlug, setRequestedPropSlug, setSelectedProperty,
     // โมดัล
