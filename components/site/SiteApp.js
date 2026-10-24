@@ -22,8 +22,9 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { makePropertySlug } from '../../lib/firestorePublic';
+import { propertySharePath } from '../../lib/propertyRoutes';
 import { buildPageSeo, buildStructuredData, safeJsonLd, getPropertyPath } from '../../lib/seo';
-import { SEO_LOCATIONS, matchesSeoLocation } from '../../lib/seoLocations';
+import { SEO_LOCATIONS, matchesSeoLocation, seoLocationFromSearch, locationPath } from '../../lib/seoLocations';
 import { PROPERTY_OWNERS, DEFAULT_PROPERTY_OWNER, getPropertyOwner, selectPublicProperties } from '../../lib/propertyOwners';
 import { getPropertyStockAlert } from '../../lib/stockMatching';
 import usePropertyLink from './usePropertyLink';
@@ -256,6 +257,8 @@ const visibleLocations = (locations) => locations
     .filter(loc => !HIDDEN_LOCATION_AREAS.includes(loc.area));
 
 const searchResultHref = (type, value, area) => {
+  const location = seoLocationFromSearch({ type, value });
+  if (location) return locationPath(location);
   const params = new URLSearchParams({ tab: 'search_result', sType: type, sValue: value });
   if (area) params.set('sArea', area);
   return `/?${params.toString()}`;
@@ -1588,7 +1591,7 @@ function SalePage({ property, companyInfo, onBack, properties, onSelectProp, vis
                     <button 
                         onClick={(e) => {
                             e.preventDefault();
-                            const shareUrl = `https://www.startupup-real-estate.com${getPropertySharePath(property)}`;
+                            const shareUrl = `https://www.startupup-real-estate.com${propertySharePath(property)}`;
                             navigator.clipboard.writeText(shareUrl);
                             alert('คัดลอกลิงก์สำหรับแชร์เรียบร้อยแล้ว!');
                         }}
@@ -1745,7 +1748,9 @@ function SalePage({ property, companyInfo, onBack, properties, onSelectProp, vis
 }
 
 // --- PropertiesList Component ---
-function PropertiesList({ properties, searchParams, onSelectProp, visualContent, updateVisualContent, isEditMode }) {
+function PropertiesList({ properties, searchParams, onSelectProp, visualContent, updateVisualContent, isEditMode, locationLanding }) {
+  const Heading = locationLanding ? 'h1' : 'h2';
+  const CardHeading = locationLanding ? 'h2' : 'h4';
   const [sortOption, setSortOption] = useState('latest');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -1874,7 +1879,7 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
   return (
     <div className="max-w-7xl mx-auto px-4 py-16 min-h-screen flex flex-col reveal-on-scroll">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
-          <h2 className="text-2xl font-light text-brand-green">{title} <span className="text-sm text-gray-400 ml-2">({displayProps.length} รายการ)</span></h2>
+          <Heading className="text-2xl font-light text-brand-green">{locationLanding ? `บ้านมือสอง${locationLanding.name}` : title} <span className="text-sm text-gray-400 ml-2">({displayProps.length} รายการ)</span></Heading>
           
           <div className="flex items-center gap-2 flex-wrap">
           {/* ตัวกรอง : ติ๊กเลือกทำเลและประเภทบ้านพร้อมกันได้ */}
@@ -1964,7 +1969,7 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
                                         {p.badge === 'Sold Out' && <SoldOutRibbon />}
                                     </div>
                <div className="p-5 flex flex-col flex-grow pointer-events-none">
-                   <h4 className="font-bold text-gray-800 text-[18px] mb-2 line-clamp-2 leading-snug">{p.project_name}</h4>
+                   <CardHeading className="font-bold text-gray-800 text-[18px] mb-2 line-clamp-2 leading-snug">{p.project_name}</CardHeading>
                    <div className="text-[13px] text-gray-500 flex items-center gap-1.5 mb-4"><MapPin size={15} className="flex-shrink-0 text-gray-400" /><span className="font-light truncate">{p.main_location || p.district} {p.sub_location || p.subdistrict ? `- ${p.sub_location || p.subdistrict}` : ''}</span></div>
                    <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
                        <span className="text-[20px] font-bold text-brand-green"><span className="text-[16px] mr-1">฿</span>{Number(String(p.price || 0).replace(/,/g, '')).toLocaleString()}</span>
@@ -2410,7 +2415,7 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
     const toggleOwnerExpand = (owner) => setExpandedOwners(prev => ({ ...prev, [owner]: !prev[owner] }));
 
     const copyPropertyUrl = async (prop) => {
-        const url = `https://www.startupup-real-estate.com${getPropertySharePath(prop)}`;
+        const url = `https://www.startupup-real-estate.com${propertySharePath(prop)}`;
         let copied = false;
         try {
             if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(url); copied = true; }

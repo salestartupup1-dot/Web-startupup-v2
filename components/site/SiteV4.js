@@ -23,6 +23,8 @@ import {
 import useSiteData from './useSiteData';
 import PublicDataNotice from './PublicDataNotice';
 import SeoBrowse from './SeoBrowse';
+import LocationGuide from './LocationGuide';
+import { seoLocationFromSearch } from '../../lib/seoLocations';
 import CinemaHero from './CinemaHero';
 import { CINEMA_STATIONS } from './CinemaNavigation';
 import MobileHome, { scrollToHomeLocations } from './MobileHome';
@@ -174,6 +176,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
   const isHomeScene = activeTab === 'home' || activeTab === 'location';
   const isCinemaView = isHomeScene && !selectedProperty && !requestedPropSlug && !simpleHome;
   const isWaiting = loading || Boolean(requestedPropSlug);
+  const locationLanding = activeTab === 'search_result' ? seoLocationFromSearch(searchParams) : undefined;
 
   /* globals.css ซ่อนทุกส่วนที่ติด .reveal-on-scroll ไว้ที่ opacity 0
      ต้องมีตัวนี้คอยเติม .is-revealed ให้ ไม่งั้นเนื้อหาทั้งหน้าจะไม่โผล่เลย */
@@ -546,7 +549,10 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
               )}
 
               {activeTab === 'search_result' && !isWaiting && (
+                <>
                 <PropertiesList
+                  key={locationLanding?.slug || 'search'}
+                  locationLanding={locationLanding}
                   properties={publicProperties}
                   searchParams={searchParams}
                   onSelectProp={handleSelectProperty}
@@ -554,6 +560,8 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
                   updateVisualContent={updateVisualContent}
                   isEditMode={isVisualEditMode}
                 />
+                {locationLanding && <LocationGuide location={locationLanding} />}
+                </>
               )}
 
               {/* ?tab=location opens the location cards in the shared home scene. */}

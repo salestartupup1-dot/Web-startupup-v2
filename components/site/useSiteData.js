@@ -28,6 +28,7 @@ import {
 
 import { propertyPath, propertyIdFromPath } from '../../lib/propertyRoutes';
 import { buildPageSeo, buildStructuredData } from '../../lib/seo';
+import { seoLocationFromPath, seoLocationFromSearch, locationPath } from '../../lib/seoLocations';
 import { selectPublicProperties } from '../../lib/propertyOwners';
 import usePropertyLink from './usePropertyLink';
 import { createPropertyPreview } from '../../lib/propertyPreview';
@@ -115,8 +116,8 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
     [selectedProperty, activeTab, searchParams, companyInfo]
   );
   const structuredData = useMemo(
-    () => buildStructuredData({ companyInfo, selectedProperty }),
-    [companyInfo, selectedProperty]
+    () => buildStructuredData({ companyInfo, selectedProperty, location: activeTab === 'search_result' ? seoLocationFromSearch(searchParams) : undefined }),
+    [companyInfo, selectedProperty, activeTab, searchParams]
   );
 
   /* ---------- อ่านสถานะจาก URL ---------- */
@@ -125,13 +126,15 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
     const syncFromUrl = () => {
       try {
         const params = new URLSearchParams(window.location.search);
-        const tab = params.get('tab') || 'home';
+        const location = seoLocationFromPath(window.location.pathname);
+        const tab = location ? 'search_result' : params.get('tab') || 'home';
         const propSlug = propertyIdFromPath(window.location.pathname) || params.get('property');
         const sType = params.get('sType');
         const sValue = params.get('sValue');
 
         setActiveTab(tab);
-        if (sType && sValue) setSearchParams({ type: sType, value: sValue, area: params.get('sArea') || '' });
+        if (location) setSearchParams({ type: 'location_group', value: location.name, area: '' });
+        else if (sType && sValue) setSearchParams({ type: sType, value: sValue, area: params.get('sArea') || '' });
         const seeded = firstSync && initialData?.selectedProperty?.id === propSlug;
         setRequestedPropSlug(seeded ? null : propSlug);
         if (!seeded) setSelectedProperty(null);
@@ -162,6 +165,8 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
 
     if (selectedProperty) {
       targetPath = propertyPath(selectedProperty);
+    } else if (activeTab === 'search_result' && seoLocationFromSearch(searchParams)) {
+      targetPath = locationPath(seoLocationFromSearch(searchParams));
     } else {
       if (activeTab !== 'home') params.set('tab', activeTab);
       if (activeTab === 'search_result' && searchParams.value) {

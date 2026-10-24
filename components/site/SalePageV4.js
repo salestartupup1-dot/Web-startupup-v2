@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { gtagSendEvent } from '../../lib/googleAdsConversion';
+import { propertySharePath } from '../../lib/propertyRoutes';
 import {
   ChevronLeft, ChevronRight, MapPin, Phone, Calendar,
 } from 'lucide-react';
@@ -320,7 +321,7 @@ export default function SalePageV4({
       property?.project_name || '',
       houseAndSoi.hn ? `บ้านเลขที่ ${houseAndSoi.hn}` : '',
       `${thaiDate(pickDate)} เวลา ${hour}:${minute} น.`,
-      `https://www.startupup-real-estate.com${getPropertySharePath(property)}`,
+      `https://www.startupup-real-estate.com${propertySharePath(property)}`,
     ].filter(Boolean).join('\n');
     /**
      * ต้องมี noreferrer ไม่ใช่แค่ noopener
@@ -372,10 +373,14 @@ export default function SalePageV4({
           <button
             type="button"
             className="sp4-share"
-            onClick={() => {
-              const url = `https://www.startupup-real-estate.com${getPropertySharePath(property)}`;
-              navigator.clipboard?.writeText(url);
-              say('คัดลอกลิงก์เรียบร้อยแล้ว');
+            onClick={async () => {
+              const url = `https://www.startupup-real-estate.com${propertySharePath(property)}`;
+              try {
+                await navigator.clipboard.writeText(url);
+                say('คัดลอกลิงก์สั้นเรียบร้อยแล้ว');
+              } catch {
+                say('คัดลอกไม่สำเร็จ กรุณาลองอีกครั้ง');
+              }
             }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

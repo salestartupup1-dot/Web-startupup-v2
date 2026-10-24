@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { propertyPath, propertyIdFromPath } from '../lib/propertyRoutes.js';
+import { propertyPath, propertyIdFromPath, propertySharePath, propertyIdFromSharePath } from '../lib/propertyRoutes.js';
 import { loadSitePage } from '../lib/serverPageData.js';
-import { buildPageSeo, buildPropertyJsonLd, safeJsonLd } from '../lib/seo.js';
+import { buildPageSeo, buildPropertyJsonLd, buildStructuredData, safeJsonLd } from '../lib/seo.js';
 import { includePropertyInSitemap } from '../lib/seoStock.js';
-import { SEO_LOCATIONS, matchesSeoLocation } from '../lib/seoLocations.js';
+import { SEO_LOCATIONS, matchesSeoLocation, locationPath, seoLocationFromPath, seoLocationFromSearch } from '../lib/seoLocations.js';
 import { subscribePublicData } from '../lib/publicDataSubscription.js';
 
 const house = { id: 'houseA', project_name: 'ไทยสมบูรณ์ 3', house_number: '48/195', custom_id: '48-195', price: 2790000,
@@ -24,6 +24,25 @@ test('legacy links redirect permanently, preserve campaign attribution and never
   const result = await loadSitePage({ query: { property: '48-195' }, resolvedUrl: '/?property=48-195&utm_source=google', res: response() }, deps);
   assert.equal(result.redirect.permanent, true);
   assert.equal(result.redirect.destination, `${propertyPath(house)}?utm_source=google`);
+});
+
+test('short share links resolve by complete ID and redirect to the current canonical in one hop', async () => {
+  assert.equal(propertySharePath(house), '/h/houseA');
+  assert.notEqual(propertySharePath(house), propertySharePath({ ...house, id: 'houseB' }));
+  assert.equal(propertyIdFromSharePath('/h/houseA'), 'houseA');
+  for (const invalid of ['/h/../x', '/h/a%2Fb', '/h/', '/h/' + 'a'.repeat(129)]) assert.equal(propertyIdFromSharePath(invalid), null);
+  let requested;
+  const context = { query: { utm_source: 'line' }, resolvedUrl: '/h/houseA?utm_source=line', res: response() };
+  const renamed = { ...house, project_name: 'ชื่อโครงการใหม่' };
+  const result = await loadSitePage(context, { readProperty: (id, options) => {
+    requested = { id, options }; return { promise: Promise.resolve(renamed) };
+  }, readCatalogue: () => { throw new Error('A share redirect must not load the catalogue'); } });
+  assert.deepEqual(requested, { id: 'houseA', options: { documentId: 'houseA' } });
+  assert.deepEqual(result.redirect, { permanent: true, destination: `${propertyPath(renamed)}?utm_source=line` });
+  assert.deepEqual(await loadSitePage(context, { readProperty: () => ({ promise: Promise.resolve(null) }) }), { notFound: true });
+  const failed = await loadSitePage(context, { readProperty: () => ({ promise: Promise.reject(new Error('offline')) }) });
+  assert.equal(context.res.statusCode, 503);
+  assert.equal(failed.props.unavailable, true);
 });
 
 test('canonical houses are fully seeded and read a fresh price for each request', async () => {
@@ -56,6 +75,39 @@ test('home and listing tabs are populated before browser JavaScript', async () =
   assert.equal(result.props.initialData.activeTab, 'all');
   assert.equal(result.props.initialData.properties[0].price, house.price);
   assert.ok(buildPageSeo({ activeTab: 'all' }).canonicalUrl.endsWith('/?tab=all'));
+});
+
+test('canonical location pages seed the listing and have indexable self-canonical metadata', async () => {
+  for (const location of SEO_LOCATIONS) {
+    const result = await loadSitePage({ query: {}, resolvedUrl: locationPath(location), res: response() }, deps);
+    const data = result.props.initialData;
+    assert.equal(data.activeTab, 'search_result');
+    assert.equal(data.searchParams.value, location.name);
+    assert.equal(data.properties[0].price, house.price);
+    const meta = buildPageSeo(data);
+    assert.equal(meta.robots, 'index,follow');
+    assert.ok(meta.canonicalUrl.endsWith(locationPath(location)));
+    assert.ok(meta.title.includes(location.name));
+    const schema = buildStructuredData({ location });
+    assert.equal(schema.find(item => item['@type'] === 'CollectionPage').url, meta.canonicalUrl);
+    assert.equal(seoLocationFromPath(locationPath(location)), location);
+    assert.equal(seoLocationFromPath('/' + location.slug), location);
+  }
+});
+
+test('legacy location searches redirect before reading data, preserving campaign parameters', async () => {
+  for (const type of ['location_group', 'main_location', 'district']) {
+    for (const location of SEO_LOCATIONS) {
+      const query = { tab: 'search_result', sType: type, sValue: location.name, utm_source: 'google' };
+      const result = await loadSitePage({ query, resolvedUrl: `/?${new URLSearchParams(query)}`, res: response() }, {
+        readCatalogue: () => { throw new Error('Redirect should not read the catalogue'); },
+      });
+      assert.deepEqual(result.redirect, { destination: `${locationPath(location)}?utm_source=google`, permanent: true });
+    }
+  }
+  assert.equal(seoLocationFromPath('/%invalid'), undefined);
+  assert.equal(seoLocationFromSearch({ type: 'keyword', value: 'ลำลูกกา' }), undefined);
+  assert.equal(buildPageSeo({ activeTab: 'search_result', searchParams: { type: 'keyword', value: 'ลำลูกกา' } }).robots, 'noindex,follow');
 });
 
 test('schema describes a real estate listing, accurate land units and no invented reviews', () => {
