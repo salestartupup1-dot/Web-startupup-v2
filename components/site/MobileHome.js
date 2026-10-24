@@ -30,6 +30,7 @@ export function scrollToHomeLocations() {
 
 export default function MobileHome({
   properties, loading, onSelectProp, onFilter, onSearch, onShowAll, onWatchStory,
+  onShowLocations = scrollToHomeLocations,
   visualContent, isEditMode,
 }) {
   const [query, setQuery] = useState('');
@@ -55,7 +56,7 @@ export default function MobileHome({
             <Link prefetch={false} className={styles.primary} href="/?tab=all" onClick={event => follow(event, onShowAll)}>
               <Home size={22} aria-hidden="true" /><span>ดูบ้านทั้งหมด</span><ArrowRight size={22} aria-hidden="true" />
             </Link>
-            <a className={styles.secondary} href="#home-locations" onClick={event => follow(event, scrollToHomeLocations)}>
+            <a className={styles.secondary} href="?tab=location" onClick={event => follow(event, onShowLocations)}>
               <MapPin size={22} aria-hidden="true" /><span>เลือกทำเล</span><ArrowDown size={22} aria-hidden="true" />
             </a>
           </div>

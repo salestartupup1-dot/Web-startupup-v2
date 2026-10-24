@@ -29,7 +29,7 @@ import SalePageV4 from './SalePageV4';
 import useRevealOnScroll from './useRevealOnScroll';
 import { safeJsonLd } from '../../lib/seo';
 import {
-  HomeSection, LocationSection, PropertiesList, CalculatorSection, PortfolioSection,
+  HomeSection, PropertiesList, CalculatorSection, PortfolioSection,
   LoginModal, CustomAlertModal, AdminPanel, Lightbox, SmartImage, EditableText,
   getOptimizedImg, DEFAULT_LOCATIONS_DATA, DEFAULT_VISUAL_CONTENT, db, appId, generatePropSlug,
 } from './SiteApp';
@@ -90,7 +90,7 @@ export default function SiteV4({ basePath = '/v4' }) {
   const {
     userRole, userEmail, authReady, properties, publicProperties, companyInfo, authorizedUsers,
     loading, publicDataError, visualContent, popupData,
-    activeTab, setActiveTab, searchParams, selectedProperty, requestedPropSlug, setRequestedPropSlug, setSelectedProperty,
+    activeTab, setActiveTab, isRouteReady, searchParams, selectedProperty, requestedPropSlug, setRequestedPropSlug, setSelectedProperty,
     showLoginModal, setShowLoginModal, showAdminPanel, setShowAdminPanel,
     showPopupModal, isSnoozeChecked, setIsSnoozeChecked, dismissPopup,
     lightbox, openLightbox, closeLightbox, globalAlert,
@@ -105,7 +105,8 @@ export default function SiteV4({ basePath = '/v4' }) {
   const prefersSimpleHome = useSyncExternalStore(subscribeHomeLayout, getHomeLayout, getServerHomeLayout);
   const [watchStory, setWatchStory] = useState(false);
   const simpleHome = prefersSimpleHome && !watchStory;
-  const pendingLocationJump = useRef(false);
+  const [locationVisit, setLocationVisit] = useState(0);
+  const navigationRequest = useRef(0);
   // The initial route renders the hero; do not paint a light navbar before effects run.
   const [navOverHero, setNavOverHero] = useState(true);
 
@@ -169,7 +170,8 @@ export default function SiteV4({ basePath = '/v4' }) {
     if (userRole) setShowAdminPanel(true); else setShowLoginModal(true);
   }, [adminEntryPending, authReady, userRole, setShowAdminPanel, setShowLoginModal]);
 
-  const isCinemaView = activeTab === 'home' && !selectedProperty && !requestedPropSlug && !simpleHome;
+  const isHomeScene = activeTab === 'home' || activeTab === 'location';
+  const isCinemaView = isHomeScene && !selectedProperty && !requestedPropSlug && !simpleHome;
   const isWaiting = loading || Boolean(requestedPropSlug);
 
   /* globals.css ซ่อนทุกส่วนที่ติด .reveal-on-scroll ไว้ที่ opacity 0
@@ -198,12 +200,24 @@ export default function SiteV4({ basePath = '/v4' }) {
   const navTransparent = isCinemaView && navOverHero;
 
   useEffect(() => {
-    if (!simpleHome || activeTab !== 'home' || selectedProperty || requestedPropSlug || !pendingLocationJump.current) return;
-    const frame = requestAnimationFrame(() => {
-      if (scrollToHomeLocations()) pendingLocationJump.current = false;
-    });
+    if (!isRouteReady || activeTab !== 'location' || selectedProperty || requestedPropSlug || isVisualEditMode) return;
+    let frame, attempts = 0;
+    const jump = () => {
+      if (simpleHome) {
+        if (scrollToHomeLocations()) return;
+      } else {
+        const stage = document.querySelector('.cinema-scroll');
+        if (stage) {
+          window.scrollTo({ top: stage.offsetTop + STATION_AT.locations, left: 0, behavior: 'instant' });
+          return;
+        }
+      }
+      if (++attempts < 40) frame = requestAnimationFrame(jump);
+    };
+    // Wait for the scene and its scroll controller after a direct URL, reload or Back.
+    frame = requestAnimationFrame(() => { frame = requestAnimationFrame(jump); });
     return () => cancelAnimationFrame(frame);
-  }, [simpleHome, activeTab, selectedProperty, requestedPropSlug]);
+  }, [isRouteReady, activeTab, selectedProperty, requestedPropSlug, simpleHome, locationVisit, isVisualEditMode]);
 
   /**
    * กด "ทำเล" บนเมนู = พาไปที่จังหวะการ์ดทำเลในฉากเปิด ไม่ใช่หน้าแยกอีกต่อไป
@@ -223,7 +237,7 @@ export default function SiteV4({ basePath = '/v4' }) {
    */
   const goHomeTop = useCallback(() => {
     if (isVisualEditMode) return;
-    pendingLocationJump.current = false;
+    const request = ++navigationRequest.current;
     setWatchStory(false);
     goTab('home');
     if (prefersSimpleHome) {
@@ -245,7 +259,9 @@ export default function SiteV4({ basePath = '/v4' }) {
     root.style.scrollSnapType = 'none';
 
     const coarse = typeof window.matchMedia === 'function' && window.matchMedia('(hover: none)').matches;
-    const toTop = () => window.scrollTo({ top: 0, left: 0, behavior: coarse ? 'auto' : 'smooth' });
+    const toTop = () => {
+      if (request === navigationRequest.current) window.scrollTo({ top: 0, left: 0, behavior: coarse ? 'auto' : 'smooth' });
+    };
 
     toTop();
     requestAnimationFrame(toTop);
@@ -254,26 +270,14 @@ export default function SiteV4({ basePath = '/v4' }) {
     setTimeout(() => { toTop(); root.style.scrollSnapType = prevSnap; }, 500);
   }, [goTab, isVisualEditMode, prefersSimpleHome]);
 
-  const goStation = useCallback((at) => {
+  const goLocations = useCallback(() => {
     if (isVisualEditMode) return;
-    if (simpleHome) {
-      if (activeTab === 'home' && !selectedProperty && scrollToHomeLocations()) return;
-      pendingLocationJump.current = true;
-      goTab('home');
-      return;
-    }
-    if (activeTab !== 'home' || selectedProperty) goTab('home');
-    let tries = 0;
-    const jump = () => {
-      const stage = document.querySelector('.cinema-scroll');
-      if (stage) {
-        window.scrollTo({ top: stage.offsetTop + at, behavior: 'smooth' });
-        return;
-      }
-      if (tries++ < 40) setTimeout(jump, 100);
-    };
-    setTimeout(jump, 60);
-  }, [activeTab, goTab, isVisualEditMode, selectedProperty, simpleHome]);
+    navigationRequest.current += 1;
+    setSelectedProperty(null);
+    setRequestedPropSlug(null);
+    setActiveTab('location');
+    setLocationVisit(visit => visit + 1);
+  }, [isVisualEditMode, setSelectedProperty, setRequestedPropSlug, setActiveTab]);
 
   /**
    * เมนูบ้านทั้งหมดเปิดรายการรวมเหมือนปุ่มหน้าแรกในทุกโหมด
@@ -281,9 +285,9 @@ export default function SiteV4({ basePath = '/v4' }) {
   const onNavTab = useCallback((key) => {
     setIsMenuOpen(false);
     if (key === 'home') { goHomeTop(); return; }
-    if (key === 'location') { goStation(STATION_AT.locations); return; }
+    if (key === 'location') { goLocations(); return; }
     goTab(key);
-  }, [goHomeTop, goStation, goTab]);
+  }, [goHomeTop, goLocations, goTab]);
   const label = (field, fallback) => visualContent?.[field] || DEFAULT_VISUAL_CONTENT[field] || fallback;
 
   return (
@@ -351,10 +355,10 @@ export default function SiteV4({ basePath = '/v4' }) {
               {NAV_TABS.map(tab => (
                 <a
                   key={tab.key}
-                  href={tab.key === 'home' || tab.key === 'location' ? '/v4' : `/v4?tab=${tab.key}`}
+                  href={tab.key === 'home' ? basePath : `${basePath}?tab=${tab.key}`}
                   className={activeTab === tab.key && !selectedProperty ? 'is-active' : ''}
                   onClick={(e) => {
-                    if (e.ctrlKey || e.metaKey || e.button) return;
+                    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button) return;
                     e.preventDefault();
                     if (isVisualEditMode) return;
                     onNavTab(tab.key);
@@ -455,7 +459,7 @@ export default function SiteV4({ basePath = '/v4' }) {
             />
           ) : (
             <>
-              {activeTab === 'home' && (
+              {isHomeScene && (
                 <>
                   {!requestedPropSlug && (
                     simpleHome ? <MobileHome
@@ -465,6 +469,7 @@ export default function SiteV4({ basePath = '/v4' }) {
                       onFilter={handleFilterSelect}
                       onSearch={handleGlobalSearch}
                       onShowAll={() => goTab('all')}
+                      onShowLocations={goLocations}
                       onWatchStory={() => { setWatchStory(true); window.scrollTo({ top: 0, behavior: 'instant' }); }}
                       visualContent={visualContent}
                       isEditMode={isVisualEditMode}
@@ -481,7 +486,7 @@ export default function SiteV4({ basePath = '/v4' }) {
                       updateVisualContent={updateVisualContent}
                       isEditMode={isVisualEditMode}
                       onShowAllHomes={() => goTab('all')}
-                      onShowLocations={() => goStation(STATION_AT.locations)}
+                      onShowLocations={goLocations}
                     />
                     </>
                   )}
@@ -514,7 +519,7 @@ export default function SiteV4({ basePath = '/v4' }) {
                 </>
               )}
 
-              {activeTab !== 'home' && isWaiting && <Waiting />}
+              {!isHomeScene && isWaiting && <Waiting />}
 
               {activeTab === 'all' && !isWaiting && (
                 <PropertiesList
@@ -522,16 +527,6 @@ export default function SiteV4({ basePath = '/v4' }) {
                   onSelectProp={handleSelectProperty}
                   visualContent={visualContent}
                   updateVisualContent={updateVisualContent}
-                  isEditMode={isVisualEditMode}
-                />
-              )}
-
-              {activeTab === 'location' && !isWaiting && (
-                <LocationSection
-                  onSelectLocation={handleFilterSelect}
-                  visualContent={visualContent}
-                  updateVisualContent={updateVisualContent}
-                  onUpdateLocationImage={handleLocationImageUpdate}
                   isEditMode={isVisualEditMode}
                 />
               )}
@@ -558,8 +553,7 @@ export default function SiteV4({ basePath = '/v4' }) {
                 />
               )}
 
-              {/* หน้า "ทำเลยอดนิยม" ถูกถอดออกแล้ว — เมนู "ทำเล" พาไปที่การ์ดทำเลในฉากเปิดแทน
-                  ถ้ามีลิงก์เก่า /v4?tab=location หลงเข้ามา จะถูกพากลับไปฉากเปิดโดยอัตโนมัติ */}
+              {/* ?tab=location opens the location cards in the shared home scene. */}
 
               {activeTab === 'calculator' && !isWaiting && (
                 <div className="v4-calc-wrap">
