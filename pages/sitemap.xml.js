@@ -3,6 +3,7 @@ import { getSeoStock, includePropertyInSitemap } from '../lib/seoStock';
 import { getPublicProperties } from '../lib/publicDataCache';
 import { withCanonicalPropertyPaths } from '../lib/propertyCanonicalLinks';
 import { withWebsiteInventory, indexableSeoLandings } from '../lib/websiteInventory';
+import { ARTICLES_PATH, articleSitemapEntries } from '../lib/articleCatalogue';
 import {
   escapeXml,
   formatSitemapDate,
@@ -64,7 +65,12 @@ export async function getServerSideProps({ res }) {
   // Reuse the same stock snapshot as house URLs: no extra database request.
   const landingRoutes = indexableSeoLandings(properties.map(property => withWebsiteInventory(property, stock)))
     .map(landing => ({ loc: toAbsoluteUrl(locationPath(landing)), changefreq: 'daily', priority: '0.8' }));
-  const routes = [...new Map([...STATIC_ROUTES, ...landingRoutes, ...propertyRoutes].map(route => [route.loc, route])).values()];
+  const articles = articleSitemapEntries();
+  const articleRoutes = articles.length ? [
+    { loc: toAbsoluteUrl(ARTICLES_PATH), changefreq: 'weekly', priority: '0.6' },
+    ...articles.map(article => ({ loc: toAbsoluteUrl(article.path), lastmod: article.lastmod, changefreq: 'monthly', priority: '0.6' })),
+  ] : [];
+  const routes = [...new Map([...STATIC_ROUTES, ...landingRoutes, ...propertyRoutes, ...articleRoutes].map(route => [route.loc, route])).values()];
   const xml = buildSitemapXml(routes);
 
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');

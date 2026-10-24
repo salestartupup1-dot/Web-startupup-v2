@@ -3907,6 +3907,7 @@ export default function App() {
                 <NavButton href="/?tab=portfolio" active={activeTab === 'portfolio' && !selectedProperty} isEditMode={isVisualEditMode} onClick={() => {setActiveTab('portfolio'); setSelectedProperty(null); window.scrollTo(0,0);}}>
                     <EditableText tag="span" fieldKey="navPortfolio" content={visualContent} updateContent={updateVisualContent} isEditMode={isVisualEditMode} />
                 </NavButton>
+                <a href="/บทความ" className="text-sm font-medium whitespace-nowrap hover:text-brand-green py-3">บทความ</a>
               </div>
 
               <div className="flex items-center justify-end w-1/3 gap-4">
@@ -3936,6 +3937,7 @@ export default function App() {
                 <MobileNavBtn href="/?tab=location" onClick={() => {setActiveTab('location'); setSelectedProperty(null); setIsMenuOpen(false); window.scrollTo(0,0);}}>{visualContent?.navLocation || DEFAULT_VISUAL_CONTENT.navLocation}</MobileNavBtn>
                 <MobileNavBtn href="/?tab=calculator" onClick={() => {setActiveTab('calculator'); setSelectedProperty(null); setIsMenuOpen(false); window.scrollTo(0,0);}}>{visualContent?.navCalc || DEFAULT_VISUAL_CONTENT.navCalc}</MobileNavBtn>
                 <MobileNavBtn href="/?tab=portfolio" onClick={() => {setActiveTab('portfolio'); setSelectedProperty(null); setIsMenuOpen(false); window.scrollTo(0,0);}}>{visualContent?.navPortfolio || DEFAULT_VISUAL_CONTENT.navPortfolio}</MobileNavBtn>
+                <a href="/บทความ" className="block py-3 text-brand-green font-medium">บทความ</a>
                 <div className="h-px bg-gray-100 my-2"></div>
                 {userRole ? (
                   <button onClick={() => {setShowAdminPanel(true); setIsMenuOpen(false)}} className="w-full text-left py-2 text-brand-green font-medium">เข้าสู่ระบบหลังบ้าน</button>

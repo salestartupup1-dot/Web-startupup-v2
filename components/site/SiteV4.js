@@ -13,6 +13,7 @@
  */
 
 import Head from 'next/head';
+import { ARTICLES_PATH } from '../../lib/articleCatalogue';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
@@ -78,6 +79,7 @@ const NAV_TABS = [
   { key: 'promo', fallback: 'บ้านโปรโมชั่น', field: 'navPromo' },
   { key: 'calculator', fallback: 'คำนวณสินเชื่อ', field: 'navCalc' },
   { key: 'portfolio', fallback: 'ผลงาน', field: 'navPortfolio' },
+  { key: 'articles', fallback: 'บทความ', field: 'navArticles', href: ARTICLES_PATH },
 ];
 
 function Waiting() {
@@ -361,10 +363,11 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
               {NAV_TABS.map(tab => (
                 <a
                   key={tab.key}
-                  href={tab.key === 'home' ? basePath : `${basePath}?tab=${tab.key}`}
+                  href={tab.href || (tab.key === 'home' ? basePath : `${basePath}?tab=${tab.key}`)}
                   className={activeTab === tab.key && !selectedProperty ? 'is-active' : ''}
                   onClick={(e) => {
                     if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button) return;
+                    if (tab.href && !isVisualEditMode) return;
                     e.preventDefault();
                     if (isVisualEditMode) return;
                     onNavTab(tab.key);
@@ -432,7 +435,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
                 />
                 <button type="submit" aria-label="ค้นหา"><Search size={18} /></button>
               </form>
-              {NAV_TABS.map(tab => (
+              {NAV_TABS.map(tab => tab.href ? <a key={tab.key} href={tab.href}>{label(tab.field, tab.fallback)}</a> : (
                 <button key={tab.key} type="button" onClick={() => onNavTab(tab.key)}>
                   {label(tab.field, tab.fallback)}
                 </button>
@@ -718,7 +721,7 @@ const v4Css = `
 }
 .v4-shell.is-editing { padding-bottom: 96px; }
 .v4-shell.is-simple-layout .v4-nav { background: #fdf1e1; border-bottom: 1px solid #d7e0d5; }
-.v4-shell.is-simple-layout .v4-mobile-menu button { min-height: 52px; font-size: 18px; }
+.v4-shell.is-simple-layout .v4-mobile-menu :is(button,a) { min-height: 52px; font-size: 18px; }
 .v4-shell .v4-nav .v4-logo.v4-exit-story {
   display: flex; align-items: center; gap: 6px; min-height: 48px;
   padding: 8px 10px; border: 1px solid #153d28; border-radius: 10px;
@@ -777,7 +780,7 @@ const v4Css = `
   filter: drop-shadow(0 1px 3px rgba(0,0,0,0.35)); background: transparent;
 }
 
-.v4-nav-links { display: flex; align-items: center; gap: clamp(18px, 2vw, 38px); }
+.v4-nav-links { display: flex; align-items: center; gap: clamp(14px, 1.5vw, 28px); }
 .v4-nav-links a {
   position: relative; color: var(--brand); text-decoration: none;
   font-size: 16px; font-weight: 400; white-space: nowrap; padding: 6px 0;
@@ -856,7 +859,7 @@ const v4Css = `
   background: var(--paper); border: 0;
   box-shadow: 0 18px 40px rgba(11, 61, 27, 0.14);
 }
-.v4-mobile-menu button {
+.v4-mobile-menu button, .v4-mobile-menu > a {
   border: 0; background: none; text-align: left; padding: 10px 0;
   font: inherit; font-size: 16px; color: var(--brand); cursor: pointer;
 }

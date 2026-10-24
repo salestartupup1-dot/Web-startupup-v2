@@ -3,6 +3,7 @@
 import { SEO_LOCATIONS, locationPath } from '../../lib/seoLocations';
 import { SEO_LANDINGS } from '../../lib/seoLandings';
 import { PORTFOLIO_PATH } from '../../lib/soldHomes';
+import { ARTICLES_PATH, ARTICLE_CATALOGUE, articlePath } from '../../lib/articleCatalogue';
 import { formatPrice, getPropertyPath } from '../../lib/seo';
 import styles from './SeoBrowse.module.css';
 const cardImage = property => {
@@ -20,7 +21,7 @@ export function LandingLinks({ footer = false }) {
   return <nav className={`${styles.landingLinks}${footer ? ` ${styles.footerLinks}` : ''}`} aria-label={footer ? 'ค้นหาบ้านตามประเภทและงบประมาณท้ายเว็บ' : 'ค้นหาบ้านตามประเภทและงบประมาณ'}>
     <ul>{SEO_LANDINGS.map(landing => <li key={landing.slug}>
       <a href={locationPath(landing)}>{landing.name}</a>
-    </li>)}{footer && <li><a href={PORTFOLIO_PATH}>บ้านที่ขายแล้ว</a></li>}</ul>
+    </li>)}{footer && <><li><a href={PORTFOLIO_PATH}>บ้านที่ขายแล้ว</a></li><li><a href={ARTICLES_PATH}>บทความ</a></li></>}</ul>
   </nav>;
 }
 
@@ -43,6 +44,14 @@ export function HouseCards({ properties }) {
 
 export default function SeoBrowse() {
   return <section className={`${styles.section} ${styles.guide}`} aria-labelledby="home-guide-title">
+    <section aria-labelledby="home-articles-title">
+      <h2 id="home-articles-title">บทความก่อนซื้อบ้าน</h2>
+      {ARTICLE_CATALOGUE.slice(0,3).map(article=><article key={article.slug}>
+        <h3><a href={articlePath(article)}>{article.title}</a></h3>
+        <p>{article.excerpt}</p>
+      </article>)}
+      <p><a href={ARTICLES_PATH}>อ่านบทความทั้งหมด</a></p>
+    </section>
     <article>
       <h2 id="home-guide-title">เรื่องน่ารู้ก่อนเลือกซื้อบ้าน</h2>
       <p>การเลือกบ้านมือสองเริ่มได้จากการมองชีวิตประจำวันของเรา ทั้งเส้นทางไปทำงาน การรับส่งคนในครอบครัว และพื้นที่ที่ต้องใช้จริง แล้วค่อยเปรียบเทียบรายละเอียดของบ้านแต่ละหลัง</p>

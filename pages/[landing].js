@@ -6,8 +6,10 @@ import { resolveSitePage, missingPage } from '../lib/serverPageData';
 import { isShortCode } from '../lib/propertyShortLinks';
 import { isPropertySlug } from '../lib/propertyRoutes';
 import { SOLD_HOMES_SLUG } from '../lib/soldHomes';
+import ArticlesIndex from '../components/articles/ArticlesIndex';
 
 export async function getServerSideProps(context) {
+  if (context.params.landing === 'บทความ') return { props: { articleIndex: true } };
   if (isShortCode(context.params.landing) || isPropertySlug(context.params.landing)) {
     return resolveSitePage(context);
   }
@@ -15,6 +17,7 @@ export async function getServerSideProps(context) {
   return resolveSitePage(context);
 }
 
-export default function LocationLanding({ initialData, unavailable, missing }) {
+export default function LocationLanding({ initialData, unavailable, missing, articleIndex }) {
+  if (articleIndex) return <ArticlesIndex />;
   return missing ? <NotFound /> : unavailable ? <UnavailablePage /> : <SiteV4 basePath="/" initialData={initialData} />;
 }

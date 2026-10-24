@@ -92,7 +92,7 @@ with sync_playwright() as playwright:
         expect(faq).to_have_attribute('open','')
         page.screenshot(path=str(output/('faq-mobile.png' if mobile else 'faq-desktop.png')))
         footer=page.get_by_role('navigation',name='ค้นหาบ้านตามประเภทและงบประมาณท้ายเว็บ')
-        footer.scroll_into_view_if_needed(); assert footer.locator('a').count()==8 # Seven collections and sold-home archive.
+        footer.scroll_into_view_if_needed(); assert footer.locator('a').count()==9 # Seven collections, sold homes and articles.
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
         page.screenshot(path=str(output/('footer-mobile.png' if mobile else 'footer-desktop.png')))
         page.goto(BASE+'/',wait_until='domcontentloaded')
