@@ -22,7 +22,7 @@ import {
 
 import useSiteData from './useSiteData';
 import PublicDataNotice from './PublicDataNotice';
-import SeoBrowse, { LocationLinks } from './SeoBrowse';
+import SeoBrowse from './SeoBrowse';
 import CinemaHero from './CinemaHero';
 import { CINEMA_STATIONS } from './CinemaNavigation';
 import MobileHome, { scrollToHomeLocations } from './MobileHome';
@@ -584,7 +584,6 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
 
         {/* ---------- ท้ายเว็บ ---------- */}
         <footer className="v4-footer">
-          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}><LocationLinks /></div>
           <div className="v4-footer-inner">
             <div>
               <h3>{companyInfo?.name || 'STARTUP UP'}</h3>

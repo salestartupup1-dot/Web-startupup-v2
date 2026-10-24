@@ -49,7 +49,7 @@ export default function SeoBrowse() {
         <summary>เลือกอ่านข้อมูลแต่ละทำเลได้ที่ไหน?</summary>
         <p>อ่านข้อมูลและดูรายการในทำเลที่สนใจได้ที่ {SEO_LOCATIONS.map((location, index) => <span key={location.slug}>
           {index > 0 && (index === SEO_LOCATIONS.length - 1 ? ' และ ' : ' / ')}
-          <a href={locationPath(location)}>{location.name}</a>
+          <a href={`/?${new URLSearchParams({ tab: 'search_result', sType: 'location_group', sValue: location.name })}`}>{location.name}</a>
         </span>)} เพื่อเปรียบเทียบตัวเลือกให้ตรงกับเส้นทางและการใช้ชีวิตของคุณ</p>
       </details>
       <details className={styles.faq}>

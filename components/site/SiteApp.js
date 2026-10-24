@@ -23,6 +23,7 @@ import dynamic from 'next/dynamic';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { makePropertySlug } from '../../lib/firestorePublic';
 import { buildPageSeo, buildStructuredData, safeJsonLd, getPropertyPath } from '../../lib/seo';
+import { SEO_LOCATIONS, matchesSeoLocation } from '../../lib/seoLocations';
 import { PROPERTY_OWNERS, DEFAULT_PROPERTY_OWNER, getPropertyOwner, selectPublicProperties } from '../../lib/propertyOwners';
 import { getPropertyStockAlert } from '../../lib/stockMatching';
 import usePropertyLink from './usePropertyLink';
@@ -1787,6 +1788,10 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
   if (searchParams?.type === 'promo') {
       displayProps = properties.filter(p => p.badge === 'Promotion');
       title = visualContent?.navPromo || DEFAULT_VISUAL_CONTENT.navPromo;
+  } else if (searchParams?.type === 'location_group') {
+      const location = SEO_LOCATIONS.find(item => item.name === searchParams.value);
+      displayProps = location ? properties.filter(p => matchesSeoLocation(p, location)) : [];
+      title = `ทำเล: ${searchParams.value}`;
   } else if (searchParams?.type === 'main_location' || searchParams?.type === 'district') {
       displayProps = properties.filter(p => matchesMainArea(p, searchParams.value));
       title = `ทำเล: ${searchParams.value}`;
