@@ -1,7 +1,8 @@
+import NotFound from './404';
 import SiteV4 from '../components/site/SiteV4';
 import UnavailablePage from '../components/site/UnavailablePage';
 import { findSeoLocation } from '../lib/seoLocations';
-import { loadSitePage } from '../lib/serverPageData';
+import { resolveSitePage, missingPage } from '../lib/serverPageData';
 import { privateResponse, unavailablePage } from '../lib/serverPageData';
 import { isShortCode, propertyShortLinks } from '../lib/propertyShortLinks';
 
@@ -10,15 +11,15 @@ export async function getServerSideProps(context) {
     privateResponse(context.res);
     try {
       const id = await propertyShortLinks.resolve(context.params.landing);
-      if (!id) return { notFound: true };
+      if (!id) return missingPage(context.res);
       const suffix = context.resolvedUrl.includes('?') ? context.resolvedUrl.slice(context.resolvedUrl.indexOf('?')) : '';
-      return loadSitePage({ ...context, resolvedUrl: `/h/${id}${suffix}` });
+      return resolveSitePage({ ...context, resolvedUrl: `/h/${id}${suffix}` });
     } catch (error) { return unavailablePage(context.res, error); }
   }
-  if (!findSeoLocation(context.params.landing)) return { notFound: true };
-  return loadSitePage(context);
+  if (!findSeoLocation(context.params.landing)) return missingPage(context.res);
+  return resolveSitePage(context);
 }
 
-export default function LocationLanding({ initialData, unavailable }) {
-  return unavailable ? <UnavailablePage /> : <SiteV4 basePath="/" initialData={initialData} />;
+export default function LocationLanding({ initialData, unavailable, missing }) {
+  return missing ? <NotFound /> : unavailable ? <UnavailablePage /> : <SiteV4 basePath="/" initialData={initialData} />;
 }

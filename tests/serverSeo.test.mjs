@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { propertyPath, propertyIdFromPath, propertySharePath, propertyIdFromSharePath } from '../lib/propertyRoutes.js';
-import { loadSitePage } from '../lib/serverPageData.js';
+import { loadSitePage, resolveSitePage } from '../lib/serverPageData.js';
 import { buildPageSeo, buildPropertyJsonLd, buildStructuredData, safeJsonLd } from '../lib/seo.js';
 import { includePropertyInSitemap } from '../lib/seoStock.js';
 import { SEO_LOCATIONS, matchesSeoLocation, locationPath, seoLocationFromPath, seoLocationFromSearch } from '../lib/seoLocations.js';
@@ -167,4 +167,12 @@ test('related inventory failure does not remove a readable detail page', async (
   });
   assert.equal(result.props.initialData.selectedProperty.id, house.id);
   assert.deepEqual(result.props.initialData.properties, []);
+});
+
+test('SSR missing pages render the custom document with a real 404 and never a soft 200', async () => {
+ const context = { query: {}, resolvedUrl: propertyPath(house), res: response() };
+ const result = await resolveSitePage(context, { ...deps, readProperty: () => ({ promise: Promise.resolve(null) }) });
+ assert.equal(context.res.statusCode, 404);
+ assert.deepEqual(result.props, { missing: true });
+ assert.equal(context.res.headers['Cache-Control'], 'no-store');
 });
