@@ -11,7 +11,7 @@ def fetch(path):
 def canonical(body):return html.unescape(re.search(r'<link[^>]*rel="canonical"[^>]*href="([^"]+)"',body).group(1))
 def meta(body,name):return html.unescape(re.search(r'<meta[^>]*name="'+name+r'"[^>]*content="([^"]+)"',body).group(1))
 def links(body):return [html.unescape(value) for value in re.findall(r'<a\b[^>]*href="([^"]+)"',body)]
-def heading(p):return ' '.join(str(v).strip() for v in [p.get('category'),p.get('project_name'),re.sub(r'^(?:อำเภอ|อ\.|เขต)\s*','',p.get('district',''))] if v)
+def heading(p):return str(p.get('project_name') or '').strip() or 'รายละเอียดบ้าน'  # H1 = project name only
 data=json.loads(fetch('/api/public-data'))
 public=[p for p in data['properties'] if not p.get('property_owner') or p.get('property_owner')=='Startup Up']
 sold=[p for p in public if p.get('inventoryState')=='sold' or p.get('badge')=='Sold Out']

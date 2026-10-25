@@ -575,6 +575,7 @@ function EditableText({ tag: Tag = 'span', fieldKey, content, updateContent, isE
       <Tag className={`${className} relative group inline-flex items-center`}>
           <span>{content[fieldKey]}</span>
           <span
+              data-edit-control
               onPointerDown={(e) => { 
                   e.preventDefault(); 
                   e.stopPropagation(); 

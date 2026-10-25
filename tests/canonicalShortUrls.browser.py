@@ -5,7 +5,8 @@ from playwright.sync_api import sync_playwright, expect
 
 BASE=os.environ.get('SITE_TEST_BASE_URL','http://localhost:3026')
 def property_heading(p):
-    return ' '.join(str(v).strip() for v in [p.get('category'),p.get('project_name'),re.sub(r'^(?:อำเภอ|อ\.|เขต)\s*','',p.get('district',''))] if v)
+    # House-page H1 is the project name only (owner's choice, Oct 2026).
+    return str(p.get('project_name') or '').strip() or 'รายละเอียดบ้าน'
 def fetch(path):
     with urllib.request.urlopen(BASE+path,timeout=60) as r:return r.read().decode(),r.url
 catalogue=json.loads(fetch('/api/public-data')[0])

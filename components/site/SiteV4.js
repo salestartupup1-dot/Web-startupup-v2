@@ -243,7 +243,6 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
    * (SNAP_IDLE = 150ms ใน CinemaHero) เพื่อให้ชนะไม่ว่าอะไรจะแทรกเข้ามา
    */
   const goHomeTop = useCallback(() => {
-    if (isVisualEditMode) return;
     const request = ++navigationRequest.current;
     setWatchStory(false);
     goTab('home');
@@ -275,16 +274,15 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
     /* ย้ำอีกครั้งหลังพ้นเวลาหน่วงของตัวดูดเข้าสถานีใน CinemaHero (SNAP_IDLE = 150ms) */
     setTimeout(toTop, 220);
     setTimeout(() => { toTop(); root.style.scrollSnapType = prevSnap; }, 500);
-  }, [goTab, isVisualEditMode, prefersSimpleHome]);
+  }, [goTab, prefersSimpleHome]);
 
   const goLocations = useCallback(() => {
-    if (isVisualEditMode) return;
     navigationRequest.current += 1;
     setSelectedProperty(null);
     setRequestedPropSlug(null);
     setActiveTab('location');
     window.scrollTo({ top: 0, behavior: 'instant' });
-  }, [isVisualEditMode, setSelectedProperty, setRequestedPropSlug, setActiveTab]);
+  }, [setSelectedProperty, setRequestedPropSlug, setActiveTab]);
 
   /**
    * เมนูบ้านทั้งหมดเปิดรายการรวมเหมือนปุ่มหน้าแรกในทุกโหมด
@@ -348,7 +346,6 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
             <button
               type="button"
               className={`v4-logo${prefersSimpleHome && isCinemaView ? ' v4-exit-story' : ''}`}
-              disabled={isVisualEditMode}
               onClick={goHomeTop}
             >
               {prefersSimpleHome && isCinemaView
@@ -368,9 +365,14 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
                   className={activeTab === tab.key && !selectedProperty ? 'is-active' : ''}
                   onClick={(e) => {
                     if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button) return;
-                    if (tab.href && !isVisualEditMode) return;
+                    // In the page editor, a click on the pencil or the text box edits the label, not the link.
+                    if (isVisualEditMode && e.target.closest?.('input, [data-edit-control]')) { e.preventDefault(); return; }
+                    if (tab.href) {
+                      // Leaving the main site would discard unsaved edits.
+                      if (isVisualEditMode) e.preventDefault();
+                      return;
+                    }
                     e.preventDefault();
-                    if (isVisualEditMode) return;
                     onNavTab(tab.key);
                   }}
                 >
@@ -438,7 +440,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
                 />
                 <button type="submit" aria-label="ค้นหา"><Search size={18} /></button>
               </form>
-              {NAV_TABS.map(tab => tab.href ? <a key={tab.key} href={tab.href}>{label(tab.field, tab.fallback)}</a> : (
+              {NAV_TABS.map(tab => tab.href ? <a key={tab.key} href={tab.href} onClick={(e) => { if (isVisualEditMode) e.preventDefault(); }}>{label(tab.field, tab.fallback)}</a> : (
                 <button key={tab.key} type="button" onClick={() => onNavTab(tab.key)}>
                   {label(tab.field, tab.fallback)}
                 </button>

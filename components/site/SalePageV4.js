@@ -1,5 +1,4 @@
 import Head from 'next/head';
-import { getPropertyHeading } from '../../lib/seo';
 import { primaryPropertyLocation, relatedAvailableProperties } from '../../lib/websiteInventory';
 import { locationPath } from '../../lib/seoLocations';
 import { propertyEditorialSections, propertyFactSummary, propertyHighlightBlocks } from '../../lib/propertyEditorial';
@@ -380,7 +379,7 @@ export default function SalePageV4({
           <a href={areaPage ? locationPath(areaPage) : '/?tab=all'}>{areaPage ? `บ้านมือสอง${areaPage.name}` : 'บ้านทั้งหมด'}</a>
           <span aria-hidden="true"> › </span><span aria-current="page">{property.project_name} {property.house_number}</span>
         </nav>
-        <h1 className="sp4-title">{getPropertyHeading(property)}</h1>
+        <h1 className="sp4-title">{property.project_name?.trim() || 'รายละเอียดบ้าน'}</h1>
         <div className="sp4-idents">
           {houseAndSoi.hn && (
             <span className="sp4-ident">
