@@ -11,7 +11,7 @@ const house={id:'h1',project_name:'พฤกษา 119',category:'ทาวน�
 const res=()=>({setHeader(){}});
 
 test('H1 uses type, project and explicit district, with no price/area/marketing location',()=>{
-  assert.equal(HOME_H1,'จุดเริ่มต้นของคนอยากมีบ้าน');
+  assert.equal(HOME_H1,'บ้านมือสองรีโนเวท รังสิต ปทุมธานี');
   assert.equal(getPropertyHeading({...house,area_wah:28.4}),'ทาวน์เฮาส์ พฤกษา 119 คลองหลวง');
   assert.equal(getPropertyHeading({...house,district:'อำเภอ คลองหลวง'}),'ทาวน์เฮาส์ พฤกษา 119 คลองหลวง');
   assert.equal(getPropertyHeading({...house,district:''}),'ทาวน์เฮาส์ พฤกษา 119');
@@ -70,4 +70,14 @@ test('old sold page redirects permanently to portfolio without reading stock', a
   const target=new URL(result.redirect.destination,'https://example.com');
   assert.equal(target.pathname,'/'); assert.equal(target.searchParams.get('tab'),'portfolio');
   assert.equal(target.searchParams.get('page'),'2');
+});
+
+test('RealEstateAgent uses a structured office address, service areas and a fixed description',async()=>{
+  const { buildLocalBusinessJsonLd } = await import('../lib/seo.js');
+  const schema=buildLocalBusinessJsonLd({description:'จุดเริ่มต้นของคนอยากมีบ้าน',address:'free text'});
+  assert.deepEqual(schema.address,{'@type':'PostalAddress',streetAddress:'39/43,39/44 หมู่ 5',addressLocality:'คลองหลวง',
+    addressRegion:'ปทุมธานี',postalCode:'12120',addressCountry:'TH'});
+  assert.deepEqual(schema.areaServed.map(area=>area.name),['คลองหลวง','ธัญบุรี','ลำลูกกา','ปทุมธานี']);
+  for (const word of ['บ้านมือสองรีโนเวท','รังสิต','คลองหลวง','ปทุมธานี']) assert.ok(schema.description.includes(word),word);
+  assert.equal(schema.geo,undefined); assert.equal(schema.openingHoursSpecification,undefined);
 });

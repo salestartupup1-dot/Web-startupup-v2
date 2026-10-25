@@ -3,6 +3,7 @@ import PropertyEditorialFields from './PropertyEditorialFields';
 import ListingPagination from './ListingPagination';
 import { emptyListing, listingHref, listingPage, selectListingProperties, LISTING_PAGE_SIZE } from '../../lib/listingPagination';
 import { isSaleAvailable } from '../../lib/websiteInventory';
+import HouseCard, { PAYMENT_NOTE, areaHeadline } from './HouseCard';
 /*
  * === คำแนะนำการตั้งค่า Tailwind CSS ===
  * เพื่อให้สีและฟอนต์ (brand-green, brand-light) แสดงผลได้สมบูรณ์แบบ
@@ -1804,7 +1805,7 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
   const hrefForPage = page => listingHref({ activeTab, searchParams, location: locationLanding, listing: state, page, basePath });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-16 min-h-screen flex flex-col reveal-on-scroll">
+    <div className="max-w-7xl mx-auto px-4 pt-6 pb-16 md:py-16 min-h-screen flex flex-col reveal-on-scroll">
       {locationLanding?.kind && <nav aria-label="เส้นทางหน้าปัจจุบัน" className="mb-5 text-sm text-brand-green">
         <ol className="flex flex-wrap items-center gap-2">
           <li><a href="/" className="underline underline-offset-4 focus-visible:outline focus-visible:outline-2">หน้าหลัก</a></li>
@@ -1814,7 +1815,8 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
       </nav>}
       {locationLanding && <p className="mb-4 text-brand-green">{locationLanding.intro}</p>}
       {hasUnverifiedLocation && <p role="status" className="mb-4 text-sm text-gray-600">บางรายการอยู่ระหว่างยืนยันสถานะ จึงยังไม่รวมในจำนวนบ้านที่เปิดรับจอง กรุณาสอบถามทีมงานหากไม่พบหลังที่สนใจ</p>}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
+      {!locationLanding && ['all', 'promo'].includes(activeTab) && areaHeadline(properties) && <p className="mb-1 text-sm font-medium text-[#98691d]">{areaHeadline(properties)}</p>}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-5 md:mb-10 gap-3 md:gap-4">
           <Heading className="text-2xl font-light text-brand-green">{title} <span className="text-sm text-gray-400 ml-2">{hasUnverifiedLocation && displayProps.length === 0 ? 'กำลังยืนยันรายการ' : `(${displayProps.length} รายการ)`}</span></Heading>
           
           <div className="flex items-center gap-2 flex-wrap">
@@ -1887,34 +1889,12 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
           </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center flex-grow content-start">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6 justify-items-center sm:justify-items-stretch flex-grow content-start">
         {currentProps.length > 0 ? currentProps.map((p, index) => (
-           <a href={getPropertySharePath(p)} key={p.id} onClick={(e) => {
-               if (!e.ctrlKey && !e.metaKey && !e.button) {
-                   e.preventDefault(); 
-                   if(!isEditMode) onSelectProp(p);
-               }
-           }} className={`block bg-white border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-lg transition-all duration-300 rounded-2xl overflow-hidden flex flex-col w-[300px] min-w-[300px] h-[400px] min-h-[400px] ${isEditMode ? 'pointer-events-none cursor-default' : 'cursor-pointer'} animate-pop`} style={{ animationDelay: `${index * 50}ms` }}>
-               <div className="h-[220px] w-full relative overflow-hidden bg-gray-100 pointer-events-none flex-shrink-0">
-                                        <SmartImage src={getOptimizedImg(p.images?.[0] || p.imageUrl || "https://placehold.co/600x400", 500)} alt={p.project_name} width={500} height={360} sizes="300px" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" decoding="async" />
-                                        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-gray-700 px-3 py-1.5 rounded-full font-medium text-xs shadow-sm z-10 flex items-center gap-1.5"><Home size={14} className="text-brand-green" />{p.category}</div>
-                                        
-                                        {/* แสดงป้าย Promotion/New ตามปกติ (ซ่อนป้าย Sold Out เล็กมุมขวา) */}
-                                        {p.badge && p.badge !== 'Sold Out' && <div className={`absolute top-3 right-3 px-3 py-1.5 rounded-full font-medium text-xs shadow-sm z-10 text-white ${p.badge === 'Promotion' ? 'bg-red-600' : p.badge === 'New' ? 'bg-blue-600' : 'bg-brand-green'}`}>{p.badge}</div>}
-                                        
-                                        {p.badge === 'Sold Out' && <SoldOutRibbon />}
-                                    </div>
-               <div className="p-5 flex flex-col flex-grow pointer-events-none">
-                   <CardHeading className="font-bold text-gray-800 text-[18px] mb-2 line-clamp-2 leading-snug">{p.project_name}</CardHeading>
-                   <div className="text-[13px] text-gray-500 flex items-center gap-1.5 mb-4"><MapPin size={15} className="flex-shrink-0 text-gray-400" /><span className="font-light truncate">{p.main_location || p.district} {p.sub_location || p.subdistrict ? `- ${p.sub_location || p.subdistrict}` : ''}</span></div>
-                   <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
-                       <span className="text-[20px] font-bold text-brand-green"><span className="text-[16px] mr-1">฿</span>{Number(String(p.price || 0).replace(/,/g, '')).toLocaleString()}</span>
-                       <div className="flex items-center gap-3 text-gray-500 text-[13px]"><div className="flex items-center gap-1.5" title="พื้นที่"><Maximize size={15} /> {p.area_wah}</div><div className="flex items-center gap-1.5" title="ห้องนอน"><Bed size={15} /> {p.bedrooms}</div><div className="flex items-center gap-1.5" title="ห้องน้ำ"><Bath size={15} /> {p.bathrooms}</div></div>
-                   </div>
-               </div>
-           </a>
+           <HouseCard key={p.id} property={p} index={index} heading={CardHeading} onSelect={onSelectProp} isEditMode={isEditMode} />
         )) : <p className="text-gray-400 col-span-full text-center py-20 font-light w-full">ไม่พบรายการในหมวดหมู่นี้</p>}
       </div>
+      {currentProps.length > 0 && <p className="mt-6 text-xs text-gray-400 text-center">{PAYMENT_NOTE}</p>}
 
       <ListingPagination page={currentPage} totalPages={totalPages} hrefForPage={hrefForPage} />
     </div>
@@ -1964,7 +1944,7 @@ function PortfolioSection({ soldHomes, companyInfo, properties, visualContent, u
                             className="rounded-xl overflow-hidden bg-gray-100 animate-pop shadow-sm hover:shadow-md cursor-pointer group relative" 
                             style={{ animationDelay: `${(i % IMAGES_PER_PAGE) * 30}ms` }}
                         >
-                            <SmartImage src={getOptimizedImg(img, 800)} className="w-full h-auto group-hover:scale-105 transition duration-500" alt={`Portfolio image ${startIndex + i + 1}`} width={800} height={1000} sizes="(max-width: 768px) 50vw, 25vw" loading="lazy" decoding="async"/>
+                            <SmartImage src={getOptimizedImg(img, 600)} srcSet={`${getOptimizedImg(img, 400)} 400w, ${getOptimizedImg(img, 600)} 600w`} className="w-full h-auto group-hover:scale-105 transition duration-500" alt={`Portfolio image ${startIndex + i + 1}`} width={800} height={1000} sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 300px" loading={i < 4 ? 'eager' : 'lazy'} decoding="async"/>
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                                 <Maximize size={32} className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" />
                             </div>
@@ -2003,7 +1983,7 @@ function PortfolioSection({ soldHomes, companyInfo, properties, visualContent, u
                   return (
                       <a key={idx} href={listingHref({ activeTab: 'portfolio', listing: { year: String(yearGroup.year) }, basePath })} className="group cursor-pointer animate-pop" style={{ animationDelay: `${idx * 30}ms` }}>
                           <div className="aspect-square rounded-2xl overflow-hidden bg-gray-100 relative shadow-sm group-hover:shadow-md transition-all duration-300">
-                              <SmartImage src={getOptimizedImg(coverImg, 500)} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt={`Portfolio ${yearGroup.year}`} width={500} height={500} sizes="(max-width: 768px) 50vw, 25vw" loading="lazy" decoding="async" />
+                              <SmartImage src={getOptimizedImg(coverImg, 600)} srcSet={`${getOptimizedImg(coverImg, 320)} 320w, ${getOptimizedImg(coverImg, 600)} 600w`} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt={`Portfolio ${yearGroup.year}`} width={500} height={500} sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 300px" loading={idx < 4 ? 'eager' : 'lazy'} decoding="async" />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-80 group-hover:opacity-90 transition-opacity"></div>
                               <div className="absolute bottom-4 left-4 right-4 text-white">
                                   <div className="flex items-center gap-2 mb-1">
@@ -2245,7 +2225,11 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
     const loadStockCheck = useCallback(async ({ force = false } = {}) => {
         setIsStockRefreshing(true);
         try {
-            const res = await fetch(`/api/stock-check${force ? '?refresh=1' : ''}`);
+            const user = auth.currentUser;
+            if (!user || user.isAnonymous) throw new Error('ต้องเข้าสู่ระบบก่อน');
+            const res = await fetch(`/api/stock-check${force ? '?refresh=1' : ''}`, {
+                headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+            });
             if (!res.ok) throw new Error('เช็ค Master Stock ไม่สำเร็จ');
             const data = await res.json();
             if (!data?.houses) throw new Error('เช็ค Master Stock ไม่สำเร็จ');
@@ -3182,15 +3166,15 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
                                     <tbody className="divide-y divide-gray-100 text-sm">
                                         {users.map(u => (
                                             <tr key={u.id}>
-                                                <td className="p-4">{u.email}</td>
+                                                <td className="p-4">{u.id}</td>
                                                 <td className="p-4">
                                                     {u.role === 'pending' || !u.role ? (
-                                                        <div className="flex gap-2 items-center"><span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded text-xs">รออนุมัติ</span><button onClick={()=>handleApproveUser(u.id, 'admin', u.email)} className="text-brand-green hover:underline">อนุมัติ Admin</button></div>
+                                                        <div className="flex gap-2 items-center"><span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded text-xs">รออนุมัติ</span><button onClick={()=>handleApproveUser(u.id, 'admin', u.id)} className="text-brand-green hover:underline">อนุมัติ Admin</button></div>
                                                     ) : (
-                                                        <select value={u.role} onChange={e=>handleUpdateRole(u.id, e.target.value)} disabled={u.email===HOST_EMAIL} className={`p-1.5 border rounded outline-none text-xs ${u.role==='admin'?'bg-blue-50 text-blue-700 border-blue-200':'bg-brand-light text-brand-green border-brand-green/20'}`}><option value="admin">Admin</option><option value="host">Host</option><option value="pending">ระงับสิทธิ์</option></select>
+                                                        <select value={u.role} onChange={e=>handleUpdateRole(u.id, e.target.value)} disabled={u.id===HOST_EMAIL} className={`p-1.5 border rounded outline-none text-xs ${u.role==='admin'?'bg-blue-50 text-blue-700 border-blue-200':'bg-brand-light text-brand-green border-brand-green/20'}`}><option value="admin">Admin</option><option value="host">Host</option><option value="pending">ระงับสิทธิ์</option></select>
                                                     )}
                                                 </td>
-                                                <td className="p-4 text-right">{u.email !== HOST_EMAIL && <button onClick={()=>handleRemoveUser(u.id)} className="text-red-500 hover:bg-red-50 px-3 py-1 rounded transition">ลบ</button>}</td>
+                                                <td className="p-4 text-right">{u.id !== HOST_EMAIL && <button onClick={()=>handleRemoveUser(u.id)} className="text-red-500 hover:bg-red-50 px-3 py-1 rounded transition">ลบ</button>}</td>
                                             </tr>
                                         ))}
                                         {users.length === 0 && <tr><td colSpan="3" className="text-center p-8 text-gray-400">ไม่พบข้อมูลผู้ดูแลระบบ</td></tr>}
@@ -3610,9 +3594,6 @@ export default function App() {
     unsubUsers = onSnapshot(qUsers, (snapshot) => {
       const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAuthorizedUsers(users);
-      if (!users.some(u => u.email === HOST_EMAIL) && users.length === 0) {
-         setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', 'host_init'), { email: HOST_EMAIL, role: 'host', name: 'Main Host', createdAt: serverTimestamp() }).catch(e=>console.warn(e));
-      }
     }, (error) => console.warn(error));
     
     return () => { unsubProps(); unsubCompany(); unsubVisual(); unsubUsers(); };

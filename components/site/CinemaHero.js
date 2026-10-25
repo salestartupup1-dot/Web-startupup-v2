@@ -17,7 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
-import { HOME_H1 } from '../../lib/seo';
+import { HOME_H1, HOME_TAGLINE } from '../../lib/seo';
 import LocationCarousel from './LocationCarousel';
 import FeaturedHomes from './FeaturedHomes';
 import CinemaNavigation, { CINEMA_STATIONS as STATIONS } from './CinemaNavigation';
@@ -57,7 +57,8 @@ const CDN = 'https://res.cloudinary.com/dm2wr55r5';
 const MEDIA = {
   scrub:   `${CDN}/video/upload/v1788335283/house/house-scrub-v3.mp4`,      // 1920x904  13.4MB  จอคอม
   scrubSm: `${CDN}/video/upload/v1788335275/house/house-scrub-sm-v3.mp4`,   // 1530x720   6.3MB  มือถือ/แท็บเล็ต
-  poster:  `${CDN}/image/upload/v1788335287/house/house-scrub-poster-v3.jpg`,
+  // ภาพนิ่งแปลงได้ (กฎห้ามแปลงใช้กับวิดีโอเท่านั้น) — คงความกว้างเต็มเพราะ cover บนจอแนวตั้งต้องใช้ทั้งภาพ
+  poster:  `${CDN}/image/upload/f_auto,q_auto/v1788335287/house/house-scrub-poster-v3.jpg`,
 };
 
 /** ความยาวไฟล์ scrub ตามที่ ffprobe รายงาน — ต้องตรงเป๊ะ ไม่ใช่ความยาวไฟล์ต้นฉบับ */
@@ -913,6 +914,7 @@ export default function CinemaHero({
               <img
                 className={`scene-main cine-poster${videoReady && !videoFailed ? ' is-hidden' : ''}`}
                 src={MEDIA.poster}
+                fetchPriority="high"
                 alt="บรรยากาศบ้านและสวน STARTUP UP"
               />
 
@@ -976,6 +978,7 @@ export default function CinemaHero({
 
               <div className="intro-copy">
                 <h1 className="intro-lead">{HOME_H1}</h1>
+                <p className="intro-tagline">{HOME_TAGLINE}</p>
                 <div className="cine-quick-actions" ref={quickActionsRef}>
                   <button type="button" disabled={isEditMode} onClick={onShowAllHomes}>
                     <span>ดูบ้านทั้งหมด</span>
@@ -1067,7 +1070,7 @@ export default function CinemaHero({
                 isEditMode={isEditMode}
                 hrefFor={(area) => searchResultHref('main_location', area)}
                 onSelect={openLocation}
-                imageUrl={(loc) => getOptimizedImg(loc?.img, 900)}
+                imageUrl={(loc) => getOptimizedImg(loc?.img, 700)}
               />
             </div>
 
@@ -1286,6 +1289,9 @@ const cinemaCss = `
   white-space: nowrap; color: #fdf1e1;
   background: transparent; border: 0; box-shadow: none;
   text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+.cinema-scroll .intro-copy .intro-tagline {
+  margin: -4px auto 0; font-size: 0.95rem; font-weight: 400; opacity: 0.9;
 }
 
 /* ตัวเลขเล่าแบรนด์ โชว์ตั้งแต่หน้าจอแรก */

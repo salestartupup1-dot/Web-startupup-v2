@@ -4,6 +4,7 @@ import { LOCATION_CONTEXT } from '../../lib/locationContext';
 import { safeJsonLd } from '../../lib/seo';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { SEO_LOCATIONS, locationPath } from '../../lib/seoLocations';
+import { ARTICLE_CATALOGUE, articlePath } from '../../lib/articleCatalogue';
 import styles from './SeoBrowse.module.css';
 
 export default function LocationGuide({ location, properties = [], companyInfo }) {
@@ -11,10 +12,10 @@ export default function LocationGuide({ location, properties = [], companyInfo }
   const others = SEO_LOCATIONS.filter(item => item.slug !== location.slug);
   const market = locationMarket(location, properties);
   const context = LOCATION_CONTEXT[location.name];
+  const articles = (location.articles || []).map(slug => ARTICLE_CATALOGUE.find(article => article.slug === slug)).filter(Boolean);
   return <section className={`${styles.section} ${styles.guide}`} aria-labelledby="location-guide-title">
     <article>
       <h2 id="location-guide-title">{location.kind ? `เรื่องน่ารู้ก่อนเลือก${location.name}` : `เรื่องน่ารู้ก่อนเลือกบ้านใน${location.name}`}</h2>
-      <p>{location.intro}</p>
       {market.min !== null && <section>
         <h3>{location.kind ? 'ช่วงราคาของบ้านพร้อมขายในรายการนี้' : `ช่วงราคาบ้านที่เปิดรับจองใน${location.name}`}</h3>
         <p>จากรายการที่ระบุราคา {market.pricedCount} หลัง ราคาประกาศ{market.min === market.max ? ` ${market.min.toLocaleString('th-TH')}` : `ตั้งแต่ ${market.min.toLocaleString('th-TH')} ถึง ${market.max.toLocaleString('th-TH')}`} บาท จากทั้งหมด {market.count} หลังที่ยืนยันสถานะเปิดรับจองในกลุ่มทำเลนี้</p>
@@ -30,6 +31,10 @@ export default function LocationGuide({ location, properties = [], companyInfo }
         <h3>{heading}</h3><p>{content}</p>
       </section>)}
     </article>
+    {articles.length > 0 && <section className={`${styles.guideQuestions} ${styles.landingLinks}`} aria-labelledby="location-articles-title">
+      <h2 id="location-articles-title">บทความที่เกี่ยวข้อง</h2>
+      <ul>{articles.map(article => <li key={article.slug}><a href={articlePath(article)}>{article.title}</a></li>)}</ul>
+    </section>}
     <section className={styles.guideQuestions} aria-labelledby="location-faq-title">
       <h2 id="location-faq-title">คำถามที่พบบ่อยเกี่ยวกับ{location.kind ? location.name : `บ้านใน${location.name}`}</h2>
       {questions.map(([question, answer]) => <details className={styles.faq} key={question}>

@@ -28,8 +28,9 @@ import LocationGuide from './LocationGuide';
 import SoldHomes from './SoldHomes';
 import { seoLocationFromSearch } from '../../lib/seoLocations';
 import CinemaHero from './CinemaHero';
-import { CINEMA_STATIONS } from './CinemaNavigation';
-import MobileHome, { scrollToHomeLocations } from './MobileHome';
+import MobileHome from './MobileHome';
+import LocationListing from './LocationListing';
+import StickyContact from './StickyContact';
 import SalePageV4 from './SalePageV4';
 import useRevealOnScroll from './useRevealOnScroll';
 import { safeJsonLd } from '../../lib/seo';
@@ -49,11 +50,6 @@ const Youtube = ({ size = 26 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.42a2.78 2.78 0 0 0-1.94 2C1 8.13 1 12 1 12s0 3.87.54 5.58a2.78 2.78 0 0 0 1.94 2C5.12 20 12 20 12 20s6.88 0 8.6-.42a2.78 2.78 0 0 0 1.94-2C23 15.87 23 12 23 12s0-3.87-.54-5.58z" /><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" /></svg>
 );
 
-/**
- * ระยะเลื่อนของจังหวะในฉากเปิด ต้องตรงกับ STATIONS ใน CinemaHero
- * ถ้าไม่ตรง หน้าจะเลื่อนถึงแล้วยังขยับต่ออีกนิดเพราะโดนดูดเข้าสถานี
- */
-const STATION_AT = Object.fromEntries(CINEMA_STATIONS.map(({ key, at }) => [key, at]));
 // Open the cinematic home on every screen; keep the static accessibility fallback.
 const SIMPLE_HOME_QUERY = '(prefers-reduced-motion: reduce)';
 const subscribeHomeLayout = callback => {
@@ -112,7 +108,6 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
   const prefersSimpleHome = useSyncExternalStore(subscribeHomeLayout, getHomeLayout, getServerHomeLayout);
   const [watchStory, setWatchStory] = useState(false);
   const simpleHome = prefersSimpleHome && !watchStory;
-  const [locationVisit, setLocationVisit] = useState(0);
   const navigationRequest = useRef(0);
   // The initial route renders the hero; do not paint a light navbar before effects run.
   const [navOverHero, setNavOverHero] = useState(true);
@@ -177,7 +172,10 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
     if (userRole) setShowAdminPanel(true); else setShowLoginModal(true);
   }, [adminEntryPending, authReady, userRole, setShowAdminPanel, setShowLoginModal]);
 
-  const isHomeScene = activeTab === 'home' || activeTab === 'location';
+  // ?tab=location is a plain server-rendered list now (ad landing), not a station in the cinema scene.
+  const isHomeScene = activeTab === 'home';
+  // House pages have their own contact buttons and the cinema home is full-screen, so neither gets the bar.
+  const showStickyContact = !isHomeScene && !selectedProperty && !requestedPropSlug && Boolean(companyInfo?.phone);
   const isCinemaView = isHomeScene && !selectedProperty && !requestedPropSlug && !simpleHome;
   const isWaiting = loading || Boolean(requestedPropSlug);
   const locationLanding = activeTab === 'search_result' ? seoLocationFromSearch(searchParams) : undefined;
@@ -207,31 +205,6 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
 
   const navTransparent = isCinemaView && navOverHero;
 
-  useEffect(() => {
-    if (!isRouteReady || activeTab !== 'location' || selectedProperty || requestedPropSlug || isVisualEditMode) return;
-    let frame, attempts = 0;
-    const jump = () => {
-      if (simpleHome) {
-        if (scrollToHomeLocations()) return;
-      } else {
-        const stage = document.querySelector('.cinema-scroll');
-        if (stage) {
-          window.scrollTo({ top: stage.offsetTop + STATION_AT.locations, left: 0, behavior: 'instant' });
-          return;
-        }
-      }
-      if (++attempts < 40) frame = requestAnimationFrame(jump);
-    };
-    // Wait for the scene and its scroll controller after a direct URL, reload or Back.
-    frame = requestAnimationFrame(() => { frame = requestAnimationFrame(jump); });
-    return () => cancelAnimationFrame(frame);
-  }, [isRouteReady, activeTab, selectedProperty, requestedPropSlug, simpleHome, locationVisit, isVisualEditMode]);
-
-  /**
-   * กด "ทำเล" บนเมนู = พาไปที่จังหวะการ์ดทำเลในฉากเปิด ไม่ใช่หน้าแยกอีกต่อไป
-   * ต้องรอให้ฉากถูก render ก่อนถึงจะวัด offsetTop ได้ จึงเช็คซ้ำเป็นจังหวะ
-   * (ฉากยาวหลายพันพิกเซล การ์ดทำเลอยู่ช่วง 1480-2520 เลือก 2000 ซึ่งเป็นจุดที่โผล่เต็ม)
-   */
   /**
    * กลับไปบนสุด (ฉากประตูหน้าบ้าน)
    *
@@ -284,7 +257,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
     setSelectedProperty(null);
     setRequestedPropSlug(null);
     setActiveTab('location');
-    setLocationVisit(visit => visit + 1);
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [isVisualEditMode, setSelectedProperty, setRequestedPropSlug, setActiveTab]);
 
   /**
@@ -355,7 +328,9 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
               {prefersSimpleHome && isCinemaView
                 ? <><ChevronLeft size={20} aria-hidden="true" /> กลับหน้าเลือกบ้าน</>
                 : companyInfo?.logoUrl
-                ? <SmartImage src={getOptimizedImg(companyInfo.logoUrl, 220)} alt={companyInfo?.name || 'STARTUP UP'} width={220} height={156} priority />
+                ? <SmartImage src={getOptimizedImg(companyInfo.logoUrl, 120)}
+                    srcSet={[60, 120, 180].map((width, i) => `${getOptimizedImg(companyInfo.logoUrl, width)} ${i + 1}x`).join(', ')}
+                    alt={companyInfo?.name || 'STARTUP UP'} width={220} height={156} />
                 : <span>{companyInfo?.name || 'STARTUP UP'}</span>}
             </button>
 
@@ -533,6 +508,10 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
               {!isHomeScene && isWaiting && <Waiting />}
 
 
+              {activeTab === 'location' && !isWaiting && (
+                <LocationListing properties={publicProperties} listing={listing} onSelectProp={handleSelectProperty} isEditMode={isVisualEditMode} />
+              )}
+
               {activeTab === 'all' && !isWaiting && (
                 <PropertiesList
                   listing={listing} onListingChange={updateListing} activeTab="all" basePath={basePath}
@@ -548,6 +527,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
               {activeTab === 'promo' && !isWaiting && (
                 <PropertiesList
                   listing={listing} onListingChange={updateListing} activeTab="promo" basePath={basePath}
+                  pageHeading={label('navPromo', 'บ้านโปรโมชั่น')}
                   properties={publicProperties}
                   searchParams={{ type: 'promo' }}
                   onSelectProp={handleSelectProperty}
@@ -588,7 +568,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
 
               {activeTab === 'portfolio' && !isWaiting && (
                 <PortfolioSection
-                  soldHomes={<SoldHomes properties={publicProperties} listing={listing} />}
+                  soldHomes={<SoldHomes properties={publicProperties} listing={listing} eagerCount={companyInfo?.portfolio_years?.length ? 0 : 3} />}
                   listing={listing} onListingChange={updateListing} basePath={basePath}
                   companyInfo={companyInfo}
                   properties={publicProperties}
@@ -634,6 +614,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
             © {new Date().getFullYear()} {companyInfo?.name || 'Startup Up Real Estate'}. All Rights Reserved.
           </div>
         </footer>
+        {showStickyContact && <><div className="md:hidden h-[76px]" aria-hidden="true" /><StickyContact phone={companyInfo.phone} isEditMode={isVisualEditMode} /></>}
 
         {/* ---------- แถบโหมดแก้ไขหน้าเว็บ ---------- */}
         {isVisualEditMode && (

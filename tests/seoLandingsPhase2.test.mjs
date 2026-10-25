@@ -104,3 +104,19 @@ test('new slugs including decimal budget resolve as SSR collections, with crawla
     assert.equal((await loadSitePage(context(area,{page:'3'}),dependencies)).notFound,true);
   }
 });
+
+test('every location and landing has its own 150–300 word guide and links only to published articles', async () => {
+  const { ARTICLE_CATALOGUE } = await import('../lib/articleCatalogue.js');
+  const segmenter=new Intl.Segmenter('th',{granularity:'word'});
+  const seen=new Set();
+  for (const page of [...SEO_LOCATIONS,...SEO_LANDINGS]) {
+    const words=[...segmenter.segment(page.sections.flat().join(' '))].filter(item=>item.isWordLike).length;
+    assert.ok(words>=150 && words<=300,`${page.slug}: ${words} words`);
+    for (const [heading,text] of page.sections) {
+      assert.ok(!seen.has(heading) && !seen.has(text),`${page.slug}: repeated copy`); seen.add(heading); seen.add(text);
+    }
+    assert.ok((page.articles||[]).length<=3,page.slug);
+    for (const slug of page.articles||[]) assert.ok(ARTICLE_CATALOGUE.some(article=>article.slug===slug),`${page.slug}: ${slug}`);
+  }
+  assert.deepEqual(findSeoLocation('บ้านมือสอง-คลองหลวง').articles,['พฤกษา-คลองหลวง','บ้านใกล้นวนคร','บ้านใกล้ธรรมศาสตร์']);
+});

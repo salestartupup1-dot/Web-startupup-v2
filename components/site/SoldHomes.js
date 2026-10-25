@@ -6,7 +6,8 @@ import { SmartImage, getOptimizedImg } from './SiteApp';
 import ListingPagination from './ListingPagination';
 import styles from './SoldHomes.module.css';
 
-export default function SoldHomes({ properties = [], listing }) {
+// Album covers sit above this grid when they exist, so the caller decides how many cards load eagerly.
+export default function SoldHomes({ properties = [], listing, eagerCount = 3 }) {
   const sold = selectListingProperties(properties, { type: 'sold' }, listing);
   const page = listing?.page || 1;
   const shown = listingPage(sold, page);
@@ -41,7 +42,7 @@ export default function SoldHomes({ properties = [], listing }) {
               {picture ? <SmartImage src={getOptimizedImg(picture, 720)}
                 alt={`ภาพบ้านที่ขายแล้ว ${heading}${property.house_number ? ` บ้านเลขที่ ${property.house_number}` : ''}`}
                 width={720} height={540} sizes="(max-width: 600px) 100vw, (max-width: 960px) 50vw, 33vw"
-                loading={index < 3 ? 'eager' : 'lazy'} decoding="async" />
+                loading={index < eagerCount ? 'eager' : 'lazy'} decoding="async" />
                 : <div className={styles.noImage}>ยังไม่มีรูปบ้านในรายการนี้</div>}
               <figcaption>ภาพบ้านที่ขายแล้ว</figcaption>
             </figure>

@@ -51,11 +51,9 @@ export default function Document(props) {
     <Html lang="th">
       <Head>
         <script id="home-reload-start" dangerouslySetInnerHTML={{ __html: HOME_RELOAD_START }} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link rel="preconnect" href="https://firestore.googleapis.com" crossOrigin="" />
         <link rel="preconnect" href="https://res.cloudinary.com" />
-        <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@200;300;400;500;600;700&display=swap" rel="stylesheet" />
+        {/* Prompt is self-hosted (styles/fonts.css); the old Google Fonts stylesheet blocked first paint. */}
 
         {/*
           ประกาศไอคอนไว้ที่นี่ให้ครบทุกหน้า ไม่ใช่เฉพาะหน้าแรก

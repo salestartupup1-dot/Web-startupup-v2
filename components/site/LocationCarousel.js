@@ -208,7 +208,7 @@ export default function LocationCarousel({
                 src={imageUrl ? imageUrl(loc) : undefined}
                 alt={`บรรยากาศทำเล${loc.area}`}
                 draggable="false"
-                loading={Math.abs(off) <= 1 ? 'eager' : 'lazy'}
+                loading="lazy"
                 decoding="async"
                 onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
               />

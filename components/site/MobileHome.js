@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { HOME_H1 } from '../../lib/seo';
+import { HOME_H1, HOME_TAGLINE } from '../../lib/seo';
 import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowRight, Bed, Bath, Home, MapPin, Play, Search } from 'lucide-react';
 import {
@@ -52,6 +52,7 @@ export default function MobileHome({
         </div>
         <div className={styles.heroContent}>
           <h1 id="mobile-home-title">{HOME_H1}</h1>
+          <p className={styles.tagline}>{HOME_TAGLINE}</p>
           <p className={styles.lead}>เลือกบ้านและทำเลที่คุณสนใจ<br />ให้เราช่วยดูแลตั้งแต่เริ่มต้น</p>
           <div className={styles.actions}>
             <Link prefetch={false} className={styles.primary} href="/?tab=all" onClick={event => follow(event, onShowAll)}>
@@ -78,7 +79,7 @@ export default function MobileHome({
             return (
               <a key={location.area} className={styles.location} href={searchResultHref('main_location', location.area)}
                 onClick={event => follow(event, () => onFilter('main_location', location.area))}>
-                <SmartImage src={LOCATION_IMAGES[location.area] || location.img} alt={`บรรยากาศทำเล${location.area}`} width={400} height={250} sizes="(max-width: 700px) 50vw, 25vw" loading="lazy" />
+                <SmartImage src={LOCATION_IMAGES[location.area] || getOptimizedImg(location.img, 520)} alt={`บรรยากาศทำเล${location.area}`} width={400} height={250} sizes="(max-width: 700px) 50vw, 25vw" loading="lazy" />
                 <div><h3>{location.area}</h3><span>{loading ? 'กำลังโหลดบ้าน…' : `${count} หลัง`}</span><ArrowRight size={18} aria-hidden="true" /></div>
               </a>
             );

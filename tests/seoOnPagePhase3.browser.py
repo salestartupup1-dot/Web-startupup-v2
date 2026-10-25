@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright,expect
 BASE=os.environ.get('SITE_TEST_BASE_URL','http://localhost:3031')
 LEGACY='/'+urllib.parse.quote('บ้านที่ขายแล้ว')
 SOLD='/?tab=portfolio'
-HOME_H1='จุดเริ่มต้นของคนอยากมีบ้าน'
+HOME_H1='บ้านมือสองรีโนเวท รังสิต ปทุมธานี'
 def fetch(path):
     with urllib.request.urlopen(BASE+path,timeout=60) as response:return response.read().decode('utf-8')
 def canonical(body):return html.unescape(re.search(r'<link[^>]*rel="canonical"[^>]*href="([^"]+)"',body).group(1))

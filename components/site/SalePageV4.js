@@ -100,6 +100,10 @@ function SunDial({ deg }) {
   );
 }
 
+const HERO_WIDTHS = [480, 768, 1024, 1400];
+const HERO_SIZES = '(max-width: 767px) 100vw, (max-width: 1200px) 90vw, 1100px';
+const heroSrcSet = src => HERO_WIDTHS.map(width => `${getOptimizedImg(src, width)} ${width}w`).join(', ');
+
 function SaleHeroImage({ src, alt, onClick }) {
   const optimized = getOptimizedImg(src, 1400);
   const [useOriginal, setUseOriginal] = useState(false);
@@ -108,8 +112,8 @@ function SaleHeroImage({ src, alt, onClick }) {
   const imageRef = useRef(null);
   const resolvedSrc = useOriginal ? src : optimized;
   const responsive = !useOriginal && optimized !== src
-    ? [480, 768, 1024, 1400].map(width => `${getOptimizedImg(src, width)} ${width}w`).join(', ') : undefined;
-  const imageSizes = '(max-width: 767px) 100vw, (max-width: 1200px) 90vw, 1100px';
+    ? heroSrcSet(src) : undefined;
+  const imageSizes = HERO_SIZES;
   const failed = useCallback(() => {
     if (!useOriginal && src && optimized !== src) setUseOriginal(true);
     else setStatus('error');
@@ -225,7 +229,7 @@ export default function SalePageV4({
   const goTo = useCallback((next, dir) => {
     const n = (next + images.length) % images.length;
     if (n === at || wipe) return;
-    preloadImage(images[n], 1400);
+    preloadImage(images[n], window.matchMedia('(max-width: 767px)').matches ? 768 : 1400);
     setWipe({ src: images[n], dir });
     clearTimeout(wipeTimer.current);
     wipeTimer.current = setTimeout(() => { setAt(n); setWipe(null); }, 620);
@@ -412,7 +416,8 @@ export default function SalePageV4({
 
           {wipe && (
             <div className={`sp4-layer${wipe.dir < 0 ? ' is-back' : ''}`} aria-hidden="true">
-              <img src={getOptimizedImg(wipe.src, 1400)} alt="" />
+              {/* Same candidates as the hero, so the photo is fetched once when the hero remounts. */}
+              <img src={getOptimizedImg(wipe.src, 1400)} srcSet={heroSrcSet(wipe.src)} sizes={HERO_SIZES} alt="" />
             </div>
           )}
 

@@ -37,6 +37,7 @@ import { subscribeSiteSession } from '../../lib/siteSession';
 import { subscribePublicData } from '../../lib/publicDataSubscription';
 import { loadPublicCatalogue } from '../../lib/publicCatalogueClient';
 import { readListingQuery, emptyListing, appendListingQuery, isListingTab } from '../../lib/listingPagination';
+import { keepForeignParams } from '../../lib/urlParams';
 
 import {
   db, auth, appId, HOST_EMAIL, setDoc,
@@ -185,13 +186,8 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
     }
 
     if (!selectedProperty && isListingTab(activeTab)) appendListingQuery(params, listing);
-    try {
-      const currentParams = new URLSearchParams(window.location.search);
-      currentParams.forEach((value, key) => {
-        const shouldPreserve = key === '_gl' || key === 'tagassistant' || key.startsWith('gtm_');
-        if (shouldPreserve && !params.has(key)) params.append(key, value);
-      });
-    } catch (e) { /* ไม่มี window ก็ข้ามไป */ }
+    // Keep gclid, gbraid, utm_*, fbclid… — everything the site does not own.
+    try { keepForeignParams(params, window.location.search); } catch (e) { /* ไม่มี window ก็ข้ามไป */ }
 
     if (showAdminPanel) params.set('admin', '1');
 
