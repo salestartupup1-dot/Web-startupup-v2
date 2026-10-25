@@ -1,4 +1,8 @@
 import { Html, Head, Main, NextScript } from 'next/document'
+import { promotionImage } from '../lib/promotionImage'
+import PromotionDocument from '../components/site/PromotionDocument'
+import { PROMOTION_BOOTSTRAP } from '../lib/promotionBootstrap'
+import { MARKETING_BOOTSTRAP } from '../lib/marketingBootstrap'
 
 const GOOGLE_TAG_MANAGER_ID = 'GTM-N27PQGL2'
 
@@ -47,12 +51,18 @@ const HOME_RELOAD_START = `(() => {
 
 export default function Document(props) {
   const privateRoute = /^\/(admin|line)(\/|$)/.test(props.__NEXT_DATA__?.page || '')
+  const initial = props.__NEXT_DATA__?.props?.pageProps?.initialData;
+  const popup = initial?.activeTab === 'home' && !initial.selectedProperty && initial.popup?.isActive
+    && initial.popup.imageUrl ? promotionImage(initial.popup.imageUrl) : null;
   return (
     <Html lang="th">
       <Head>
+        {!privateRoute && <script id="marketing-bootstrap" dangerouslySetInnerHTML={{ __html: MARKETING_BOOTSTRAP }} />}
         <script id="home-reload-start" dangerouslySetInnerHTML={{ __html: HOME_RELOAD_START }} />
         <link rel="preconnect" href="https://firestore.googleapis.com" crossOrigin="" />
         <link rel="preconnect" href="https://res.cloudinary.com" />
+        {popup && <link rel="preload" as="image" href={popup.src} imageSrcSet={popup.srcSet} imageSizes={popup.sizes} fetchPriority="high" />}
+        <link rel="preload" as="font" href="/fonts/prompt/prompt-400-thai.woff2" type="font/woff2" crossOrigin="anonymous" />
         {/* Prompt is self-hosted (styles/fonts.css); the old Google Fonts stylesheet blocked first paint. */}
 
         {/*
@@ -74,6 +84,10 @@ export default function Document(props) {
           />
         </noscript>}
         <Main />
+        {!privateRoute && <>
+          <PromotionDocument imageUrl={popup ? initial.popup.imageUrl : null} />
+          <script id="promotion-bootstrap" dangerouslySetInnerHTML={{ __html: PROMOTION_BOOTSTRAP }} />
+        </>}
         <NextScript />
       </body>
     </Html>

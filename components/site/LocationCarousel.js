@@ -73,7 +73,7 @@ export default function LocationCarousel({
 
   const go = useCallback((dir) => { goTo(active + dir); }, [active, goTo]);
   const goRef = useRef(go);
-  goRef.current = go;
+  useEffect(() => { goRef.current = go; }, [go]);
 
   /* --- ตัวตั้งเวลาเดียวของทั้งคอมโพเนนต์ --- */
   const schedule = useCallback(() => {
@@ -207,6 +207,8 @@ export default function LocationCarousel({
               <img
                 src={imageUrl ? imageUrl(loc) : undefined}
                 alt={`บรรยากาศทำเล${loc.area}`}
+                width={768}
+                height={1024}
                 draggable="false"
                 loading="lazy"
                 decoding="async"

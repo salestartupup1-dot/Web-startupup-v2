@@ -17,15 +17,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } fr
  * ฝั่ง server ไม่มี layout effect เลยถอยไปใช้ useEffect ตามปกติ
  */
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
-import {
-  onAuthStateChanged, signOut,
-  GoogleAuthProvider, signInWithPopup, browserPopupRedirectResolver,
-} from 'firebase/auth';
-import {
-  collection, doc, onSnapshot, query,
-  getDoc, serverTimestamp,
-} from 'firebase/firestore';
-
+import { observePublicDocument } from '../../lib/publicDocumentObserver';
 import { propertyPath, propertyIdFromPath, canonicalPropertyPath } from '../../lib/propertyRoutes';
 import { buildPageSeo, buildStructuredData } from '../../lib/seo';
 import { seoLocationFromPath, seoLocationFromSearch, locationPath } from '../../lib/seoLocations';
@@ -40,7 +32,6 @@ import { readListingQuery, emptyListing, appendListingQuery, isListingTab } from
 import { keepForeignParams } from '../../lib/urlParams';
 
 import {
-  db, auth, appId, HOST_EMAIL, setDoc,
   DEFAULT_COMPANY_INFO, DEFAULT_LOCATIONS_DATA, DEFAULT_VISUAL_CONTENT,
   uploadFileToCloudinary, validateImage, generatePropSlug,
 } from './SiteApp';
@@ -51,6 +42,9 @@ import {
  * จะเขียน URL กลับไปเป็น '/' แล้วพอรีเฟรชจะเด้งไปหน้าเดิม
  */
 export default function useSiteData({ basePath = '/', initialData } = {}) {
+  const [management, setManagement] = useState(null);
+  const [managementRequested, setManagementRequested] = useState(false);
+  const adminEntryRequested = useRef(typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('admin'));
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [userRole, setUserRole] = useState(null);
@@ -83,7 +77,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
   const [isSavingVisual, setIsSavingVisual] = useState(false);
 
   const seedAvailable = useRef(Boolean(initialData));
-  const popupData = usePublicPopup(db, appId);
+  const popupData = usePublicPopup(initialData?.popup);
   const [showPopupModal, setShowPopupModal] = useState(false);
   const [isSnoozeChecked, setIsSnoozeChecked] = useState(false);
   const hasCheckedPopup = useRef('');
@@ -159,7 +153,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
   }, []);
 
   usePropertyLink({
-    db, appId, loading, requestedPropSlug, properties, selectedProperty,
+    loading, requestedPropSlug, properties, selectedProperty,
     setRequestedPropSlug, setSelectedProperty, setActiveTab, setGlobalAlert,
   });
 
@@ -258,6 +252,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
     showGlobalConfirm('ยืนยันการบันทึก', 'คุณต้องการบันทึกการแก้ไขหน้าตาเว็บไซต์ใช่หรือไม่?', async () => {
       setIsSavingVisual(true);
       try {
+        const { setDoc, doc, db, appId } = await import('../../lib/firebaseClient');
         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'visual'), visualContent, { merge: true });
         setIsVisualEditMode(false);
         setPastVisual([]); setFutureVisual([]);
@@ -314,24 +309,34 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
   }, [userRole, visualContent, updateVisualContent]);
 
   /* ---------- ล็อกอิน / สิทธิ์ ---------- */
-  useEffect(() => subscribeSiteSession({
-    auth, hostEmail: HOST_EMAIL,
-    observeAuth: onAuthStateChanged,
-    // Public data is readable without auth (Firestore rules), so visitors stay signed out:
-    // no anonymous account and no identitytoolkit request on every page view.
-    signInGuest: () => {},
-    observeRole: (email, onRole, onError) => onSnapshot(
-      doc(db, 'artifacts', appId, 'public', 'data', 'users', email),
-      snapshot => onRole(snapshot.exists() ? snapshot.data().role : null),
-      onError,
-    ),
-    onSession: (session) => {
-      setUser(session.user);
-      setUserRole(session.userRole);
-      setUserEmail(session.userEmail);
-      setAuthReady(session.authReady);
-    },
-  }), []);
+  useEffect(() => {
+    if (showLoginModal || showAdminPanel || adminEntryRequested.current) setManagementRequested(true);
+  }, [showLoginModal, showAdminPanel]);
+  useEffect(() => {
+    if (!managementRequested) return;
+    let cancelled = false, stop;
+    import('../../lib/firebaseClient').then(runtime => {
+      if (cancelled) return;
+      setManagement(runtime);
+      const { auth, HOST_EMAIL, onAuthStateChanged, onSnapshot, doc, db, appId } = runtime;
+      stop = subscribeSiteSession({ auth, hostEmail: HOST_EMAIL, observeAuth: onAuthStateChanged,
+        signInGuest: () => {},
+        observeRole: (email, onRole, onError) => onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'users', email),
+          snapshot => onRole(snapshot.exists() ? snapshot.data().role : null), onError),
+        onSession: session => {
+          setUser(session.user); setUserRole(session.userRole);
+          setUserEmail(session.userEmail); setAuthReady(session.authReady);
+        },
+      });
+    }).catch(() => { if (!cancelled) setAuthReady(true); });
+    return () => { cancelled = true; stop?.(); };
+  }, [managementRequested]);
+
+  useEffect(() => {
+    if (showLoginModal && authReady && (userRole === 'host' || userRole === 'admin')) {
+      setShowLoginModal(false); setShowAdminPanel(true);
+    }
+  }, [showLoginModal, authReady, userRole]);
 
   useEffect(() => {
     if (!loading) return;
@@ -348,9 +353,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
   const includeCatalogue = (!selectedProperty && !requestedPropSlug) || (!requestedPropSlug && Boolean(selectedProperty?.id) && relatedForId === selectedProperty.id);
   useEffect(() => {
     if (!isRouteReady) return;
-    const qProps = query(collection(db, 'artifacts', appId, 'public', 'data', 'properties'));
-    const companyRef = doc(db, 'artifacts', appId, 'public', 'data', 'company_info', 'main');
-    const visualRef = doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'visual');
+
 
     const sortProperties = (items = []) => {
       const props = [...items];
@@ -422,9 +425,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
       const load = () => loadPublicCatalogue({ includeProperties: includeCatalogue });
       return subscribePublicData({
         initialVersion: seed?.version,
-        observe: (options, onValue, onError) => onSnapshot(
-          doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'public_version'),
-          options, onValue, onError),
+        observe: (_options, onValue, onError) => observePublicDocument('site_settings/public_version', onValue, onError, { initial: !seed?.version }),
         load,
         onData: data => { setPublicDataError(false); applyPublicData(data); },
         onError: error => {
@@ -436,6 +437,11 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
       });
     }
 
+    if (!management) return;
+    const { collection, query, doc, onSnapshot, db, appId } = management;
+    const qProps = query(collection(db, 'artifacts', appId, 'public', 'data', 'properties'));
+    const companyRef = doc(db, 'artifacts', appId, 'public', 'data', 'company_info', 'main');
+    const visualRef = doc(db, 'artifacts', appId, 'public', 'data', 'site_settings', 'visual');
     const unsubProps = onSnapshot(qProps, applyPropertiesSnapshot, (error) => {
       console.warn(error);
       setLoading(false);
@@ -450,16 +456,18 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
     }, (error) => console.warn(error));
 
     return () => { unsubProps(); unsubCompany(); unsubVisual(); unsubUsers(); };
-  }, [canManageSite, includeCatalogue, isRouteReady, activeTab === 'portfolio']);
+  }, [management, canManageSite, includeCatalogue, isRouteReady, activeTab === 'portfolio']);
 
   /* ---------- การกระทำต่าง ๆ ---------- */
   const handleLogout = useCallback(async () => {
+    const { signOut, auth } = await import('../../lib/firebaseClient');
     await signOut(auth);
     setUserRole(null); setUserEmail(''); setIsVisualEditMode(false);
     setShowAdminPanel(false); setActiveTab('home');
   }, []);
 
   const handleGoogleLogin = useCallback(async () => {
+    const { GoogleAuthProvider, signInWithPopup, browserPopupRedirectResolver, auth, HOST_EMAIL, setDoc, doc, db, appId, serverTimestamp, getDoc, signOut } = await import('../../lib/firebaseClient');
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
@@ -568,7 +576,7 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
 
   return {
     // ข้อมูล
-    user, userRole, userEmail, authReady, properties, publicProperties, companyInfo,
+    db: management?.db, appId: management?.appId, user, userRole, userEmail, authReady, properties, publicProperties, companyInfo,
     authorizedUsers, loading, publicDataError, visualContent, popupData,
     // สถานะหน้าจอ
     activeTab, setActiveTab, isRouteReady, searchParams, selectedProperty,

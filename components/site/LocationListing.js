@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-html-link-for-pages -- Category links keep the exact URLs GTM click triggers match. */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { selectListingProperties } from '../../lib/listingPagination';
 import { primaryPropertyLocation } from '../../lib/websiteInventory';
 import { searchResultHref } from './SiteApp';
@@ -8,6 +8,9 @@ import HouseCard, { PAYMENT_NOTE, areaHeadline } from './HouseCard';
 const CATEGORIES = ['ทาวน์เฮาส์', 'บ้านแฝด', 'บ้านเดี่ยว'];
 const areaOf = property => primaryPropertyLocation(property)?.name || property.main_location || property.district || '';
 const priceNumber = price => Number(String(price || 0).replace(/,/g, '')) || 0;
+// Rendering all ~40 cards at once cost ~0.2 s of layout before first paint on a slow phone.
+// Show a first batch and add more as the visitor nears the end of the list.
+const BATCH = 12;
 
 /**
  * ?tab=location — หน้าที่โฆษณาพามา ต้องเห็นบ้านพร้อมราคาตั้งแต่ HTML แรก
@@ -22,7 +25,19 @@ export default function LocationListing({ properties = [], listing, onSelectProp
     return [...counts].sort((a, b) => b[1] - a[1]);
   }, [homes]);
   const [area, setArea] = useState('');
+  const [visible, setVisible] = useState(BATCH);
   const shown = area ? homes.filter(home => areaOf(home) === area) : homes;
+  const hasMore = shown.length > visible;
+  const sentinel = useRef(null);
+  useEffect(() => {
+    const element = sentinel.current;
+    if (!hasMore || !element || typeof IntersectionObserver !== 'function') return undefined;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setVisible(count => count + BATCH);
+    }, { rootMargin: '600px 0px' });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [hasMore, visible]);
   const prices = homes.map(home => priceNumber(home.price)).filter(price => price > 0);
 
   return (
@@ -32,7 +47,7 @@ export default function LocationListing({ properties = [], listing, onSelectProp
 
       <nav id="home-locations" aria-label="เลือกทำเล" className="mt-4 -mx-4 px-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
         {[['', homes.length], ...areas].map(([name, count]) => (
-          <button key={name || 'all'} type="button" aria-pressed={area === name} onClick={() => setArea(name)}
+          <button key={name || 'all'} type="button" aria-pressed={area === name} onClick={() => { setArea(name); setVisible(BATCH); }}
             className={`shrink-0 rounded-full border px-4 min-h-[40px] text-sm transition ${area === name ? 'bg-brand-green text-white border-brand-green' : 'bg-white text-gray-700 border-gray-200 hover:border-brand-green'}`}>
             {name || 'ทุกทำเล'} <span className={area === name ? 'text-white/75' : 'text-gray-400'}>{count}</span>
           </button>
@@ -45,8 +60,14 @@ export default function LocationListing({ properties = [], listing, onSelectProp
       </div>
 
       <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6 justify-items-center sm:justify-items-stretch">
-        {shown.map((home, index) => <HouseCard key={home.id} property={home} index={index} heading="h2" onSelect={onSelectProp} isEditMode={isEditMode} />)}
+        {shown.slice(0, visible).map((home, index) => <HouseCard key={home.id} property={home} index={index} heading="h2" onSelect={onSelectProp} isEditMode={isEditMode} />)}
       </div>
+      {hasMore && <div ref={sentinel} className="mt-6 flex justify-center">
+        <button type="button" onClick={() => setVisible(count => count + BATCH)}
+          className="rounded-full border border-brand-green text-brand-green px-6 min-h-[44px] text-sm hover:bg-brand-green hover:text-white transition">
+          ดูบ้านเพิ่ม ({shown.length - visible} หลัง)
+        </button>
+      </div>}
       {shown.length === 0 && <p className="py-16 text-center text-gray-400">ยังไม่มีบ้านพร้อมขายในทำเลนี้ กรุณาสอบถามทีมงาน</p>}
       {shown.length > 0 && <p className="mt-6 text-xs text-gray-400 text-center">{PAYMENT_NOTE}</p>}
     </div>

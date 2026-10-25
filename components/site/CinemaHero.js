@@ -21,6 +21,8 @@ import { HOME_H1, HOME_TAGLINE } from '../../lib/seo';
 import LocationCarousel from './LocationCarousel';
 import FeaturedHomes from './FeaturedHomes';
 import CinemaNavigation, { CINEMA_STATIONS as STATIONS } from './CinemaNavigation';
+import { SITE_HERO_POSTER_URL } from '../../lib/siteNavigation';
+import { homeImage } from '../../lib/homeImage';
 import {
   EditableText, getOptimizedImg, PropertyMap, DEFAULT_VISUAL_CONTENT,
   normalizeLocations, visibleLocations, matchesMainArea, searchResultHref,
@@ -56,9 +58,9 @@ const VIDEO_END_AT = 6400;
 const CDN = 'https://res.cloudinary.com/dm2wr55r5';
 const MEDIA = {
   scrub:   `${CDN}/video/upload/v1788335283/house/house-scrub-v3.mp4`,      // 1920x904  13.4MB  จอคอม
-  scrubSm: `${CDN}/video/upload/v1788335275/house/house-scrub-sm-v3.mp4`,   // 1530x720   6.3MB  มือถือ/แท็บเล็ต
+  scrubSm: '/home-media/v1/house-scrub-mobile.mp4', // 1080px, same 24fps / 12-frame seek points
   // ภาพนิ่งแปลงได้ (กฎห้ามแปลงใช้กับวิดีโอเท่านั้น) — คงความกว้างเต็มเพราะ cover บนจอแนวตั้งต้องใช้ทั้งภาพ
-  poster:  `${CDN}/image/upload/f_auto,q_auto/v1788335287/house/house-scrub-poster-v3.jpg`,
+  poster:  SITE_HERO_POSTER_URL,
 };
 
 /** ความยาวไฟล์ scrub ตามที่ ffprobe รายงาน — ต้องตรงเป๊ะ ไม่ใช่ความยาวไฟล์ต้นฉบับ */
@@ -395,6 +397,37 @@ export default function CinemaHero({
   const editModeRef = useRef(isEditMode);
   useEffect(() => { editModeRef.current = isEditMode; }, [isEditMode]);
   const progressRef = useRef(null);
+
+  const [media, setMedia] = useState({ video: false, locations: false, featured: false, map: false });
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const prepare = () => {
+      const distance = Math.max(0, -section.getBoundingClientRect().top);
+      setMedia(previous => {
+        const next = {
+          video: previous.video || distance > 0,
+          locations: previous.locations || distance >= 850,
+          featured: previous.featured || distance >= 2700,
+          map: previous.map || distance >= 5100,
+        };
+        return Object.keys(next).every(key => next[key] === previous[key]) ? previous : next;
+      });
+    };
+    const startVideo = event => {
+      if (!section.contains(event.target) || event.target.closest('button,a,input,select,textarea')) return;
+      setMedia(previous => previous.video ? previous : { ...previous, video: true });
+    };
+    prepare();
+    window.addEventListener('scroll', prepare, { passive: true });
+    section.addEventListener('wheel', startVideo, { passive: true });
+    section.addEventListener('touchstart', startVideo, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', prepare);
+      section.removeEventListener('wheel', startVideo);
+      section.removeEventListener('touchstart', startVideo);
+    };
+  }, []);
 
   /* บ้านที่ยังขายอยู่ สำหรับปักหมุดบนแผนที่ตอนจบเรื่อง (ชุดเดียวกับที่หน้าเว็บหลักใช้) */
   const mapProps = useMemo(
@@ -897,7 +930,7 @@ export default function CinemaHero({
       }
     };
     // ต้องผูกใหม่เมื่อโหมดพลิก ไม่งั้น ref ที่จับไว้จะเป็นของ element เก่าที่ถูกถอดไปแล้ว
-  }, [mode, coarse, scrubSrc]);
+  }, [mode, coarse, scrubSrc, media.video]);
 
   return (
     <>
@@ -911,14 +944,19 @@ export default function CinemaHero({
             <div className="scene cine-layer" ref={videoLayerRef} style={{ '--op': 1 }}>
               {/* ภาพนิ่งรองอยู่ใต้ตลอด : ยังโหลดไม่เสร็จ ซีคไปช่วงที่ยังไม่บัฟเฟอร์ หรือโหลดไม่ขึ้น ก็ไม่มีทางเห็นจอดำ */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
+              <picture>
+              <source srcSet={MEDIA.poster} type="image/avif" />
               <img
                 className={`scene-main cine-poster${videoReady && !videoFailed ? ' is-hidden' : ''}`}
-                src={MEDIA.poster}
+                src="/home-media/v2/hero-poster.webp"
+                width={1920}
+                height={904}
                 fetchPriority="high"
                 alt="บรรยากาศบ้านและสวน STARTUP UP"
               />
+              </picture>
 
-              {mode !== 'poster' && !videoFailed && (
+              {media.video && mode !== 'poster' && !videoFailed && (
                 <video
                   ref={videoRef}
                   className={`scene-main cine-video${videoReady ? ' is-ready' : ''}`}
@@ -930,7 +968,8 @@ export default function CinemaHero({
                   /* พอวิดีโอพร้อมแล้วต้องถอด poster ทิ้ง ไม่งั้นบางเบราว์เซอร์บนมือถือ
                      จะวาดภาพ poster (เฟรมแรก = ประตูปิด) แทรกขึ้นมาระหว่างที่กำลังซีค
                      เห็นเป็นภาพกระพริบกลับไปต้นเรื่องเป็นระยะ เหมือนหน้าเว็บรีเฟรชเอง */
-                  poster={videoReady ? undefined : MEDIA.poster}
+                  /* The image beneath this video is the poster. Avoid fetching
+                     the same artwork again through a CORS video request. */
                   preload="auto"
                   /* defaultMuted ใส่ "แอตทริบิวต์" muted ลง HTML จริง
                      ถ้าใส่แค่ muted อย่างเดียว React จะตั้งเป็น property เท่านั้น
@@ -1030,7 +1069,7 @@ export default function CinemaHero({
               <CineText tag="h2" field="cineRoom1Title" copy={copy} onChange={updateVisualContent} isEditMode={isEditMode} />
               <CineText tag="p" field="cineRoom1Desc" copy={copy} onChange={updateVisualContent} isEditMode={isEditMode} />
               <div className="fh-wrap" ref={featuredRef}>
-                <FeaturedHomes
+                {media.featured && <FeaturedHomes
                   isEditMode={isEditMode}
                   hrefFor={(cat) => searchResultHref('category', cat)}
                   onSelectCategory={(e, cat) => {
@@ -1038,7 +1077,7 @@ export default function CinemaHero({
                     e.preventDefault();
                     if (onSelectCategory) onSelectCategory('category', cat);
                   }}
-                />
+                />}
               </div>
             </section>
 
@@ -1065,13 +1104,13 @@ export default function CinemaHero({
                 <CineText tag="h2" field="cineSightsTitle" copy={copy} onChange={updateVisualContent} isEditMode={isEditMode} />
                 <CineText tag="p" field="cineSightsDesc" copy={copy} onChange={updateVisualContent} isEditMode={isEditMode} />
               </div>
-              <LocationCarousel
+              {media.locations && <LocationCarousel
                 items={locationCards}
                 isEditMode={isEditMode}
                 hrefFor={(area) => searchResultHref('main_location', area)}
                 onSelect={openLocation}
-                imageUrl={(loc) => getOptimizedImg(loc?.img, 700)}
-              />
+                imageUrl={(loc) => homeImage(loc?.img).srcSet ? homeImage(loc.img).src : getOptimizedImg(loc?.img, 700)}
+              />}
             </div>
 
             {/* บอกว่าเลื่อนมาถึงไหนแล้วของฉาก */}
@@ -1088,7 +1127,7 @@ export default function CinemaHero({
             ถ้าเอาแผนที่ไปอยู่ข้างใน Leaflet จะคำนวณตำแหน่งคลิกเพี้ยน
           */}
           <div className="cine-map" ref={mapWrapRef} aria-label="แผนที่ทำเลที่มีบ้าน">
-            <PropertyMap properties={mapProps} onSelectProp={onSelectProp} variant="story" />
+            {media.map && <PropertyMap properties={mapProps} onSelectProp={onSelectProp} variant="story" />}
           </div>
         </div>
         <CinemaNavigation sectionRef={sectionRef} isEditMode={isEditMode} />

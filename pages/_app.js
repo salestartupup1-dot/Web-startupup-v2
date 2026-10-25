@@ -3,14 +3,11 @@ import { useRouter } from 'next/router'
 import { captureAttribution } from '../lib/lineAttribution'
 import { gtagSendEvent, trackContactClick } from '../lib/googleAdsConversion'
 import { installPhoneClickTracking } from '../lib/phoneClicks'
-import 'leaflet/dist/leaflet.css'
+import { installMarketingScripts } from '../lib/marketingBootstrap'
 import '../styles/fonts.css'
 import '../styles/globals.css'
-import Script from 'next/script'
 import Head from 'next/head'
 
-const GOOGLE_TAG_MANAGER_ID = 'GTM-N27PQGL2'
-const TIKTOK_PIXEL_ID = 'D929G0BC77U133LMGG50'
 
 // Capture incoming campaign parameters before the site's SPA rewrites its URL.
 const phoneDiagnosticsRequested = typeof window !== 'undefined' && new URL(window.location.href).searchParams.get('phone_debug') === '1'
@@ -64,6 +61,7 @@ export default function App({ Component, pageProps }) {
   const privateRoute = /^\/(admin|line)(\/|$)/.test(router.pathname)
   useEffect(() => {
     if (privateRoute) return
+    installMarketingScripts(window, document)
     window.gtagSendEvent = gtagSendEvent
     const diagnostic = phoneDiagnosticsRequested || new URL(window.location.href).searchParams.get('phone_debug') === '1'
     if (diagnostic) setPhoneDiagnostic('ready')
@@ -79,8 +77,13 @@ export default function App({ Component, pageProps }) {
   }, [privateRoute])
   useEffect(() => {
     const capture = () => captureAttribution()
+    const startMarketing = () => window.__siteMarketing?.start()
+    router.events.on('beforeHistoryChange', startMarketing)
     router.events.on('routeChangeComplete', capture)
-    return () => router.events.off('routeChangeComplete', capture)
+    return () => {
+      router.events.off('beforeHistoryChange', startMarketing)
+      router.events.off('routeChangeComplete', capture)
+    }
   }, [router.events])
   return (
     <>
@@ -88,31 +91,6 @@ export default function App({ Component, pageProps }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" key="viewport" />
         <meta name="google-site-verification" content="yM2oXyforQdUzBPi710gJZOV8eMPIQQqlAYmuO7b73E" key="google-site-verification" />
       </Head>
-      {!privateRoute && <><Script id="google-tag-manager" strategy="afterInteractive">
-        {`
-          // Keep custom event calls queued while GTM loads the Google tag.
-          window.dataLayer = window.dataLayer || [];
-          window.gtag = window.gtag || function(){window.dataLayer.push(arguments);};
-          (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-          })(window,document,'script','dataLayer','${GOOGLE_TAG_MANAGER_ID}');
-        `}
-      </Script>
-      <Script id="tiktok-pixel" strategy="afterInteractive">
-        {`
-          !function (w, d, t) {
-            w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(
-          var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script")
-          ;n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
-
-            ttq.load('${TIKTOK_PIXEL_ID}');
-            ttq.page();
-          }(window, document, 'ttq');
-        `}
-      </Script>
-      </>}
       {phoneDiagnostic && !privateRoute && <aside role="status" aria-live="polite" style={{ position: 'fixed', bottom: 12, left: 12, right: 12, zIndex: 2147483647, margin: '0 auto', maxWidth: 420, padding: '12px 16px', borderRadius: 12, background: '#fff', color: '#123d2b', border: '2px solid #06c755', boxShadow: '0 2px 12px #0002', fontSize: 14 }}>
         <strong>ตรวจการกดโทร</strong>{' · '}
         {phoneDiagnostic === 'ready' ? 'พร้อมทดสอบ — กดเบอร์โทรของบ้าน' : phoneDiagnostic === 'sending' ? 'กำลังบันทึก…' : phoneDiagnostic === 'saved' ? 'บันทึกเข้า Lead Source แล้ว' : phoneDiagnostic === 'retry' ? 'ยังส่งไม่สำเร็จ กลับมาหน้านี้เพื่อส่งซ้ำ' : `บันทึกไม่สำเร็จ (${phoneDiagnostic.replace('error:', '')})`}

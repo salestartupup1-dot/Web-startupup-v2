@@ -7,6 +7,38 @@ const document = (fields = {}) => ({
   fields: { project_name: { stringValue: 'New house' }, ...fields },
 });
 
+test('legacy 118 reads the verified Pruksa 93 house directly after its ID became 99-118', async t => {
+  const calls = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    calls.push({ url, options });
+    assert.match(url, /\/properties\/zLgqqUs9aXDN1vzOOnsV\?/);
+    return Response.json({ ...document({ custom_id: { stringValue: '99-118' }, house_number: { stringValue: '99/118' } }),
+      name: 'projects/test/databases/(default)/documents/properties/zLgqqUs9aXDN1vzOOnsV' });
+  });
+  for (const slug of ['118', ' 118 ', '%31%31%38']) {
+    const property = await fetchPublicPropertyRest(slug);
+    assert.equal(property.id, 'zLgqqUs9aXDN1vzOOnsV');
+    assert.equal(property.house_number, '99/118');
+    assert.equal(matchesPropertySlug(property, slug), true);
+  }
+  assert.equal(calls.length, 3);
+  assert.ok(calls.every(call => call.options.cache === 'no-store' && !call.options.body));
+  assert.equal(matchesPropertySlug({ id: 'another-house', custom_id: '118', house_number: '1/118' }, '118'), false);
+  assert.equal(matchesPropertySlug({ id: 'zLgqqUs9aXDN1vzOOnsV', house_number: '99/118' }, '18'), false);
+});
+
+test('a deleted legacy 118 house cannot redirect to another house with the same short number', async t => {
+  let reads = 0;
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    reads++;
+    assert.match(url, /\/properties\/zLgqqUs9aXDN1vzOOnsV\?/);
+    assert.equal(options.body, undefined);
+    return new Response(null, { status: 404 });
+  });
+  assert.equal(await fetchPublicPropertyRest('118'), null);
+  assert.equal(reads, 1);
+});
+
 test('a newly added house can be read by document ID without the cached list', async t => {
   const calls = [];
   t.mock.method(globalThis, 'fetch', async (url, options) => {

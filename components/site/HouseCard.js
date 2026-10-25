@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { Bath, Bed, Home, MapPin, Maximize } from 'lucide-react';
 import { SmartImage, getOptimizedImg, getPropertySharePath } from './SiteApp';
 import { monthlyMortgage } from '../../lib/mortgage';
@@ -27,10 +28,32 @@ export function areaHeadline(properties = [], limit = 3) {
  * การ์ดบ้านในหน้ารายการ — ราคากับยอดผ่อนต่อเดือนต้องเห็นได้ทันทีบนมือถือ
  * กล่องยอดผ่อนใช้พื้นเขียวเข้ม + ตัวเลขสีทอง ให้เด่นกว่าทุกอย่างในการ์ด
  */
+// Native loading="lazy" starts fetching 1,250–3,000px before an image is on screen, so a phone
+// pulled ~10 card photos that competed with the first house photo for bandwidth. Cards after
+// the first row get their photo only when they come within ~400px of the viewport.
+const EAGER_CARDS = 4;
+function useNearViewport(deferred) {
+  const ref = useRef(null);
+  const [near, setNear] = useState(!deferred);
+  useEffect(() => {
+    if (near) return undefined;
+    const element = ref.current;
+    if (!element || typeof IntersectionObserver !== 'function') { setNear(true); return undefined; }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setNear(true); observer.disconnect(); }
+    }, { rootMargin: '400px 0px' });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [near]);
+  return [ref, near];
+}
+
 export default function HouseCard({ property: p, index = 0, heading: CardHeading = 'h3', onSelect, isEditMode = false }) {
   const image = p.images?.[0] || p.imageUrl;
   const price = priceNumber(p.price);
   const payment = cardPayment(price);
+  const [imageBox, showImage] = useNearViewport(index >= EAGER_CARDS);
+  const alt = `${p.category || 'บ้าน'} ${p.project_name || ''}`.trim();
   return (
     <a
       href={getPropertySharePath(p)}
@@ -42,16 +65,20 @@ export default function HouseCard({ property: p, index = 0, heading: CardHeading
       }}
       className={`listing-card group block w-full max-w-[420px] sm:max-w-none bg-white border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06)] hover:shadow-lg transition-shadow duration-300 rounded-2xl overflow-hidden flex flex-col ${isEditMode ? 'pointer-events-none cursor-default' : 'cursor-pointer'}`}
     >
-      <div className="relative aspect-[16/10] w-full overflow-hidden bg-gray-100 pointer-events-none">
-        {image && <SmartImage
+      <div ref={imageBox} className="relative aspect-[16/10] w-full overflow-hidden bg-gray-100 pointer-events-none">
+        {image && (showImage ? <SmartImage
           src={getOptimizedImg(image, 720)}
           srcSet={`${getOptimizedImg(image, 400)} 400w, ${getOptimizedImg(image, 720)} 720w`}
           sizes="(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) 45vw, 300px"
-          alt={`${p.category || 'บ้าน'} ${p.project_name || ''}`.trim()}
+          alt={alt}
           width={720} height={450}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading={index === 0 ? 'eager' : 'lazy'} priority={index === 0} decoding="async"
-        />}
+        /> : (
+          // Crawlers without JavaScript still see the photo.
+          // eslint-disable-next-line @next/next/no-img-element
+          <noscript><img src={getOptimizedImg(image, 720)} alt={alt} width={720} height={450} loading="lazy" className="w-full h-full object-cover" /></noscript>
+        ))}
         {p.category && <span className="absolute top-3 left-3 bg-white/95 text-gray-700 px-3 py-1.5 rounded-full font-medium text-xs shadow-sm flex items-center gap-1.5"><Home size={14} className="text-brand-green" />{p.category}</span>}
         {p.badge && p.badge !== 'Sold Out' && <span className={`absolute top-3 right-3 px-3 py-1.5 rounded-full font-medium text-xs shadow-sm text-white ${p.badge === 'Promotion' ? 'bg-red-600' : p.badge === 'New' ? 'bg-blue-600' : 'bg-brand-green'}`}>{p.badge}</span>}
       </div>

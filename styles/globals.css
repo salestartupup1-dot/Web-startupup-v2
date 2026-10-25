@@ -4,7 +4,8 @@
 html, body {
   font-family: 'Prompt', sans-serif;
   background-color: #ffffff;
-  overflow-x: hidden;
+  /* Clip horizontal overflow without creating a scroll container above sticky scenes. */
+  overflow-x: clip;
   width: 100%;
   position: relative;
 }

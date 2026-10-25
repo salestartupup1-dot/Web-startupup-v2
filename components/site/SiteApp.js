@@ -1,4 +1,5 @@
 import { monthlyMortgage } from '../../lib/mortgage';
+import { SITE_LOGO_URL } from '../../lib/siteNavigation';
 import ListingPagination from './ListingPagination';
 import { emptyListing, listingHref, listingPage, selectListingProperties, LISTING_PAGE_SIZE } from '../../lib/listingPagination';
 import HouseCard, { PAYMENT_NOTE, areaHeadline } from './HouseCard';
@@ -19,54 +20,15 @@ import HouseCard, { PAYMENT_NOTE, areaHeadline } from './HouseCard';
 
 import React, { useState, useEffect, useRef, useMemo, useId } from 'react';
 import { Home, MapPin, Bed, Bath, Car, Maximize, Phone, MessageCircle, X, Trash2, ShieldCheck, CheckCircle, Calculator, FileText, Edit, Image as ImageIcon, ChevronLeft, ChevronRight, ChevronDown, Upload, XCircle, Loader, Check, FolderPlus, Search, AlertTriangle, AlertCircle, Star, ClipboardCheck, Compass, SlidersHorizontal } from 'lucide-react';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { connectAuthEmulator, getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence } from 'firebase/auth';
-import { connectFirestoreEmulator, getFirestore, addDoc as sdkAddDoc, doc, updateDoc as sdkUpdateDoc, deleteDoc as sdkDeleteDoc, setDoc as sdkSetDoc, serverTimestamp, writeBatch, runTransaction } from 'firebase/firestore';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { makePropertySlug } from '../../lib/firestorePublic';
 import { copyShortShareUrl } from '../../lib/propertyShareClient';
 import { getPropertyPath } from '../../lib/seo';
 import { matchesSeoLocation, seoLocationFromSearch, locationPath } from '../../lib/seoLocations';
-import { firebaseProjectId, useFirebaseEmulator } from '../../lib/firebaseEnvironment';
-import { createPublicDataWrites } from '../../lib/publicDataWrites';
 import { groupPropertyMapZones, propertyMapZone } from '../../lib/propertyMap';
 
 
 
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDsEeGxKA90-URCn06F-K3U2dvlISf_2Jo",
-  authDomain: "startup-up-realestate.firebaseapp.com",
-  projectId: firebaseProjectId,
-  storageBucket: "startup-up-realestate.firebasestorage.app",
-  messagingSenderId: "750265634166",
-  appId: "1:750265634166:web:a4f6cd0a59db8c685fbe57",
-  measurementId: "G-1HZQ3RCXWP"
-};
-
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const db = getFirestore(app);
-// getAuth() would attach the popup/redirect resolver, which loads Firebase's sign-in iframe and
-// Google API scripts (~130KB) on every visit. Visitors never sign in, so the resolver is passed
-// only to signInWithPopup when an admin opens the Google popup.
-const createAuth = () => {
-  if (typeof window === 'undefined') return getAuth(app);
-  try { return initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] }); }
-  catch { return getAuth(app); } // already initialised (hot reload)
-};
-const auth = createAuth();
-if (useFirebaseEmulator && !auth.emulatorConfig) {
-  connectAuthEmulator(auth, 'http://127.0.0.1:9097', { disableWarnings: true });
-  connectFirestoreEmulator(db, '127.0.0.1', 8093);
-}
-
-const HOST_EMAIL = 'startup.up.real.estate@gmail.com';
-const appId = "startup-up-realestate";
-
-const { setDoc, updateDoc, addDoc, deleteDoc } = createPublicDataWrites({
-  db, appId, doc, writeBatch, runTransaction, serverTimestamp,
-  sdk: { setDoc: sdkSetDoc, updateDoc: sdkUpdateDoc, addDoc: sdkAddDoc, deleteDoc: sdkDeleteDoc },
-});
 
 const DEFAULT_COMPANY_INFO = {
   name: 'STARTUP UP',
@@ -77,7 +39,7 @@ const DEFAULT_COMPANY_INFO = {
   facebook: 'https://www.facebook.com/startupuprealestate/',
   description: 'จุดเริ่มต้นของคนอยากมีบ้าน',
   // Match the saved company logo on the first server-rendered frame as well.
-  logoUrl: 'https://res.cloudinary.com/dm2wr55r5/image/upload/v1790151670/pljolp7kwd6ulupq0mvf.png',
+  logoUrl: SITE_LOGO_URL,
   portfolio_years: []
 };
 
@@ -776,7 +738,8 @@ function PropertyMap({ properties, onSelectProp, variant = 'section' }) {
       const initMap = async () => {
           let L;
           try {
-              L = (await import('leaflet')).default;
+              const [leaflet] = await Promise.all([import('leaflet'), import('leaflet/dist/leaflet.css')]);
+              L = leaflet.default;
           } catch (error) {
               console.warn('Unable to load Leaflet map bundle:', error);
               return;
@@ -2073,7 +2036,6 @@ function CustomAlertModal({ isOpen, type, title, message, onConfirm, onCancel, s
    ============================================================ */
 export {
   // Firebase / ค่าคงที่ระบบ
-  db, auth, appId, HOST_EMAIL, setDoc, updateDoc, addDoc, deleteDoc,
   // ข้อมูลตั้งต้น
   DEFAULT_COMPANY_INFO, DEFAULT_LOCATIONS_DATA, DEFAULT_VISUAL_CONTENT,
   CATEGORIES, BADGES, DIRECTIONS, COMMON_FACILITIES,

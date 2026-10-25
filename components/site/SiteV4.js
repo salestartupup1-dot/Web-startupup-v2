@@ -14,7 +14,7 @@
 
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
-import { ARTICLES_PATH } from '../../lib/articleCatalogue';
+import { SITE_NAV_TABS as NAV_TABS } from '../../lib/siteNavigation';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
@@ -24,6 +24,7 @@ import {
 
 import useSiteData from './useSiteData';
 import PublicDataNotice from './PublicDataNotice';
+import PromotionPopup from './PromotionPopup';
 import SeoBrowse, { LandingLinks } from './SeoBrowse';
 import { seoLocationFromSearch } from '../../lib/seoLocations';
 import StickyContact from './StickyContact';
@@ -32,7 +33,7 @@ import { safeJsonLd } from '../../lib/seo';
 import {
   HomeSection, PropertiesList, CalculatorSection, PortfolioSection,
   LoginModal, CustomAlertModal, Lightbox, SmartImage, EditableText,
-  getOptimizedImg, DEFAULT_LOCATIONS_DATA, DEFAULT_VISUAL_CONTENT, db, appId, generatePropSlug,
+  getOptimizedImg, DEFAULT_LOCATIONS_DATA, DEFAULT_VISUAL_CONTENT, generatePropSlug,
 } from './SiteApp';
 
 // Each view still renders on the server, but the browser only downloads the code of the view
@@ -73,17 +74,6 @@ const getServerHomeLayout = () => false;
  */
 const OFFICE_MAP_URL = 'https://maps.app.goo.gl/e3AGFWQjtbVMiBYS9';
 
-const NAV_TABS = [
-  { key: 'home', fallback: 'หน้าหลัก', field: 'navHome' },
-  /* ทำเลมาก่อนบ้านทั้งหมด — ลูกค้าส่วนใหญ่เลือกจากทำเลก่อนแล้วค่อยดูว่ามีบ้านอะไร */
-  { key: 'location', fallback: 'ทำเล', field: 'navLocation' },
-  { key: 'all', fallback: 'บ้านทั้งหมด', field: 'navAll' },
-  { key: 'promo', fallback: 'บ้านโปรโมชั่น', field: 'navPromo' },
-  { key: 'calculator', fallback: 'คำนวณสินเชื่อ', field: 'navCalc' },
-  { key: 'portfolio', fallback: 'ผลงาน', field: 'navPortfolio' },
-  { key: 'articles', fallback: 'บทความ', field: 'navArticles', href: ARTICLES_PATH },
-];
-
 function Waiting() {
   return (
     <div className="v4-loading">
@@ -96,7 +86,7 @@ function Waiting() {
 export default function SiteV4({ basePath = '/v4', initialData }) {
   const site = useSiteData({ basePath, initialData });
   const {
-    userRole, userEmail, authReady, properties, publicProperties, companyInfo, authorizedUsers,
+    db, appId, userRole, userEmail, authReady, properties, publicProperties, companyInfo, authorizedUsers,
     loading, publicDataError, visualContent, popupData,
     activeTab, setActiveTab, isRouteReady, searchParams, selectedProperty, requestedPropSlug, setRequestedPropSlug, setSelectedProperty,
     showLoginModal, setShowLoginModal, showAdminPanel, setShowAdminPanel,
@@ -220,13 +210,15 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
     return () => observer.disconnect();
   }, [footerPhoto]);
 
-  // Warm the house-page code once the list has settled, so tapping a card does not wait for it.
+  // Warm detail code when a listing is actually in use; the cinematic intro
+  // should not download an unrelated house page during its first paint.
   useEffect(() => {
+    if (isCinemaView || selectedProperty) return;
     const warm = () => { import('./SalePageV4'); };
     const idle = typeof window.requestIdleCallback === 'function';
     const id = idle ? window.requestIdleCallback(warm, { timeout: 6000 }) : setTimeout(warm, 4000);
     return () => (idle ? window.cancelIdleCallback(id) : clearTimeout(id));
-  }, []);
+  }, [isCinemaView, selectedProperty]);
 
 
   const navTransparent = isCinemaView && navOverHero;
@@ -326,18 +318,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
 
         {/* ---------- ป็อปอัปโปรโมชั่น ---------- */}
         {showPopupModal && activeTab === 'home' && !selectedProperty && !requestedPropSlug && (
-          <div className="v4-popup-backdrop">
-            <div className="v4-popup">
-              <SmartImage src={getOptimizedImg(popupData.imageUrl, 900)} alt="โปรโมชั่น" className="v4-popup-img" priority loading="eager" />
-              <div className="v4-popup-foot">
-                <label>
-                  <input type="checkbox" checked={isSnoozeChecked} onChange={e => setIsSnoozeChecked(e.target.checked)} />
-                  ไม่แสดงหน้านี้อีกใน 24 ชม.
-                </label>
-                <button type="button" onClick={dismissPopup}>ปิดหน้าต่าง</button>
-              </div>
-            </div>
-          </div>
+          <PromotionPopup key={popupData.imageUrl} imageUrl={popupData.imageUrl} checked={isSnoozeChecked} onChecked={setIsSnoozeChecked} onClose={dismissPopup} />
         )}
 
         {/* ---------- แถบเมนู ---------- */}
@@ -953,6 +934,11 @@ const v4Css = `
   display: flex; flex-direction: column;
 }
 .v4-popup-img { width: 100%; height: auto; max-height: 78vh; object-fit: contain; display: block; }
+.v4-promotion-dialog { border: 0; padding: 0; margin: auto; width: min(520px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); color: var(--ink); }
+.v4-promotion-dialog:not([open]) { display: none; }
+.v4-promotion-dialog::backdrop { background: rgba(6,20,10,.72); }
+.v4-promotion-dialog .v4-popup-img { min-height: 0; flex-shrink: 1; }
+.v4-promotion-dialog .v4-popup-foot { flex-shrink: 0; }
 .v4-popup-foot {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 14px 18px; border-top: 1px solid var(--line); font-size: 14px;

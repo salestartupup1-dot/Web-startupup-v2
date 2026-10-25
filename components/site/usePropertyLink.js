@@ -1,11 +1,10 @@
 import { useEffect } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
 import { fetchPublicPropertyApi } from '../../lib/publicProperty';
 import { subscribePropertyDetails } from '../../lib/propertyDetails';
 import { matchesPropertySlug } from '../../lib/firestorePublic';
 
 export default function usePropertyLink({
-  db, appId, requestedPropSlug, selectedProperty,
+  requestedPropSlug, selectedProperty,
   setRequestedPropSlug, setSelectedProperty, setActiveTab, setGlobalAlert,
 }) {
   const documentId = requestedPropSlug && selectedProperty?._detailsPending
@@ -90,9 +89,12 @@ export default function usePropertyLink({
   const selectedId = selectedProperty?.id;
   useEffect(() => {
     if (!selectedId || requestedPropSlug) return;
+    let cancelled = false, stop;
+    import('../../lib/firebaseClient').then(({doc, db, appId, onSnapshot}) => {
+    if (cancelled) return;
     const propertyRef = doc(db, 'artifacts', appId, 'public', 'data', 'properties', selectedId);
     // Subscribe only to the house being viewed, not the entire catalogue.
-    return subscribePropertyDetails({
+    stop = subscribePropertyDetails({
       observe: (options, onValue, onError) => onSnapshot(propertyRef, options, onValue, onError),
       onProperty: property => setSelectedProperty(current => current?.id === selectedId ? {
         ...property,
@@ -113,5 +115,7 @@ export default function usePropertyLink({
       },
       onError: error => console.warn('Live property updates unavailable.', error),
     });
-  }, [db, appId, selectedId, requestedPropSlug, setSelectedProperty, setActiveTab, setGlobalAlert]);
+    }).catch(error => { if (!cancelled) console.warn('Live property updates unavailable.', error); });
+    return () => { cancelled = true; stop?.(); };
+  }, [selectedId, requestedPropSlug, setSelectedProperty, setActiveTab, setGlobalAlert]);
 }

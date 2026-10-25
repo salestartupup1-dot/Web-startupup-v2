@@ -1,3 +1,4 @@
+import { auth, HOST_EMAIL, setDoc, updateDoc, addDoc, deleteDoc } from '../../lib/firebaseClient';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Home, X, Plus, Trash2, Users, Edit, ImageIcon, Layout, ChevronLeft, ChevronRight, ChevronDown, Upload, Briefcase, Loader, Check, Copy, AlertTriangle, LayoutTemplate } from 'lucide-react';
@@ -9,8 +10,8 @@ import { PROPERTY_OWNERS, DEFAULT_PROPERTY_OWNER } from '../../lib/propertyOwner
 import { getPropertyStockAlert } from '../../lib/stockMatching';
 import { getPendingStockHouses, groupAdminStock } from '../../lib/adminStock';
 import {
-  auth, HOST_EMAIL, DEFAULT_COMPANY_INFO, CATEGORIES, BADGES, DIRECTIONS, COMMON_FACILITIES,
-  uploadFileToCloudinary, getOptimizedImg, SmartImage, validateImage, setDoc, updateDoc, addDoc, deleteDoc,
+  DEFAULT_COMPANY_INFO, CATEGORIES, BADGES, DIRECTIONS, COMMON_FACILITIES,
+  uploadFileToCloudinary, getOptimizedImg, SmartImage, validateImage,
 } from './SiteApp';
 
 /**

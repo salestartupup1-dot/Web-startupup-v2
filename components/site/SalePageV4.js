@@ -1,3 +1,4 @@
+import { db, appId } from '../../lib/firebaseClient';
 import Head from 'next/head';
 import { primaryPropertyLocation, relatedAvailableProperties } from '../../lib/websiteInventory';
 import { locationPath } from '../../lib/seoLocations';
@@ -28,11 +29,12 @@ import {
 } from 'lucide-react';
 
 import {
-  SmartImage, SoldOutRibbon, CalculatorSection, db, appId,
+  SmartImage, SoldOutRibbon, CalculatorSection,
   getOptimizedImg, preloadImage, preloadImagesAround,
   getYoutubeId, getPropertySharePath, generatePropSlug,
 } from './SiteApp';
 import SalePromotionCard from './SalePromotionCard';
+import VideoThumbnail from './VideoThumbnail';
 import { cardPayment, PAYMENT_NOTE } from './HouseCard';
 import useSalePromotion from './useSalePromotion';
 import { promotionAppliesTo } from '../../lib/salePromotion';
@@ -196,7 +198,7 @@ export default function SalePageV4({
   useEffect(() => {
     setAt(0); setWipe(null); setVideoOn(false);
     setBookOpen(false); setPickDate(null); setHour(''); setMinute('');
-  }, [property?.id]);
+  }, [property?.id, youtubeId]);
 
   useEffect(() => {
     // Let the current high-priority responsive hero finish before fetching neighbours.
@@ -379,6 +381,7 @@ export default function SalePageV4({
       {/* ── ชื่อบ้าน อยู่ก่อนรูปเหมือน SalePage เดิม ── */}
       <div className="sp4-masthead">
         <nav aria-label="เส้นทางนำทาง" className="sp4-breadcrumb">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- Native navigation resets the cinematic home state and works without JavaScript. */}
           <a href="/">หน้าหลัก</a><span aria-hidden="true"> › </span>
           <a href={areaPage ? locationPath(areaPage) : '/?tab=all'}>{areaPage ? `บ้านมือสอง${areaPage.name}` : 'บ้านทั้งหมด'}</a>
           <span aria-hidden="true"> › </span><span aria-current="page">{property.project_name} {property.house_number}</span>
@@ -547,14 +550,12 @@ export default function SalePageV4({
               <h2>วิดีโอแนะนำ</h2>
               <div className="sp4-video">
                 {!videoOn ? (
-                  <button type="button" className="sp4-video-cover" onClick={() => setVideoOn(true)}>
-                    <SmartImage
-                      src={`https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`}
-                      alt="ภาพปกวิดีโอแนะนำบ้าน" width={1280} height={720} sizes="(max-width: 960px) 100vw, 700px"
+                  <button type="button" className="sp4-video-cover" aria-label="เล่นวิดีโอแนะนำบ้าน" onClick={() => setVideoOn(true)}>
+                    <VideoThumbnail key={`${propId}:${youtubeId}`} videoId={youtubeId} poster={getOptimizedImg(images[0], 1000)}
+                      width={1280} height={720} sizes="(max-width: 960px) 100vw, 700px"
                       loading="lazy" decoding="async"
-                      onError={(e) => { e.target.src = `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`; }}
                     />
-                    <span className="sp4-play"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg></span>
+                    <span className="sp4-play" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg></span>
                   </button>
                 ) : (
                   <iframe
@@ -565,6 +566,8 @@ export default function SalePageV4({
                   />
                 )}
               </div>
+              <a className="sp4-video-link" href={`https://www.youtube.com/watch?v=${youtubeId}`}
+                target="_blank" rel="noopener noreferrer">เปิดวิดีโอบน YouTube <span aria-hidden="true">↗</span></a>
             </section>
           )}
 
@@ -1004,6 +1007,9 @@ const css = `
   background: #d81f26; color: #fff; box-shadow: 0 10px 26px rgba(0,0,0,.35); transition: transform .3s;
 }
 .sp4-video-cover:hover .sp4-play { transform: scale(1.08); }
+.sp4-video-placeholder { display: grid; place-items: end center; height: 100%; padding: 24px; color: var(--forest); }
+.sp4-video-cover:focus-visible { outline: 3px solid var(--forest); outline-offset: -4px; }
+.sp4-video-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; color: var(--forest); font-size: 14px; text-underline-offset: 3px; }
 .sp4-mapbtn {
   margin-top: var(--s2); display: flex; align-items: center; justify-content: center; gap: var(--s1);
   border: 1px solid rgba(11,61,27,.3); border-radius: var(--r4); color: var(--forest);

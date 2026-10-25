@@ -3,12 +3,12 @@ import json,os,re,urllib.request,urllib.parse,html
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 BASE=os.environ.get('SITE_TEST_BASE_URL','http://localhost:3031')
-INDEX='/'+urllib.parse.quote('บทความ')
+INDEX='/articles'
 OUT=Path(os.environ['TEMP'])/'startupup-articles';OUT.mkdir(exist_ok=True)
 def fetch(path):
     with urllib.request.urlopen(BASE+path,timeout=60) as response:return response.read().decode('utf-8')
 index=fetch(INDEX)
-paths=list(dict.fromkeys(re.findall(r'href="('+re.escape(INDEX)+r'/[^"#]+)"',index)))
+paths=list(dict.fromkeys(re.findall(r'<a\b[^>]*\bhref="('+re.escape(INDEX)+r'/[^"#]+)"',index)))
 assert len(paths)==20,len(paths)
 sitemap=html.unescape(fetch('/sitemap.xml'))
 for path in paths:

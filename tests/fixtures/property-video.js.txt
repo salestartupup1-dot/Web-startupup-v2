@@ -1,0 +1,15 @@
+import { useState } from 'react';
+import SalePageV4 from '../components/site/SalePageV4';
+import { DEFAULT_COMPANY_INFO, DEFAULT_VISUAL_CONTENT } from '../components/site/SiteApp';
+
+export default function VideoFixture() {
+  const [second, setSecond] = useState(false);
+  const property = { id: second ? 'second-house' : 'first-house', project_name: 'Video test house',
+    house_number: '1/1', price: 2500000, category: 'บ้านเดี่ยว', images: ['/featured/singlehouse.jpg'],
+    youtubeUrl: `https://www.youtube.com/embed/${second ? 'video-test2' : 'video-test1'}` };
+  return <>
+    <button onClick={() => setSecond(value => !value)}>Switch house</button>
+    <SalePageV4 property={property} companyInfo={DEFAULT_COMPANY_INFO} visualContent={DEFAULT_VISUAL_CONTENT}
+      onBack={() => {}} properties={[]} onSelectProp={() => {}} openLightbox={() => {}} />
+  </>;
+}

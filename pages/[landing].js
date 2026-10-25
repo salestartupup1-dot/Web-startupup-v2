@@ -9,7 +9,7 @@ import { SOLD_HOMES_SLUG } from '../lib/soldHomes';
 import ArticlesIndex from '../components/articles/ArticlesIndex';
 
 export async function getServerSideProps(context) {
-  if (context.params.landing === 'บทความ') return { props: { articleIndex: true } };
+  if (context.params.landing === 'articles') return { props: { articleIndex: true } };
   if (isShortCode(context.params.landing) || isPropertySlug(context.params.landing)) {
     return resolveSitePage(context);
   }

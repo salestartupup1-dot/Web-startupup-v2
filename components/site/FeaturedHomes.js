@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useState } from 'react';
+import { homeImage } from '../../lib/homeImage';
 
 /** ข้อมูลชุดเดียว แก้ที่นี่ที่เดียว */
 export const FEATURED_HOMES = [
@@ -67,7 +68,7 @@ export default function FeaturedHomes({ hrefFor, onSelectCategory, isEditMode = 
           aria-label={`ดูบ้านหมวด${item.category} — ${item.note}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="fh-img" src={item.img} alt={item.alt} loading="lazy" decoding="async" />
+          <img className="fh-img" {...homeImage(item.img)} width={900} height={item.key === 'twinhouse' ? 1092 : 1088} sizes="(max-width: 700px) 65vw, 400px" alt={item.alt} loading="lazy" decoding="async" />
           <span className="fh-shade" aria-hidden="true" />
           <span className="fh-label">
             <strong>{item.category}</strong>

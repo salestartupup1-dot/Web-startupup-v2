@@ -23,7 +23,9 @@ def setup(browser):
     page.goto(os.environ.get('SITE_TEST_BASE_URL', 'http://localhost:3000'))
     expect(page.locator('.cinema-scroll')).to_be_visible()
     page.wait_for_function("() => document.querySelector('.cine-progress i').style.transform.startsWith('scaleX(')")
-    page.mouse.move(720, 450)
+    # Keep chapter paging outside the interactive map. Wheel events over the
+    # map intentionally zoom it instead of scrolling the story.
+    page.mouse.move(80, 450)
     return context, page, errors
 
 

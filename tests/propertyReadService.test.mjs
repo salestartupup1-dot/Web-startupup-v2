@@ -3,6 +3,22 @@ import assert from 'node:assert/strict';
 import { createPropertyReader } from '../lib/propertyReadService.js';
 import { firestoreReadError } from '../lib/firestorePublic.js';
 
+test('legacy 118 routing hints keep reading the verified house and its fresh price', async () => {
+  let lookups = 0, reads = 0;
+  const reader = createPropertyReader({
+    lookup: async () => { lookups++; return { id: 'zLgqqUs9aXDN1vzOOnsV', custom_id: '99-118', price: 2090000 }; },
+    readDocument: async path => {
+      reads++;
+      assert.equal(path, 'properties/zLgqqUs9aXDN1vzOOnsV');
+      return { id: 'zLgqqUs9aXDN1vzOOnsV', custom_id: '99-118', price: 1990000 };
+    },
+  });
+  assert.equal((await reader('118').promise).price, 2090000);
+  assert.equal((await reader('118').promise).price, 1990000);
+  assert.equal(lookups, 1);
+  assert.equal(reads, 1);
+});
+
 test('known document ID reads current prices directly without slug queries', async () => {
   let price = 100;
   const reader = createPropertyReader({ lookup: () => assert.fail('unnecessary slug query'),

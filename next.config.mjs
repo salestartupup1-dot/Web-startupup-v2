@@ -89,6 +89,8 @@ const contentSecurityPolicy = [
     "https://google.com",
     "https://www.google.co.th",
     "https://analytics.tiktok.com",
+    // Pixel's IPv6 enrichment request, observed in the PageSpeed console.
+    "https://analytics-ipv6.tiktokw.us",
     "https://*.firebaseio.com",
     "wss://*.firebaseio.com",
     "wss://firestore.googleapis.com"
@@ -141,10 +143,20 @@ const nextConfig = {
         destination: 'https://www.startupup-real-estate.com/:path*',
         permanent: true,
       },
+      // Browsers and older shared links can send the Thai path either decoded
+      // or percent-encoded. Keep both forms working, including article links.
+      ...['บทความ', encodeURIComponent('บทความ')].flatMap(prefix => [
+        { source: `/${prefix}`, destination: '/articles', permanent: true },
+        { source: `/${prefix}/:path+`, destination: '/articles/:path*', permanent: true },
+      ]),
     ];
   },
   async headers() {
     return [
+      {
+        source: '/home-media/:version/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
       {
         source: '/:path*',
         headers: securityHeaders,

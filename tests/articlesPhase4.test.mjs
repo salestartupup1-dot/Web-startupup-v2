@@ -61,7 +61,7 @@ test('every article links to at least two existing landing pages and the mortgag
   assert.ok(new Set(links.filter(link=>landingPaths.has(link))).size>=2);
   assert.ok(links.includes('/บ้านรีโนเวท-ปทุมธานี')); assert.ok(links.includes('/?tab=calculator'));
   assert.equal(getArticle('missing'),null);
-  assert.equal(decodeURIComponent(articlePath(article)),'/บทความ/ลดค่าโอน-บ้านมือสอง');
+  assert.equal(decodeURIComponent(articlePath(article)),'/articles/ลดค่าโอน-บ้านมือสอง');
 });
 test('fee comparison calculates 200 + 200 baht, 59,600 reduction, without claiming total buyer costs',()=>{
   assert.deepEqual(feeExample.map(row=>[row.normal,row.reduced]),[[40000,200],[20000,200]]);

@@ -18,8 +18,8 @@
 ## การติดตั้ง GA4
 
 GTM `GTM-N27PQGL2` เป็นผู้โหลดและตั้งค่า Google tag `G-989XMRNC6Y`
-เพียงทางเดียว ใน `pages/_app.js` คงเฉพาะคิว `window.gtag` สำหรับ custom events
-และ bootstrap ของ GTM โดยไม่มีการโหลด `gtag/js` หรือเรียก `gtag('config')` ซ้ำ
+เพียงทางเดียว โดย `lib/marketingBootstrap.js` สร้างคิว `window.gtag` ตั้งแต่ HTML document
+และโหลด GTM โดยไม่มีการโหลด `gtag/js` หรือเรียก `gtag('config')` ซ้ำ
 อย่าลบ Google tag ใน GTM เพราะ custom events ของหน้ารายละเอียดบ้านใช้ปลายทางนี้
 
 Container ของหัวข้อและการ์ดทำเลใน `components/site/CinemaHero.js` ใช้ ID
@@ -83,3 +83,21 @@ Container ของหัวข้อและการ์ดทำเลใน 
 
 - [Google: CSP สำหรับ GTM และ Google Ads](https://developers.google.com/tag-platform/security/guides/csp)
 - [Google: Element Visibility trigger](https://support.google.com/tagmanager/answer/7679410?hl=en)
+
+## ลำดับการโหลดสคริปต์ (25 ตุลาคม 2026)
+
+`pages/_document.js` ติดตั้งคิว Google/TikTok ก่อน React เริ่มส่ง custom events
+สคริปต์ภายนอกเริ่มหลัง window load ใน idle task โดยแต่ละ task มี deadline 1 วินาที
+Google เริ่มก่อน แล้วให้เบราว์เซอร์มีโอกาสวาดหน้าหรือรับ input ก่อนเริ่ม TikTok
+ไม่มีการรอเฉพาะการคลิก และไม่ตรวจว่าเป็น Lighthouse หรือผู้ใช้จริง
+
+เมื่อมี pointerdown, keydown, การเปลี่ยนหน้า หรือการกดติดต่อ จะเริ่มทั้งสองตัวทันที
+การซ่อน/ออกจากหน้าเร่งเริ่มสคริปต์ด้วย แต่การออกเร็วหรือ ad blocker ยังอาจทำให้
+ผู้ให้บริการรับข้อมูลไม่ทัน คิวในหน้าเว็บไม่ใช่การยืนยันว่าบัญชีโฆษณารับข้อมูลแล้ว
+การนับคลิกโทรฝั่งเว็บไซต์และ attribution ทำงานแยกจากการโหลด SDK ตามเดิม
+
+ทดสอบลำดับคิว การโหลดครั้งเดียว early contact และ fallback การนำทางด้วย
+`tests/marketingBootstrap.test.mjs` และ `tests/marketingLoading.browser.py`
+ชุด browser ดัก SDK/คำขอวัดผลเพื่อไม่ส่ง conversion ทดสอบไปบัญชีจริง
+
+อ้างอิง: [Next.js: Optimizing Third-Party Scripts](https://nextjs.org/learn/seo/third-party-scripts)

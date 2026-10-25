@@ -3,7 +3,7 @@ import html,json,os,re,urllib.request,urllib.parse,urllib.error
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 BASE=os.environ.get('SITE_TEST_BASE_URL','http://localhost:3031')
-INDEX='/'+urllib.parse.quote('บทความ')
+INDEX='/articles'
 ARTICLE=INDEX+'/'+urllib.parse.quote('ลดค่าโอน-บ้านมือสอง')
 def fetch(path):
     with urllib.request.urlopen(BASE+path,timeout=60) as response:return response.read().decode('utf-8')
