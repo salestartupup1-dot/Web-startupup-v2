@@ -43,14 +43,18 @@ with sync_playwright() as p:
         assert len(set(cards.evaluate_all('(els) => els.map(e => e.href)'))) == all_count
         filters = page.locator('#home-locations button')
         filters.nth(1).click()
-        assert cards.count() <= 12
+        page.wait_for_function("document.querySelector('#home-locations button:nth-child(2)').getAttribute('aria-pressed') === 'true'")
+        # A tall desktop viewport can already be within the next-batch threshold.
+        assert 12 <= cards.count() < all_count
         filters.first.click()
-        expect(cards).to_have_count(12)
+        page.wait_for_function("document.querySelector('#home-locations button').getAttribute('aria-pressed') === 'true'")
+        assert 12 <= cards.count() < all_count
         expected_payment = cards.first.locator('strong').inner_text()
         cards.first.click()
         expect(page.locator('.sp4-pay')).to_be_visible(timeout=30000)
         expect(page.locator('.sp4-pay-val b')).to_have_text(expected_payment)
-        page.locator('.sp4-pay').scroll_into_view_if_needed()
+        page.locator('.sp4-pay').evaluate("el => el.scrollIntoView({behavior:'instant', block:'center'})")
+        page.wait_for_function("() => {const r=document.querySelector('.sp4-pay').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight}")
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         page.screenshot(path=str(OUT / f'release-payment-{width}.png'))
         assert not errors, errors
