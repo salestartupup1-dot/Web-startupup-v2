@@ -33,6 +33,7 @@ import {
   getYoutubeId, getPropertySharePath, generatePropSlug,
 } from './SiteApp';
 import SalePromotionCard from './SalePromotionCard';
+import { cardPayment, PAYMENT_NOTE } from './HouseCard';
 import useSalePromotion from './useSalePromotion';
 import { promotionAppliesTo } from '../../lib/salePromotion';
 
@@ -329,6 +330,9 @@ export default function SalePageV4({
   const blocks = propertyHighlightBlocks(property.highlights);
   const factSummary = propertyFactSummary(property);
   const badge = property.badge;
+  const isSold = badge === 'Sold Out' || property.inventoryState === 'sold';
+  // Same estimate as the listing card, so the number never differs between the two.
+  const payment = cardPayment(Number(String(property.price || 0).replace(/,/g, '')) || 0);
   const areaPage = primaryPropertyLocation(property);
   const hasMap = property.lat && property.lng
     && String(property.lat).trim() !== '' && String(property.lng).trim() !== '';
@@ -461,6 +465,13 @@ export default function SalePageV4({
             {detailsPending
               ? <p className="sp4-price-pending" role="status">กำลังตรวจสอบราคาล่าสุด…</p>
               : <p className="sp4-price">฿ {baht(property.price)}</p>}
+            {!detailsPending && payment > 0 && !isSold && <>
+              <div className="sp4-pay">
+                <span className="sp4-pay-key">ผ่อนเริ่มต้น<small>ประมาณการ*</small></span>
+                <span className="sp4-pay-val"><b>{payment.toLocaleString('th-TH')}</b> บาท/เดือน</span>
+              </div>
+              <p className="sp4-pay-note">{PAYMENT_NOTE}</p>
+            </>}
           </div>
 
           <div className="sp4-plate reveal-on-scroll">
@@ -904,6 +915,18 @@ const css = `
   margin: 0; font-size: clamp(30px, 4.2vw, 42px); font-weight: 600; line-height: 1;
   color: var(--forest); letter-spacing: -.02em;
 }
+/* ยอดผ่อนต่อเดือน หน้าตาเดียวกับกล่องในการ์ดบ้าน (HouseCard) */
+.sp4-pay {
+  margin-top: var(--s2); max-width: 420px; padding: 10px 16px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: linear-gradient(to bottom right, #123b2c, #1d5a3f);
+  box-shadow: inset 0 0 0 1px rgba(243,210,122,.25);
+}
+.sp4-pay-key { font-size: 13px; line-height: 1.25; color: rgba(255,255,255,.85); }
+.sp4-pay-key small { display: block; font-size: 11px; color: rgba(255,255,255,.6); }
+.sp4-pay-val { text-align: right; line-height: 1; font-size: 13px; color: rgba(255,255,255,.85); white-space: nowrap; }
+.sp4-pay-val b { margin-right: 4px; font-size: 24px; font-weight: 700; color: #f3d27a; }
+.sp4-pay-note { margin: 6px 0 0; font-size: 11px; line-height: 1.4; color: var(--ink-faint); }
 
 .sp4-plate {
   margin: var(--s4) 0 0; border-radius: var(--r2); overflow: hidden;
