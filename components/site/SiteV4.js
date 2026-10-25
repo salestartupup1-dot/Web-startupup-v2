@@ -31,7 +31,7 @@ import useRevealOnScroll from './useRevealOnScroll';
 import { safeJsonLd } from '../../lib/seo';
 import {
   HomeSection, PropertiesList, CalculatorSection, PortfolioSection,
-  LoginModal, CustomAlertModal, AdminPanel, Lightbox, SmartImage, EditableText,
+  LoginModal, CustomAlertModal, Lightbox, SmartImage, EditableText,
   getOptimizedImg, DEFAULT_LOCATIONS_DATA, DEFAULT_VISUAL_CONTENT, db, appId, generatePropSlug,
 } from './SiteApp';
 
@@ -43,6 +43,8 @@ const SalePageV4 = dynamic(() => import('./SalePageV4'));
 const LocationListing = dynamic(() => import('./LocationListing'));
 const LocationGuide = dynamic(() => import('./LocationGuide'));
 const SoldHomes = dynamic(() => import('./SoldHomes'));
+// The back office is only opened by admins; visitors never download it.
+const AdminPanel = dynamic(() => import('./AdminPanel'), { ssr: false });
 
 const Facebook = ({ size = 26 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
