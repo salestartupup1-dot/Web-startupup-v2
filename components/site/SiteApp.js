@@ -541,7 +541,9 @@ function Lightbox({ isOpen, images, startIndex, onClose }) {
 }
 
 // --- EditableText Component ---
-function EditableText({ tag: Tag = 'span', fieldKey, content, updateContent, isEditMode, className }) {
+// className defaults to '' — the menu calls this without one, and opening the editor ran
+// className.replace() on undefined, which crashed the whole page.
+function EditableText({ tag: Tag = 'span', fieldKey, content, updateContent, isEditMode, className = '' }) {
   const [isEditing, setIsEditing] = useState(false);
   const [tempVal, setTempVal] = useState('');
 
