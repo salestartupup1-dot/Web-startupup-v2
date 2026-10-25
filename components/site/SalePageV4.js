@@ -1,8 +1,7 @@
 import Head from 'next/head';
 import { getPropertyHeading } from '../../lib/seo';
-import { inventoryLabel, primaryPropertyLocation, relatedAvailableProperties } from '../../lib/websiteInventory';
+import { primaryPropertyLocation, relatedAvailableProperties } from '../../lib/websiteInventory';
 import { locationPath } from '../../lib/seoLocations';
-import { monthlyMortgage } from '../../lib/mortgage';
 import { propertyEditorialSections, propertyFactSummary, propertyHighlightBlocks } from '../../lib/propertyEditorial';
 /**
  * SalePageV4 — หน้าบ้านรายหลัง ดีไซน์ใหม่สำหรับ /v4
@@ -328,7 +327,6 @@ export default function SalePageV4({
   const factSummary = propertyFactSummary(property);
   const badge = property.badge;
   const areaPage = primaryPropertyLocation(property);
-  const estimatedPayment = monthlyMortgage(property.price);
   const hasMap = property.lat && property.lng
     && String(property.lat).trim() !== '' && String(property.lng).trim() !== '';
 
@@ -379,7 +377,6 @@ export default function SalePageV4({
           <span aria-hidden="true"> › </span><span aria-current="page">{property.project_name} {property.house_number}</span>
         </nav>
         <h1 className="sp4-title">{getPropertyHeading(property)}</h1>
-        {!detailsPending && <p className="sp4-availability" role="status">{inventoryLabel(property)}</p>}
         <div className="sp4-idents">
           {houseAndSoi.hn && (
             <span className="sp4-ident">
@@ -498,12 +495,6 @@ export default function SalePageV4({
             <SalePromotionCard key={promotion.images.join('|')} promotion={promotion} onExpand={openLightbox} />
           </div>}
 
-          {!detailsPending && estimatedPayment > 0 && <section className="sp4-block">
-            <h2>ประมาณการผ่อนบ้าน</h2>
-            <p>ประมาณ {Math.round(estimatedPayment).toLocaleString('th-TH')} บาทต่อเดือน</p>
-            <p>ตัวอย่างกู้เต็มราคาประกาศ ดอกเบี้ยคงที่ 3% ต่อปี ระยะเวลา 30 ปี คำนวณด้วยสูตรเดียวกับเครื่องคำนวณสินเชื่อ ตัวเลขนี้เป็นเพียงประมาณการ ไม่รวมค่าธรรมเนียมและประกัน ไม่ใช่ข้อเสนอหรือผลอนุมัติจากธนาคาร</p>
-            <a href="/?tab=calculator">ปรับวงเงิน ดอกเบี้ย และระยะเวลากู้</a>
-          </section>}
           {!detailsPending && factSummary && <section className="sp4-block">
             <h2>ข้อมูลบ้าน{property.project_name ? ` ${property.project_name}` : ''}</h2>
             <p>{factSummary}</p>
@@ -694,7 +685,7 @@ export default function SalePageV4({
       {!detailsPending && relatedProps.length > 0 && (
         <section className="sp4-related reveal-on-scroll">
           <div className="sp4-related-head">
-            <h2>บ้านใกล้เคียงที่เปิดรับจอง</h2>
+            <h2>บ้านใกล้เคียงที่คุณอาจสนใจ</h2>
             <div className="sp4-railnav">
               <button type="button" aria-label="เลื่อนไปทางซ้าย" onClick={() => railRef.current?.scrollBy({ left: -256, behavior: 'smooth' })}><ChevronLeft size={16} /></button>
               <button type="button" aria-label="เลื่อนไปทางขวา" onClick={() => railRef.current?.scrollBy({ left: 256, behavior: 'smooth' })}><ChevronRight size={16} /></button>
@@ -712,7 +703,7 @@ export default function SalePageV4({
                     {p.badge === 'Sold Out' && <SoldOutRibbon size="sm" />}
                   </div>
                   <h3>{p.project_name}</h3>
-                  <div className="sp4-pcard-loc">{p.main_location || p.district} · {inventoryLabel(p)}</div>
+                  <div className="sp4-pcard-loc">{p.main_location || p.district}</div>
                   <div className="sp4-pcard-amt">฿ {baht(p.price)}</div>
                 </a>
                 <button
@@ -1094,7 +1085,6 @@ const css = `
 .sp4-breadcrumb { font-size:14px; line-height:1.8; margin-bottom:20px; }
 .sp4-breadcrumb a, .sp4-block a { text-decoration:underline; text-underline-offset:4px; }
 .sp4-breadcrumb a:focus-visible { outline:2px solid currentColor; outline-offset:4px; }
-.sp4-availability { display:inline-block; padding:8px 16px; margin:16px 0; border-radius:20px; background:#e7ede3; color:#123b2c; }
 .sp4-related { max-width: var(--shell); margin: 0 auto; padding: var(--s6) var(--gutter); }
 .sp4-related-head {
   display: flex; align-items: center; justify-content: space-between; gap: var(--s3);

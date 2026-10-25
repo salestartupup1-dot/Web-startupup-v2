@@ -2,7 +2,7 @@ import { monthlyMortgage } from '../../lib/mortgage';
 import PropertyEditorialFields from './PropertyEditorialFields';
 import ListingPagination from './ListingPagination';
 import { emptyListing, listingHref, listingPage, selectListingProperties, LISTING_PAGE_SIZE } from '../../lib/listingPagination';
-import { isSaleAvailable, inventoryLabel } from '../../lib/websiteInventory';
+import { isSaleAvailable } from '../../lib/websiteInventory';
 /*
  * === คำแนะนำการตั้งค่า Tailwind CSS ===
  * เพื่อให้สีและฟอนต์ (brand-green, brand-light) แสดงผลได้สมบูรณ์แบบ
@@ -1906,7 +1906,6 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
                                     </div>
                <div className="p-5 flex flex-col flex-grow pointer-events-none">
                    <CardHeading className="font-bold text-gray-800 text-[18px] mb-2 line-clamp-2 leading-snug">{p.project_name}</CardHeading>
-                   {p.inventoryState && <p className="text-sm text-brand-green mb-2">{inventoryLabel(p)}</p>}
                    <div className="text-[13px] text-gray-500 flex items-center gap-1.5 mb-4"><MapPin size={15} className="flex-shrink-0 text-gray-400" /><span className="font-light truncate">{p.main_location || p.district} {p.sub_location || p.subdistrict ? `- ${p.sub_location || p.subdistrict}` : ''}</span></div>
                    <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
                        <span className="text-[20px] font-bold text-brand-green"><span className="text-[16px] mr-1">฿</span>{Number(String(p.price || 0).replace(/,/g, '')).toLocaleString()}</span>

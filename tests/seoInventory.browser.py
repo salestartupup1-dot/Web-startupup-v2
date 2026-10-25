@@ -22,7 +22,7 @@ for p in chosen:
     raw=re.sub(r'<script.*?</script>|<style.*?</style>','',body,flags=re.S)
     assert len(re.findall(r'<h1\b',raw))==1
     assert format(int(str(p['price']).replace(',','')),',') in raw
-    assert 'sp4-breadcrumb' in raw and 'ประมาณการผ่อนบ้าน' in raw
+    assert 'sp4-breadcrumb' in raw and 'ประมาณการผ่อนบ้าน' not in raw
     assert ('noindex,follow' in body)==(state in ['reserved','sold'])
     schemas=[json.loads(s) for s in re.findall(r'<script[^>]+type="application/ld\+json"[^>]*>(.*?)</script>',body,re.S)]
     assert schemas
@@ -57,7 +57,7 @@ with sync_playwright() as p:
         ctx.route('**/*',intercept)
         page=ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
         page.goto(BASE+paths[0],wait_until='networkidle',timeout=60000)
-        expect(page.locator('.sp4-availability')).to_have_text('พร้อมขาย')
+        expect(page.locator('.sp4-availability')).to_have_count(0)
         assert page.locator('.sp4-related a.sp4-pcard').count()<=6
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         page.screenshot(path=str(output/('house-mobile.png' if mobile else 'house-desktop.png')))
