@@ -3175,15 +3175,15 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
                                     <tbody className="divide-y divide-gray-100 text-sm">
                                         {users.map(u => (
                                             <tr key={u.id}>
-                                                <td className="p-4">{u.email}</td>
+                                                <td className="p-4">{u.id}</td>
                                                 <td className="p-4">
                                                     {u.role === 'pending' || !u.role ? (
-                                                        <div className="flex gap-2 items-center"><span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded text-xs">รออนุมัติ</span><button onClick={()=>handleApproveUser(u.id, 'admin', u.email)} className="text-brand-green hover:underline">อนุมัติ Admin</button></div>
+                                                        <div className="flex gap-2 items-center"><span className="text-yellow-600 bg-yellow-50 px-2 py-1 rounded text-xs">รออนุมัติ</span><button onClick={()=>handleApproveUser(u.id, 'admin', u.id)} className="text-brand-green hover:underline">อนุมัติ Admin</button></div>
                                                     ) : (
-                                                        <select value={u.role} onChange={e=>handleUpdateRole(u.id, e.target.value)} disabled={u.email===HOST_EMAIL} className={`p-1.5 border rounded outline-none text-xs ${u.role==='admin'?'bg-blue-50 text-blue-700 border-blue-200':'bg-brand-light text-brand-green border-brand-green/20'}`}><option value="admin">Admin</option><option value="host">Host</option><option value="pending">ระงับสิทธิ์</option></select>
+                                                        <select value={u.role} onChange={e=>handleUpdateRole(u.id, e.target.value)} disabled={u.id===HOST_EMAIL} className={`p-1.5 border rounded outline-none text-xs ${u.role==='admin'?'bg-blue-50 text-blue-700 border-blue-200':'bg-brand-light text-brand-green border-brand-green/20'}`}><option value="admin">Admin</option><option value="host">Host</option><option value="pending">ระงับสิทธิ์</option></select>
                                                     )}
                                                 </td>
-                                                <td className="p-4 text-right">{u.email !== HOST_EMAIL && <button onClick={()=>handleRemoveUser(u.id)} className="text-red-500 hover:bg-red-50 px-3 py-1 rounded transition">ลบ</button>}</td>
+                                                <td className="p-4 text-right">{u.id !== HOST_EMAIL && <button onClick={()=>handleRemoveUser(u.id)} className="text-red-500 hover:bg-red-50 px-3 py-1 rounded transition">ลบ</button>}</td>
                                             </tr>
                                         ))}
                                         {users.length === 0 && <tr><td colSpan="3" className="text-center p-8 text-gray-400">ไม่พบข้อมูลผู้ดูแลระบบ</td></tr>}
@@ -3603,9 +3603,6 @@ export default function App() {
     unsubUsers = onSnapshot(qUsers, (snapshot) => {
       const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAuthorizedUsers(users);
-      if (!users.some(u => u.email === HOST_EMAIL) && users.length === 0) {
-         setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', 'host_init'), { email: HOST_EMAIL, role: 'host', name: 'Main Host', createdAt: serverTimestamp() }).catch(e=>console.warn(e));
-      }
     }, (error) => console.warn(error));
     
     return () => { unsubProps(); unsubCompany(); unsubVisual(); unsubUsers(); };

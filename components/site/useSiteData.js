@@ -447,12 +447,6 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
     const unsubUsers = onSnapshot(qUsers, (snapshot) => {
       const users = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
       setAuthorizedUsers(users);
-      if (!users.some(u => u.email === HOST_EMAIL) && users.length === 0) {
-        setDoc(
-          doc(db, 'artifacts', appId, 'public', 'data', 'users', 'host_init'),
-          { email: HOST_EMAIL, role: 'host', name: 'Main Host', createdAt: serverTimestamp() }
-        ).catch(e => console.warn(e));
-      }
     }, (error) => console.warn(error));
 
     return () => { unsubProps(); unsubCompany(); unsubVisual(); unsubUsers(); };
