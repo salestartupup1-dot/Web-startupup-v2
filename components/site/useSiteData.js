@@ -18,8 +18,8 @@ import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } fr
  */
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import {
-  onAuthStateChanged, signOut, signInAnonymously,
-  GoogleAuthProvider, signInWithPopup,
+  onAuthStateChanged, signOut,
+  GoogleAuthProvider, signInWithPopup, browserPopupRedirectResolver,
 } from 'firebase/auth';
 import {
   collection, doc, onSnapshot, query,
@@ -317,7 +317,9 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
   useEffect(() => subscribeSiteSession({
     auth, hostEmail: HOST_EMAIL,
     observeAuth: onAuthStateChanged,
-    signInGuest: signInAnonymously,
+    // Public data is readable without auth (Firestore rules), so visitors stay signed out:
+    // no anonymous account and no identitytoolkit request on every page view.
+    signInGuest: () => {},
     observeRole: (email, onRole, onError) => onSnapshot(
       doc(db, 'artifacts', appId, 'public', 'data', 'users', email),
       snapshot => onRole(snapshot.exists() ? snapshot.data().role : null),
@@ -461,13 +463,12 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
     await signOut(auth);
     setUserRole(null); setUserEmail(''); setIsVisualEditMode(false);
     setShowAdminPanel(false); setActiveTab('home');
-    await signInAnonymously(auth);
   }, []);
 
   const handleGoogleLogin = useCallback(async () => {
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
       const email = result.user.email.toLowerCase();
 
       if (email === HOST_EMAIL.toLowerCase()) {
@@ -492,12 +493,12 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
           setUserRole(finalRole); setUserEmail(email);
           setShowLoginModal(false); setShowAdminPanel(true);
         } else {
-          await signOut(auth); await signInAnonymously(auth);
+          await signOut(auth);
           throw new Error('บัญชีของคุณอยู่ระหว่างรอ Host อนุมัติ');
         }
       } else {
         await setDoc(userDocRef, { email, role: 'pending', name: result.user.displayName || '', createdAt: serverTimestamp() });
-        await signOut(auth); await signInAnonymously(auth);
+        await signOut(auth);
         throw new Error('ส่งคำขอเข้าใช้งานสำเร็จแล้ว กรุณารอ Host อนุมัติสิทธิ์');
       }
     } catch (error) {

@@ -13,6 +13,7 @@
  */
 
 import Head from 'next/head';
+import dynamic from 'next/dynamic';
 import { ARTICLES_PATH } from '../../lib/articleCatalogue';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -24,14 +25,8 @@ import {
 import useSiteData from './useSiteData';
 import PublicDataNotice from './PublicDataNotice';
 import SeoBrowse, { LandingLinks } from './SeoBrowse';
-import LocationGuide from './LocationGuide';
-import SoldHomes from './SoldHomes';
 import { seoLocationFromSearch } from '../../lib/seoLocations';
-import CinemaHero from './CinemaHero';
-import MobileHome from './MobileHome';
-import LocationListing from './LocationListing';
 import StickyContact from './StickyContact';
-import SalePageV4 from './SalePageV4';
 import useRevealOnScroll from './useRevealOnScroll';
 import { safeJsonLd } from '../../lib/seo';
 import {
@@ -39,6 +34,15 @@ import {
   LoginModal, CustomAlertModal, AdminPanel, Lightbox, SmartImage, EditableText,
   getOptimizedImg, DEFAULT_LOCATIONS_DATA, DEFAULT_VISUAL_CONTENT, db, appId, generatePropSlug,
 } from './SiteApp';
+
+// Each view still renders on the server, but the browser only downloads the code of the view
+// it shows: an ad visitor on a listing never fetches the cinema scene or the house page.
+const CinemaHero = dynamic(() => import('./CinemaHero'));
+const MobileHome = dynamic(() => import('./MobileHome'));
+const SalePageV4 = dynamic(() => import('./SalePageV4'));
+const LocationListing = dynamic(() => import('./LocationListing'));
+const LocationGuide = dynamic(() => import('./LocationGuide'));
+const SoldHomes = dynamic(() => import('./SoldHomes'));
 
 const Facebook = ({ size = 26 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
@@ -201,6 +205,26 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
   }, [activeTab, selectedProperty, loading, isCinemaView]);
 
   useEffect(() => { setIsMenuOpen(false); }, [activeTab, selectedProperty]);
+
+  // Load the footer photo only when the footer comes within ~1 screen of the viewport.
+  const footerRef = useRef(null);
+  const [footerPhoto, setFooterPhoto] = useState(false);
+  useEffect(() => {
+    const footer = footerRef.current;
+    if (!footer || footerPhoto) return;
+    if (typeof IntersectionObserver !== 'function') { setFooterPhoto(true); return; }
+    const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) setFooterPhoto(true); }, { rootMargin: '800px 0px' });
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, [footerPhoto]);
+
+  // Warm the house-page code once the list has settled, so tapping a card does not wait for it.
+  useEffect(() => {
+    const warm = () => { import('./SalePageV4'); };
+    const idle = typeof window.requestIdleCallback === 'function';
+    const id = idle ? window.requestIdleCallback(warm, { timeout: 6000 }) : setTimeout(warm, 4000);
+    return () => (idle ? window.cancelIdleCallback(id) : clearTimeout(id));
+  }, []);
 
 
   const navTransparent = isCinemaView && navOverHero;
@@ -583,7 +607,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
         </main>
 
         {/* ---------- ท้ายเว็บ ---------- */}
-        <footer className="v4-footer">
+        <footer className={`v4-footer${footerPhoto ? ' has-bg' : ''}`} ref={footerRef}>
           <div className="v4-footer-inner">
             <div>
               <h3>{companyInfo?.name || 'STARTUP UP'}</h3>
@@ -951,7 +975,7 @@ const v4Css = `
       rgba(6, 20, 10, 0.64) 38%,
       rgba(6, 20, 10, 0.88) 72%,
       rgba(6, 20, 10, 0.94) 100%),
-    url('/footer-bg.webp');
+    var(--footer-photo, none);
   background-position: center top;
   background-repeat: no-repeat;
   /**
@@ -981,12 +1005,17 @@ const v4Css = `
   .v4-footer {
     background-image:
       linear-gradient(180deg, rgba(6, 20, 10, 0.93) 0%, rgba(6, 20, 10, 0.8) 42%, rgba(6, 20, 10, 0.92) 100%),
-      url('/footer-bg-sm.webp');
+      var(--footer-photo, none);
     background-size: cover;
     background-position: center 35%;
     min-height: 0;
   }
 }
+
+/* The footer photo is attached only when the footer is near the screen (SiteV4 adds .has-bg),
+   so it never competes with the first house photo for bandwidth. */
+.v4-footer.has-bg { --footer-photo: url('/footer-bg.webp'); }
+@media (max-width: 900px) { .v4-footer.has-bg { --footer-photo: url('/footer-bg-sm.webp'); } }
 /**
  * width: 100% ขาดไม่ได้
  * พอ .v4-footer กลายเป็น flex คอลัมน์ ลูกทั้งสองก้อนก็เป็น flex item

@@ -22,7 +22,7 @@ import HouseCard, { PAYMENT_NOTE, areaHeadline } from './HouseCard';
 import React, { useState, useEffect, useRef, useMemo, useCallback, useId } from 'react';
 import { Home, MapPin, Bed, Bath, Car, Maximize, Phone, MessageCircle, Menu, X, Plus, Trash2, ShieldCheck, CheckCircle, Calculator, Users, FileText, Settings, Edit, Save, Image as ImageIcon, Layout, ChevronLeft, ChevronRight, ChevronDown, Upload, Briefcase, XCircle, Tag, Loader, Video, Check, Copy, Calendar, FolderPlus, Map as MapIcon, Search, AlertTriangle, AlertCircle, Star, ClipboardCheck, Type, LayoutTemplate, Compass, SlidersHorizontal } from 'lucide-react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { connectAuthEmulator, getAuth, onAuthStateChanged, signOut, signInAnonymously, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { connectAuthEmulator, getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserPopupRedirectResolver, onAuthStateChanged, signOut, signInAnonymously, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore, collection, addDoc as sdkAddDoc, doc, updateDoc as sdkUpdateDoc, deleteDoc as sdkDeleteDoc, onSnapshot, query, setDoc as sdkSetDoc, getDoc, serverTimestamp, writeBatch, runTransaction } from 'firebase/firestore';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
@@ -70,7 +70,15 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
+// getAuth() would attach the popup/redirect resolver, which loads Firebase's sign-in iframe and
+// Google API scripts (~130KB) on every visit. Visitors never sign in, so the resolver is passed
+// only to signInWithPopup when an admin opens the Google popup.
+const createAuth = () => {
+  if (typeof window === 'undefined') return getAuth(app);
+  try { return initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] }); }
+  catch { return getAuth(app); } // already initialised (hot reload)
+};
+const auth = createAuth();
 if (useFirebaseEmulator && !auth.emulatorConfig) {
   connectAuthEmulator(auth, 'http://127.0.0.1:9097', { disableWarnings: true });
   connectFirestoreEmulator(db, '127.0.0.1', 8093);
@@ -3613,7 +3621,7 @@ export default function App() {
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try {
-        const result = await signInWithPopup(auth, provider);
+        const result = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
         const userEmail = result.user.email.toLowerCase();
 
         if (userEmail === HOST_EMAIL.toLowerCase()) {

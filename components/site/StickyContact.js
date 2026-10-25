@@ -16,7 +16,7 @@ export default function StickyContact({ phone, isEditMode = false }) {
         </a>
         <a href={isEditMode ? '#' : lineContactHref()} data-contact-placement="sticky_bar" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 min-h-[48px] rounded-xl bg-[#06c755] text-white font-medium text-[16px]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/line.png" alt="" width="20" height="20" /> ทัก LINE
+          <img src="/brand/line-48.png" alt="" width="20" height="20" /> ทัก LINE
         </a>
       </div>
     </div>
