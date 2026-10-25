@@ -375,7 +375,9 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
                   }}
                 >
                   {isVisualEditMode
-                    ? <EditableText tag="span" fieldKey={tab.field} content={visualContent} updateContent={updateVisualContent} isEditMode />
+                    // navAll/navArticles have no saved value yet; without a fallback EditableText renders nothing
+                    // and the item disappears in edit mode. Seed it with the label shown to visitors.
+                    ? <EditableText tag="span" fieldKey={tab.field} content={{ ...visualContent, [tab.field]: label(tab.field, tab.fallback) }} updateContent={updateVisualContent} isEditMode />
                     : label(tab.field, tab.fallback)}
                 </a>
               ))}
