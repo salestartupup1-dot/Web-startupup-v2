@@ -1805,7 +1805,7 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
   const hrefForPage = page => listingHref({ activeTab, searchParams, location: locationLanding, listing: state, page, basePath });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pt-6 pb-16 md:py-16 min-h-screen flex flex-col reveal-on-scroll">
+    <div className="max-w-7xl mx-auto px-4 pt-6 pb-16 md:py-16 min-h-screen flex flex-col">
       {locationLanding?.kind && <nav aria-label="เส้นทางหน้าปัจจุบัน" className="mb-5 text-sm text-brand-green">
         <ol className="flex flex-wrap items-center gap-2">
           <li><a href="/" className="underline underline-offset-4 focus-visible:outline focus-visible:outline-2">หน้าหลัก</a></li>
