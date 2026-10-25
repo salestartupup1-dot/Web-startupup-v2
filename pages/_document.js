@@ -1,4 +1,5 @@
 import { Html, Head, Main, NextScript } from 'next/document'
+import { PROPERTY_STARTUP_SCRIPT } from '../lib/propertyStartup'
 
 const GOOGLE_TAG_MANAGER_ID = 'GTM-N27PQGL2'
 
@@ -50,6 +51,7 @@ export default function Document(props) {
   return (
     <Html lang="th">
       <Head>
+        <script id="property-startup" dangerouslySetInnerHTML={{ __html: PROPERTY_STARTUP_SCRIPT }} />
         <script id="home-reload-start" dangerouslySetInnerHTML={{ __html: HOME_RELOAD_START }} />
         <link rel="preconnect" href="https://firestore.googleapis.com" crossOrigin="" />
         <link rel="preconnect" href="https://res.cloudinary.com" />
