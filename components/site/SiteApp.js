@@ -2225,14 +2225,19 @@ function AdminPanel({ userRole, userEmail, properties, users, companyInfo, popup
     const loadStockCheck = useCallback(async ({ force = false } = {}) => {
         setIsStockRefreshing(true);
         try {
-            const res = await fetch(`/api/stock-check${force ? '?refresh=1' : ''}`);
-            if (!res.ok) throw new Error('เช็ค Master Stock ไม่สำเร็จ');
+            const user = auth.currentUser;
+            if (!user || user.isAnonymous) throw new Error('ต้องเข้าสู่ระบบก่อน');
+            const res = await fetch(`/api/stock-check${force ? '?refresh=1' : ''}`, {
+                headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+            });
+            // 401/403 carry a Thai reason (expired login, no admin role); show it instead of a generic failure.
+            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'เช็ค Master Stock ไม่สำเร็จ');
             const data = await res.json();
             if (!data?.houses) throw new Error('เช็ค Master Stock ไม่สำเร็จ');
             setStockIndex(data);
             setStockCheckError(data.stale ? 'ข้อมูล Master Stock อาจไม่ใช่ล่าสุด' : '');
-        } catch {
-            setStockCheckError('เช็ค Master Stock ไม่สำเร็จ');
+        } catch (error) {
+            setStockCheckError(error.message || 'เช็ค Master Stock ไม่สำเร็จ');
         } finally {
             setIsStockRefreshing(false);
         }
