@@ -9,12 +9,8 @@ test('search links with query=lat,lng are read', () => {
   );
 });
 
-test('place pages shared from a phone fall back to the preview map centre', () => {
+// หน้าของลิงก์ที่แชร์จากมือถือมี center= เป็นจุดตั้งต้นตาม IP ของคนเปิด (บ้านคนละที่ได้ค่าเดียวกัน)
+test('the preview map centre is never treated as the house location', () => {
   const html = '<meta content="https://maps.google.com/maps/api/staticmap?center=14.041088%2C100.6731264&amp;zoom=16">';
-  assert.deepEqual(extractCoords(html), [14.041088, 100.673126]);
-});
-
-test('the exact place pin still wins over the preview centre', () => {
-  const text = 'center=14.1%2C100.1 data=!3d14.2!4d100.2';
-  assert.deepEqual(extractCoords(text), [14.2, 100.2]);
+  assert.equal(extractCoords(html), null);
 });
