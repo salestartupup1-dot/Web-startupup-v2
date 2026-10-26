@@ -1,5 +1,6 @@
 import { promotionImage } from '../../lib/promotionImage';
 export default function PromotionDocument({ imageUrl }) {
+  const image = imageUrl ? promotionImage(imageUrl) : null;
   return <>
     <style>{`
       body:has(.site-promotion[open]) { overflow:hidden !important; }
@@ -16,8 +17,9 @@ export default function PromotionDocument({ imageUrl }) {
       @media(max-width:420px) { .site-promotion footer { padding:12px; gap:8px; font-size:12px; } }
     `}</style>
     <dialog id="site-promotion" data-image-url={imageUrl || ''} className="site-promotion" aria-label="โปรโมชั่น" aria-modal="true">
+      {/* The bootstrap fills in src after first paint, so the photo never competes with the page. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img {...(imageUrl ? promotionImage(imageUrl) : {})} className="v4-popup-img" alt="โปรโมชั่น" fetchPriority="low" />
+      <img data-src={image?.src} data-srcset={image?.srcSet} data-sizes={image?.sizes} className="v4-popup-img" alt="โปรโมชั่น" fetchPriority="low" />
       <footer><label><input type="checkbox" />ไม่แสดงหน้านี้อีกใน 24 ชม.</label><button type="button" autoFocus>ปิดหน้าต่าง</button></footer>
     </dialog>
   </>;
