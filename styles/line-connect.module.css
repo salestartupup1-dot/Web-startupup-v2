@@ -47,6 +47,9 @@
 .card details { font-size: 13px; text-align: left; margin-top: 18px; }
 .card summary { cursor: pointer; padding: 8px 0; }
 .card .privacy { justify-content: center; gap: 7px; font-size: 11px; color: #52675b; border-top: 1px solid #dce5dc; margin-top: 20px; padding-top: 10px; }
+.card .lineButton { gap: 10px; min-height: 54px; margin-top: 16px; border: 0; border-radius: 14px; background: #06c755; font-size: 17px; font-weight: 500; box-shadow: 0 10px 24px -12px #06c755; }
+.card .lineButton:hover { background: #05b04b; }
+.card .lineButton img { flex-shrink: 0; border-radius: 6px; box-shadow: 0 0 0 2px #fff; }
 .progress { width: 44px; height: 4px; overflow: hidden; background: #dcefe1; margin: 18px auto; border-radius: 3px; }
 .progress span { display: block; width: 22px; height: 100%; background: #06c755; border-radius: inherit; animation: connecting 1.4s ease-in-out infinite alternate; }
 @keyframes connecting { to { transform: translateX(22px); } }
