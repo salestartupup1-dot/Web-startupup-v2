@@ -72,3 +72,13 @@ test('cold registry scans once and saves a shared identity-only snapshot',async(
   assert.equal(await links.create('houseA'),'/a123bc');assert.equal(reads,1);
   assert.deepEqual(memory.get('immutable-property-short-index-v1'),[['houseA','a123bc']]);
 });
+
+test('home page HTML may be shared by the CDN for at most a minute; other pages stay uncached', async()=>{
+  const home={query:{tab:'location',gclid:'abc'},resolvedUrl:'/?tab=location&gclid=abc',res:response()};
+  assert.ok((await loadSitePage(home,deps)).props);
+  assert.equal(home.res.headers['Cache-Control'],'public, max-age=0, must-revalidate');
+  assert.equal(home.res.headers['Vercel-CDN-Cache-Control'],'max-age=30, stale-while-revalidate=30');
+  const location={query:{},resolvedUrl:'/บ้านมือสอง-คลองหลวง',res:response()};
+  await loadSitePage(location,deps);
+  assert.equal(location.res.headers['Vercel-CDN-Cache-Control'],'no-store');
+});

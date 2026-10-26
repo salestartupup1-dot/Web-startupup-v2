@@ -25,6 +25,8 @@ async def main():
     await c.route('**/*',route)
     await page.goto(BASE+'/?popup=/featured/singlehouse.jpg',wait_until='commit')
     d=page.get_by_role('dialog',name='โปรโมชั่น')
+    await page.wait_for_selector('#site-promotion',state='attached')
+    await page.mouse.wheel(0,400)
     await expect(d).to_be_visible(timeout=30000)
     assert not release.is_set()
     await expect(d.locator('img')).to_have_attribute('width','900')

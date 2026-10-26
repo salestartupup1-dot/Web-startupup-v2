@@ -27,8 +27,11 @@ with sync_playwright() as p:
             context.route('**/*',route)
             page.add_init_script("""window.shifts=[]; try {new PerformanceObserver(l=>{for(const e of l.getEntries()) if(!e.hadRecentInput) shifts.push(e.value)}).observe({type:'layout-shift',buffered:true})}catch{}""")
             response=page.goto(BASE+'/?popup='+quote('/featured/singlehouse.jpg'),wait_until='domcontentloaded')
-            assert 'rel="preload" as="image"' in response.text()
+            assert 'id="site-promotion"' in response.text()
             dialog=page.get_by_role('dialog',name='โปรโมชั่น')
+            page.wait_for_timeout(1500)
+            expect(dialog).to_be_hidden()  # waits for the visitor to scroll
+            page.mouse.wheel(0,400)
             expect(dialog).to_be_visible(timeout=30000)
             assert dialog.locator('img').evaluate('(i)=>i.width>0 && i.getAttribute("width")==i.naturalWidth && i.getAttribute("height")==i.naturalHeight')
             page.wait_for_timeout(1200)

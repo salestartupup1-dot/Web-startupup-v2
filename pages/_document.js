@@ -61,7 +61,6 @@ export default function Document(props) {
         <script id="home-reload-start" dangerouslySetInnerHTML={{ __html: HOME_RELOAD_START }} />
         <link rel="preconnect" href="https://firestore.googleapis.com" crossOrigin="" />
         <link rel="preconnect" href="https://res.cloudinary.com" />
-        {popup && <link rel="preload" as="image" href={popup.src} imageSrcSet={popup.srcSet} imageSizes={popup.sizes} fetchPriority="high" />}
         <link rel="preload" as="font" href="/fonts/prompt/prompt-400-thai.woff2" type="font/woff2" crossOrigin="anonymous" />
         {/* Prompt is self-hosted (styles/fonts.css); the old Google Fonts stylesheet blocked first paint. */}
 

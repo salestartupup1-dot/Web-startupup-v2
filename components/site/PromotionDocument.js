@@ -17,7 +17,7 @@ export default function PromotionDocument({ imageUrl }) {
     `}</style>
     <dialog id="site-promotion" data-image-url={imageUrl || ''} className="site-promotion" aria-label="โปรโมชั่น" aria-modal="true">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img {...(imageUrl ? promotionImage(imageUrl) : {})} className="v4-popup-img" alt="โปรโมชั่น" fetchPriority="high" />
+      <img {...(imageUrl ? promotionImage(imageUrl) : {})} className="v4-popup-img" alt="โปรโมชั่น" fetchPriority="low" />
       <footer><label><input type="checkbox" />ไม่แสดงหน้านี้อีกใน 24 ชม.</label><button type="button" autoFocus>ปิดหน้าต่าง</button></footer>
     </dialog>
   </>;
