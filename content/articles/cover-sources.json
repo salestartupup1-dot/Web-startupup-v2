@@ -1,0 +1,182 @@
+{
+  "fees": {
+    "source": "https://www.pexels.com/photo/real-estate-keys-and-documents-with-house-models-34135038/",
+    "download": "https://images.pexels.com/photos/34135038/pexels-photo-34135038.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "author": "Jakub Zerdzicki",
+    "license": "Pexels",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "alt": "กุญแจบ้านและเอกสารประกอบการวางแผนค่าโอน",
+    "note": "ภาพประกอบ ไม่ใช่ลูกค้าหรือพนักงาน Startup Up และไม่ใช่สถานที่จริงที่ระบุในบทความ"
+  },
+  "mortgage": {
+    "source": "https://www.pexels.com/photo/woman-signing-a-document-near-a-laptop-7518972/",
+    "download": "https://images.pexels.com/photos/7518972/pexels-photo-7518972.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "author": "Pavel Danilyuk",
+    "license": "Pexels",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "alt": "การจัดเตรียมและลงนามเอกสารข้างคอมพิวเตอร์",
+    "note": "ภาพประกอบ ไม่ใช่ลูกค้าหรือพนักงาน Startup Up และไม่ใช่สถานที่จริงที่ระบุในบทความ"
+  },
+  "budget": {
+    "source": "https://www.pexels.com/photo/gray-and-black-calculator-on-the-table-8293750/",
+    "download": "https://images.pexels.com/photos/8293750/pexels-photo-8293750.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "author": "RDNE Stock project",
+    "license": "Pexels",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "alt": "เครื่องคิดเลข กุญแจ และเอกสารสำหรับวางแผนงบซื้อบ้าน",
+    "note": "ภาพประกอบ ไม่ใช่ลูกค้าหรือพนักงาน Startup Up และไม่ใช่สถานที่จริงที่ระบุในบทความ"
+  },
+  "credit": {
+    "source": "https://www.pexels.com/photo/pen-calculator-and-magnifying-glass-on-documents-13156204/",
+    "download": "https://images.pexels.com/photos/13156204/pexels-photo-13156204.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "author": "Towfiqu barbhuiya",
+    "license": "Pexels",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "alt": "แว่นขยายและเครื่องคิดเลขบนเอกสารสำหรับทบทวนข้อมูลการเงิน",
+    "note": "ภาพประกอบ ไม่ใช่ลูกค้าหรือพนักงาน Startup Up และไม่ใช่สถานที่จริงที่ระบุในบทความ"
+  },
+  "freelance": {
+    "source": "https://www.pexels.com/photo/freelancer-typing-on-laptop-while-working-remotely-7241378/",
+    "download": "https://images.pexels.com/photos/7241378/pexels-photo-7241378.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "author": "Eren Li",
+    "license": "Pexels",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "alt": "มือผู้ทำงานอิสระใช้คอมพิวเตอร์บนโต๊ะทำงาน",
+    "note": "ภาพประกอบ ไม่ใช่ลูกค้าหรือพนักงาน Startup Up และไม่ใช่สถานที่จริงที่ระบุในบทความ"
+  },
+  "closing-costs": {
+    "source": "https://www.pexels.com/photo/person-in-long-sleeve-shirt-holding-a-calculator-8297031/",
+    "download": "https://images.pexels.com/photos/8297031/pexels-photo-8297031.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "author": "Mikhail Nilov",
+    "license": "Pexels",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "alt": "การคำนวณและจดบันทึกค่าใช้จ่ายจากเอกสาร",
+    "note": "ภาพประกอบ ไม่ใช่ลูกค้าหรือพนักงาน Startup Up และไม่ใช่สถานที่จริงที่ระบุในบทความ"
+  },
+  "steps": {
+    "source": "https://www.pexels.com/photo/a-home-key-over-a-carton-box-8292772/",
+    "download": "https://images.pexels.com/photos/8292772/pexels-photo-8292772.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "author": "RDNE Stock project",
+    "license": "Pexels",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "alt": "กุญแจบ้านบนกล่องย้ายบ้านและอุปกรณ์วางแผนเข้าพัก",
+    "note": "ภาพประกอบ ไม่ใช่ลูกค้าหรือพนักงาน Startup Up และไม่ใช่สถานที่จริงที่ระบุในบทความ"
+  },
+  "contract": {
+    "source": "https://www.pexels.com/photo/a-person-signing-a-contract-8815849/",
+    "download": "https://images.pexels.com/photos/8815849/pexels-photo-8815849.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "author": "Kampus Production",
+    "license": "Pexels",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "alt": "มือกำลังลงนามในเอกสารสัญญา",
+    "note": "ภาพประกอบ ไม่ใช่ลูกค้าหรือพนักงาน Startup Up และไม่ใช่สถานที่จริงที่ระบุในบทความ"
+  },
+  "transfer": {
+    "source": "https://www.pexels.com/photo/crop-businessman-signing-contract-in-office-3771097/",
+    "download": "https://images.pexels.com/photos/3771097/pexels-photo-3771097.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "author": "Andrea Piacquadio",
+    "license": "Pexels",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "alt": "การลงนามและตรวจเอกสารบนโต๊ะทำงาน",
+    "note": "ภาพประกอบ ไม่ใช่ลูกค้าหรือพนักงาน Startup Up และไม่ใช่สถานที่จริงที่ระบุในบทความ"
+  },
+  "inspection": {
+    "source": "https://www.pexels.com/photo/close-up-of-tape-measure-on-construction-site-30413398/",
+    "download": "https://images.pexels.com/photos/30413398/pexels-photo-30413398.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "author": "Christina & Peter",
+    "license": "Pexels",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "alt": "ตลับเมตรสำหรับตรวจวัดพื้นที่และงานก่อสร้าง",
+    "note": "ภาพประกอบ ไม่ใช่ลูกค้าหรือพนักงาน Startup Up และไม่ใช่สถานที่จริงที่ระบุในบทความ"
+  },
+  "renovation": {
+    "source": "https://www.pexels.com/photo/man-in-white-crew-neck-t-shirt-wearing-white-cap-holding-white-paint-brush-4981801/",
+    "download": "https://images.pexels.com/photos/4981801/pexels-photo-4981801.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "author": "Antoni Shkraba",
+    "license": "Pexels",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "alt": "ช่างใช้ตลับเมตรวัดพื้นที่ภายในระหว่างปรับปรุงห้อง",
+    "note": "ภาพประกอบ ไม่ใช่ลูกค้าหรือพนักงาน Startup Up และไม่ใช่สถานที่จริงที่ระบุในบทความ"
+  },
+  "sunlight": {
+    "source": "https://www.pexels.com/photo/cozy-sunlit-living-room-with-indoor-plants-35633289/",
+    "download": "https://images.pexels.com/photos/35633289/pexels-photo-35633289.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "author": "Lydia Griva",
+    "license": "Pexels",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "alt": "แสงธรรมชาติเข้าห้องนั่งเล่นผ่านหน้าต่าง",
+    "note": "ภาพประกอบ ไม่ใช่ลูกค้าหรือพนักงาน Startup Up และไม่ใช่สถานที่จริงที่ระบุในบทความ"
+  },
+  "industry": {
+    "source": "https://www.pexels.com/photo/shelves-in-a-warehouse-4481327/",
+    "download": "https://images.pexels.com/photos/4481327/pexels-photo-4481327.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "author": "Tiger Lily",
+    "license": "Pexels",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "alt": "ชั้นเก็บสินค้าในคลังสินค้า ภาพประกอบเรื่องบ้านใกล้แหล่งงานอุตสาหกรรม",
+    "note": "ภาพประกอบ ไม่ใช่ลูกค้าหรือพนักงาน Startup Up และไม่ใช่สถานที่จริงที่ระบุในบทความ"
+  },
+  "flood": {
+    "source": "https://www.pexels.com/photo/rainy-window-with-water-droplets-and-distant-sky-35332884/",
+    "download": "https://images.pexels.com/photos/35332884/pexels-photo-35332884.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "author": "Szcze hoo",
+    "license": "Pexels",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "alt": "หยดฝนบนกระจกและท้องฟ้าครึ้ม ประกอบเรื่องตรวจความเสี่ยงน้ำท่วม",
+    "note": "ภาพประกอบ ไม่ใช่ลูกค้าหรือพนักงาน Startup Up และไม่ใช่สถานที่จริงที่ระบุในบทความ"
+  },
+  "choices": {
+    "source": "https://www.startupup-real-estate.com/%E0%B8%9E%E0%B8%A4%E0%B8%81%E0%B8%A9%E0%B8%B2%E0%B8%A7%E0%B8%B4%E0%B8%A5%E0%B9%80%E0%B8%A5%E0%B8%88-29-36-217",
+    "download": "https://res.cloudinary.com/dm2wr55r5/image/upload/v1773402086/gncsreqfli5xywifamki.jpg",
+    "author": "Startup Up",
+    "license": "Startup Up website media",
+    "licenseUrl": null,
+    "alt": "บ้านเดี่ยว พฤกษาวิลเลจ 29 36/217 ในคลังภาพ Startup Up",
+    "note": "ภาพบ้านจากเว็บไซต์ Startup Up ใช้ประกอบเนื้อหา ไม่ระบุสถานะขายในภาพปก"
+  },
+  "townhouse": {
+    "source": "https://www.startupup-real-estate.com/%E0%B9%84%E0%B8%97%E0%B8%A2%E0%B8%AA%E0%B8%A1%E0%B8%9A%E0%B8%A3%E0%B8%B9%E0%B8%93%E0%B9%8C-3-48-66",
+    "download": "https://res.cloudinary.com/dm2wr55r5/image/upload/v1783490512/iv2j3wu4iuhrryjx3rql.jpg",
+    "author": "Startup Up",
+    "license": "Startup Up website media",
+    "licenseUrl": null,
+    "alt": "ทาวน์เฮาส์รีโนเวท ไทยสมบรูณ์ 3 บ้านเลขที่ 48/66 ในคลังภาพ Startup Up",
+    "note": "ภาพบ้านจากเว็บไซต์ Startup Up ใช้ประกอบเนื้อหา ไม่ระบุสถานะขายในภาพปก"
+  },
+  "corner": {
+    "source": "https://www.startupup-real-estate.com/%E0%B8%9E%E0%B8%B2%E0%B8%A5%E0%B8%B2%E0%B8%8B%E0%B9%80%E0%B8%8B%E0%B9%87%E0%B8%95%E0%B9%82%E0%B8%95%E0%B9%89-89-121",
+    "download": "https://res.cloudinary.com/dm2wr55r5/image/upload/v1774076426/cfgkey5yyk8jc1gayud2.jpg",
+    "author": "Startup Up",
+    "license": "Startup Up website media",
+    "licenseUrl": null,
+    "alt": "ทาวน์เฮาส์หลังริม พาลาซเซ็ตโต้ 89/121 ในคลังภาพ Startup Up",
+    "note": "ภาพบ้านจากเว็บไซต์ Startup Up ใช้ประกอบเนื้อหา ไม่ระบุสถานะขายในภาพปก"
+  },
+  "location": {
+    "source": "https://www.startupup-real-estate.com/%E0%B9%84%E0%B8%97%E0%B8%A2%E0%B8%AA%E0%B8%A1%E0%B8%9A%E0%B8%A3%E0%B8%B9%E0%B8%93%E0%B9%8C-2-34-74",
+    "download": "https://res.cloudinary.com/dm2wr55r5/image/upload/v1787974836/rpoh6w7tjkhywhbzo07r.jpg",
+    "author": "Startup Up",
+    "license": "Startup Up website media",
+    "licenseUrl": null,
+    "alt": "ทาวน์เฮาส์ ไทยสมบรูณ์ 2 34/74 ในคลังภาพ Startup Up",
+    "note": "ภาพบ้านจากเว็บไซต์ Startup Up ใช้ประกอบเนื้อหา ไม่ระบุสถานะขายในภาพปก"
+  },
+  "pruksa": {
+    "source": "https://www.startupup-real-estate.com/%E0%B8%9E%E0%B8%A4%E0%B8%81%E0%B8%A9%E0%B8%B2-119-38-335",
+    "download": "https://res.cloudinary.com/dm2wr55r5/image/upload/v1790756963/h1ls8aaamofxakjzmbon.jpg",
+    "author": "Startup Up",
+    "license": "Startup Up website media",
+    "licenseUrl": null,
+    "alt": "ทาวน์เฮาส์ พฤกษา 119 38/335 ในคลังภาพ Startup Up",
+    "note": "ภาพบ้านจากเว็บไซต์ Startup Up ใช้ประกอบเนื้อหา ไม่ระบุสถานะขายในภาพปก"
+  },
+  "university": {
+    "source": "https://commons.wikimedia.org/wiki/File:TU_Dome_P001.jpg",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/TU_Dome_P001.jpg/1280px-TU_Dome_P001.jpg",
+    "author": "APINANT Phongmethakul",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "alt": "อาคารโดมบริหาร มหาวิทยาลัยธรรมศาสตร์ ศูนย์รังสิต",
+    "note": "ย่อขนาดและครอปจากต้นฉบับ ภาพที่ปรับขนาดเผยแพร่ภายใต้ CC BY-SA 4.0"
+  }
+}

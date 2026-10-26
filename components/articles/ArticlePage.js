@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-html-link-for-pages, @next/next/no-img-element -- Static native links and original SVG covers without property prefetches. */
+/* eslint-disable @next/next/no-html-link-for-pages, @next/next/no-img-element -- Static links and local editorial photos without property prefetches. */
 import Head from 'next/head';
 import { articlePath, ARTICLES_PATH, isArticlePublishable, resolveArticleAuthor } from '../../lib/articleCatalogue';
 import { articleStructuredData, formatArticleDate, feeExample } from '../../lib/articlePresentation';
@@ -35,7 +35,7 @@ export default function ArticlePage({ article }) {
       <meta name="robots" content={isArticlePublishable(article)?'index,follow':'noindex,follow'} key="robots" />
       <meta property="og:type" content="article" /><meta property="og:locale" content="th_TH" />
       <meta property="og:title" content={article.seoTitle} /><meta property="og:description" content={article.description} /><meta property="og:url" content={canonical} />
-      {article.cover && <meta property="og:image" content={toAbsoluteUrl(article.cover.replace(/\.svg$/,'.png'))} />}
+      {article.cover && <meta property="og:image" content={toAbsoluteUrl(article.coverSocial || article.cover.replace(/\.svg$/,'.png'))} />}
       <meta property="article:published_time" content={article.datePublished} /><meta property="article:modified_time" content={article.dateModified} />
       <script key="article-schema" type="application/ld+json" dangerouslySetInnerHTML={{__html:safeJsonLd(articleStructuredData(article))}} />
     </Head>
@@ -51,7 +51,14 @@ export default function ArticlePage({ article }) {
           <nav aria-label="สารบัญบทความ"><details><summary>สารบัญบทความ</summary><ul>{article.sections.map(section=><li key={section.id}><a href={`#${section.id}`}>{section.heading}</a></li>)}<li><a href="#questions">คำถามที่พบบ่อย</a></li></ul></details></nav>
         </aside>
         <div className={styles.prose}>
-          {article.cover && <img className={styles.articleCover} src={article.cover} alt={article.coverAlt} width="960" height="640" fetchPriority="high" />}
+          {article.cover && <figure className={styles.coverFigure}>
+            <img className={styles.articleCover} src={article.cover} alt={article.coverAlt} width="960" height="640" fetchPriority="high" />
+            {article.coverCredit && <figcaption className={styles.photoCredit}>
+              {article.coverCredit.illustrative ? 'ภาพประกอบ: ' : 'ภาพ: '}<a href={article.coverCredit.url}>{article.coverCredit.name}</a>
+              {article.coverCredit.licenseUrl && <> · <a href={article.coverCredit.licenseUrl}>{article.coverCredit.license}</a></>}
+              {article.coverCredit.attributionRequired && ' · ปรับขนาดและครอปภาพ'}
+            </figcaption>}
+          </figure>}
           <div className={styles.intro}>{article.introduction.map((p,i)=><p key={i}>{p}</p>)}</div>
           {article.sections.map(section=><section id={section.id} key={section.id}>
             <h2>{section.heading}</h2>

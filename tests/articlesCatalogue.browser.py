@@ -28,7 +28,7 @@ for path in paths:
             if schema.get('@type')=='Article':
                 assert schema['author']['@type']=='Organization'
                 assert schema['publisher']['name']=='Startup Up'
-                assert schema['image'].endswith('.png')
+                assert schema['image'].endswith('.jpg')
 print('PASS all 20 SSR pages: body, metadata, canonical, author/schema and sitemap',flush=True)
 with sync_playwright() as p:
     for engine,width in [(p.chromium,1440),(p.webkit,390)]:
