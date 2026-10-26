@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import HouseHighlights from './HouseHighlights';
-import { GROUP_META } from '../lib/stock';
+import { GROUP_META, OWNER_META } from '../lib/stock';
+import { MAX_ROUTE_STOPS } from '../lib/route.mjs';
 
 const MAP_CENTER = [13.99, 100.63];
 const MAP_ZOOM = 11;
@@ -20,8 +21,10 @@ const countsLabel = (counts) => Object.entries(counts)
   .join(' · ');
 
 const housePopup = (house) => {
+  const owner = OWNER_META[house.owner];
   const rows = [
     ['ทำเล', house.zone],
+    ['ที่อยู่', house.address],
     ['ซอย', house.soi],
     ['รูปแบบ', house.style],
     ['พื้นที่', house.area],
@@ -29,6 +32,7 @@ const housePopup = (house) => {
     ['เริ่มทำ', house.startedAt],
     ['ทำเสร็จเมื่อ', house.finishedAt],
     ['ช่างที่ทำบ้าน', house.worker],
+    ['หมายเหตุ', house.note],
   ].filter(([, value]) => value);
 
   const meta = GROUP_META[house.group];
@@ -42,6 +46,7 @@ const housePopup = (house) => {
   return `
     <div class="w-60">
       <div class="text-[11px] tracking-wide" style="color:${meta.color}">${escapeHtml(house.rawStatus === meta.label ? meta.label : `${meta.label} · ${house.rawStatus}`)}</div>
+      ${owner && house.owner !== 'startup' ? `<div class="mt-1 inline-block text-[11px] font-semibold rounded-full px-2 py-0.5 text-white" style="background:${owner.color}">บ้าน ${escapeHtml(owner.label)}</div>` : ''}
       <div class="font-semibold text-[15px] text-gray-900 mt-0.5">${escapeHtml(house.project)}</div>
       <div class="text-[13px] text-gray-600">บ้านเลขที่ ${escapeHtml(house.houseNumber || '-')}</div>
       <div class="font-bold text-[15px] mt-1" style="color:#0b3d1b">${escapeHtml(formatPrice(house.price))}</div>
@@ -53,13 +58,42 @@ const housePopup = (house) => {
     </div>`;
 };
 
-export default function StockMap({ zones, view, onViewChange, activeHouseKey, onHighlightStatusChange }) {
+// ปุ่มในป๊อปอัปบ้าน: เพิ่ม/เอาออกจากเส้นทาง และนำทางไปหลังนี้หลังเดียว
+function RouteControls({ house, routeIds, onToggleRoute }) {
+  const index = routeIds.indexOf(house.uid);
+  const full = index < 0 && routeIds.length >= MAX_ROUTE_STOPS;
+  const single = `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${house.coords[0]},${house.coords[1]}`;
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+      <button
+        type="button"
+        onClick={() => onToggleRoute(house)}
+        disabled={full}
+        className={`min-h-9 rounded-lg px-3 text-[12px] font-semibold border border-brand-green disabled:opacity-40 ${index >= 0 ? 'bg-white text-brand-green' : 'bg-brand-green text-white'}`}
+      >
+        {index >= 0 ? `✓ จุดที่ ${index + 1} ในเส้นทาง · เอาออก` : full ? `เส้นทางครบ ${MAX_ROUTE_STOPS} จุดแล้ว` : '+ เพิ่มในเส้นทาง'}
+      </button>
+      <a href={single} target="_blank" rel="noreferrer" className="text-[12px] underline">นำทางไปหลังนี้</a>
+    </div>
+  );
+}
+
+export default function StockMap({
+  zones, view, onViewChange, activeHouseKey, onHighlightStatusChange, route = [], onToggleRoute, onSelectRouteStop,
+}) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
+  const routeLayerRef = useRef(null);
   const leafletRef = useRef(null);
+  // หมุดบ้านที่วาดอยู่ เปลี่ยนเลขลำดับเส้นทางได้โดยไม่ต้องวาดแผนที่ใหม่ (ซึ่งจะซูมกลับทุกครั้ง)
+  const houseMarkersRef = useRef(new Map());
+  const routeIdsRef = useRef([]);
   const [ready, setReady] = useState(false);
   const [popup, setPopup] = useState(null);
+  const routeIds = useMemo(() => route.map((stop) => stop.uid), [route]);
+
+  useEffect(() => { routeIdsRef.current = routeIds; }, [routeIds]);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +122,7 @@ export default function StockMap({ zones, view, onViewChange, activeHouseKey, on
         keepBuffer: 1,
       }).addTo(mapRef.current);
       layerRef.current = L.layerGroup().addTo(mapRef.current);
+      routeLayerRef.current = L.layerGroup().addTo(mapRef.current);
       setReady(true);
     };
 
@@ -100,6 +135,7 @@ export default function StockMap({ zones, view, onViewChange, activeHouseKey, on
       mapRef.current.remove();
       mapRef.current = null;
       layerRef.current = null;
+      routeLayerRef.current = null;
     }
   }, []);
 
@@ -111,6 +147,7 @@ export default function StockMap({ zones, view, onViewChange, activeHouseKey, on
     if (!L || !map || !layer) return;
 
     layer.clearLayers();
+    houseMarkersRef.current = new Map();
     const bounds = [];
 
     // ทุกป้ายต้องมีวงกลมเล็กอยู่ซ้ายสุดเป็นตัวชี้ตำแหน่ง แล้ว "วงกลมนั้น" คือจุดที่ทับพิกัดจริง
@@ -138,24 +175,31 @@ export default function StockMap({ zones, view, onViewChange, activeHouseKey, on
         if (!house.coords) return;
         bounds.push(house.coords);
         const meta = GROUP_META[house.group];
-        const isActive = activeHouseKey === house.rowIndex;
+        const isActive = activeHouseKey === house.uid;
+        // บ้านพาร์ทเนอร์: วงกลมชี้ตำแหน่งเป็นสีของเจ้าของ · บ้านที่อยู่ในเส้นทางมีเลขลำดับต่อท้าย
+        const ownerColor = house.owner !== 'startup' ? OWNER_META[house.owner]?.color : null;
+        const pointer = isActive ? '#fff' : ownerColor || 'rgba(255,255,255,.65)';
+        const icon = (routeNo) => pill(
+          `${dot(pointer)}${escapeHtml(house.houseNumber || meta.label)}${routeNo ? `<span class="route-no">${routeNo}</span>` : ''}`,
+          house.group,
+          `${house.precision === 'exact' ? '' : 'approx'} ${ownerColor ? 'partner' : ''}`
+        );
         const marker = L.marker(house.coords, {
-          icon: pill(
-            `${dot(isActive ? '#fff' : 'rgba(255,255,255,.65)')}${escapeHtml(house.houseNumber || meta.label)}`,
-            house.group,
-            house.precision === 'exact' ? '' : 'approx'
-          ),
+          icon: icon(routeIdsRef.current.indexOf(house.uid) + 1),
           zIndexOffset: isActive ? 1000 : 0,
         }).addTo(layer);
+        houseMarkersRef.current.set(house.uid, { marker, icon });
         const popupContent = document.createElement('div');
         popupContent.innerHTML = housePopup(house);
+        const routeControls = document.createElement('div');
+        popupContent.appendChild(routeControls);
         const highlights = document.createElement('div');
         popupContent.appendChild(highlights);
         L.DomEvent.disableClickPropagation(popupContent);
         L.DomEvent.disableScrollPropagation(popupContent);
         const popupHeight = () => Math.max(220, Math.min(460, map.getSize().y - 100));
         marker.bindPopup(popupContent, { minWidth: 280, maxWidth: 320, maxHeight: popupHeight() });
-        const popupState = { house, element: highlights, resize: () => {
+        const popupState = { house, element: highlights, routeElement: routeControls, resize: () => {
           const current = marker.getPopup();
           if (current) { current.options.maxHeight = popupHeight(); current.update(); }
         } };
@@ -200,5 +244,36 @@ export default function StockMap({ zones, view, onViewChange, activeHouseKey, on
     }
   }, [ready, zones, view, activeHouseKey, onViewChange]);
 
-  return <><div ref={containerRef} className="w-full h-[420px] lg:h-[calc(100vh-260px)] lg:min-h-[520px]" />{popup && createPortal(<HouseHighlights key={`${popup.house.project}|${popup.house.houseNumber}`} house={popup.house} onResize={popup.resize} onStatusChange={onHighlightStatusChange} />, popup.element)}</>;
+  // เลขลำดับเส้นทางบนหมุดบ้านที่วาดอยู่
+  useEffect(() => {
+    houseMarkersRef.current.forEach(({ marker, icon }, uid) => marker.setIcon(icon(routeIds.indexOf(uid) + 1)));
+  }, [routeIds]);
+
+  // จุดในเส้นทางแสดงทุกมุมมอง (เส้นประเชื่อมตามลำดับ) จะได้เห็นภาพรวมว่าต้องวิ่งไปทางไหน
+  useEffect(() => {
+    if (!ready) return;
+    const L = leafletRef.current;
+    const layer = routeLayerRef.current;
+    if (!L || !layer) return;
+    layer.clearLayers();
+    if (!route.length) return;
+
+    if (route.length > 1) {
+      L.polyline(route.map((stop) => stop.coords), {
+        color: '#0b3d1b', weight: 3, opacity: 0.6, dashArray: '6 8', interactive: false,
+      }).addTo(layer);
+    }
+    route.forEach((stop, i) => {
+      // ในมุมมองโครงการ บ้านหลังนี้มีป้ายพร้อมเลขลำดับอยู่แล้ว ไม่ต้องซ้อนหมุดอีกอัน
+      if (houseMarkersRef.current.has(stop.uid)) return;
+      const marker = L.marker(stop.coords, {
+        icon: L.divIcon({ className: '', html: `<div class="route-pin">${i + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] }),
+        zIndexOffset: 2000,
+      }).addTo(layer);
+      marker.bindTooltip(`${i + 1}. ${escapeHtml(stop.project)} · ${escapeHtml(stop.houseNumber || '-')}`, { direction: 'top', offset: [0, -12] });
+      marker.on('click', () => onSelectRouteStop?.(stop));
+    });
+  }, [ready, route, zones, view, onSelectRouteStop]);
+
+  return <><div ref={containerRef} className="w-full h-[420px] lg:h-[calc(100vh-260px)] lg:min-h-[520px]" />{popup && createPortal(<HouseHighlights key={`${popup.house.project}|${popup.house.houseNumber}`} house={popup.house} onResize={popup.resize} onStatusChange={onHighlightStatusChange} />, popup.element)}{popup && onToggleRoute && createPortal(<RouteControls house={popup.house} routeIds={routeIds} onToggleRoute={onToggleRoute} />, popup.routeElement)}</>;
 }

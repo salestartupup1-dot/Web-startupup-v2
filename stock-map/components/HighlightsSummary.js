@@ -17,7 +17,8 @@ export default function HighlightsSummary({ data, updates, onStatusChange, onSel
     }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [data, retry]);
-  const houses = useMemo(() => data.zones.flatMap(z => z.projects.flatMap(p => p.houses)), [data]);
+  // ระบบจุดเด่นตรวจเฉพาะบ้าน Startup Up (บ้านพาร์ทเนอร์ยังเปิดดู/แก้จุดเด่นจากหมุดบนแผนที่ได้)
+  const houses = useMemo(() => data.zones.flatMap(z => z.projects.flatMap(p => p.houses)).filter(h => h.owner === 'startup'), [data]);
   const recentUpdates = Object.fromEntries(Object.entries(updates).filter(([, update]) => update.at >= Date.parse(result?.checkedAt || '1970-01-01')).map(([key, update]) => [key, update.value]));
   const { missing, unknown, complete } = summarizeHighlightStatuses(houses, { ...result?.statuses, ...recentUpdates });
   return <section aria-label="สรุปจุดเด่นของบ้าน" className="mt-4 rounded-2xl border border-amber-200 bg-white p-4">
@@ -32,7 +33,7 @@ export default function HighlightsSummary({ data, updates, onStatusChange, onSel
       <p className="mt-2 text-xs text-gray-500">มีจุดเด่นแล้ว {complete.toLocaleString('th-TH')} หลัง{unknown.length > 0 && ` · รอตรวจสอบ ${unknown.length} หลัง`}{result?.checkedAt && ` · ตรวจล่าสุด ${new Date(result.checkedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}`}</p>
       {unknown.length > 0 && <p role="status" className="mt-2 text-xs text-amber-700">ข้อมูลบ้านบางหลังเพิ่งเปลี่ยน กรุณาตรวจสอบอีกครั้งในหนึ่งนาที</p>}
       {missing.length ? <ul className="mt-3 grid max-h-64 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3" aria-label="รายชื่อบ้านที่ยังไม่มีจุดเด่น">
-        {missing.map(house => <li key={house.rowIndex}>
+        {missing.map(house => <li key={house.uid}>
           <button type="button" onClick={() => house.coords ? onSelect(house) : setUnlocated(house)} className="w-full rounded-xl border border-gray-200 px-3 py-3 text-left hover:border-brand-green hover:bg-brand-light focus-visible:outline-2 focus-visible:outline-brand-green">
             <span className="block text-sm font-semibold text-brand-green">{house.project} · {house.houseNumber || 'ไม่ระบุเลขที่'}</span>
             <span className="mt-1 block text-xs text-gray-500">{house.zone || 'ไม่ระบุทำเล'} · {house.rawStatus}{!house.coords && ' · ยังไม่มีพิกัด'}</span>

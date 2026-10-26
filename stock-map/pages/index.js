@@ -3,14 +3,16 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { HighlightAccount } from '../components/HighlightAuth';
 import HighlightsSummary from '../components/HighlightsSummary';
+import RoutePlanner from '../components/RoutePlanner';
 import { highlightKey } from '../lib/highlights.mjs';
 import { statusOptions, matchesStatus, toggleStatus, isStatusGroup } from '../lib/statusFilters.mjs';
+import { MAX_ROUTE_STOPS, toRouteStop, toggleRouteStop } from '../lib/route.mjs';
 import {
   Home, MapPin, Hammer, CheckCircle, Users, RefreshCw, ChevronRight, ChevronDown,
-  Search, AlertTriangle, Layers, ArrowLeft, ExternalLink
+  Search, AlertTriangle, Layers, ArrowLeft, ExternalLink, Plus
 } from 'lucide-react';
 import {
-  GROUP_META, GROUP_ORDER, SIZE_BUCKETS, STYLE_LABELS, STYLE_ORDER, parseZoneName
+  GROUP_META, GROUP_ORDER, OWNER_META, OWNER_ORDER, SIZE_BUCKETS, STYLE_LABELS, STYLE_ORDER, parseZoneName
 } from '../lib/stock';
 
 const StockMap = dynamic(() => import('../components/StockMap'), {
@@ -32,6 +34,17 @@ const formatUpdated = (iso) => {
 };
 
 const normalize = (value) => String(value ?? '').toLowerCase().replace(/\s+/g, '');
+
+// จำตัวเลือกเจ้าของและเส้นทางไว้ในเครื่อง — เปิดหน้าใหม่แล้วยังอยู่ (โหมดส่วนตัวอาจใช้ไม่ได้ ก็แค่ไม่จำ)
+const STORAGE_KEYS = { hiddenOwners: 'stockmap.hiddenOwners.v1', route: 'stockmap.route.v1' };
+const readStored = (key) => {
+  try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
+};
+const writeStored = (key, value) => {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ไม่จำก็ได้ */ }
+};
+const isStop = (stop) => stop && typeof stop.uid === 'string' && Array.isArray(stop.coords) && stop.coords.length === 2;
+const stopIdentity = (house) => `${house.owner}|${normalize(house.project)}|${normalize(house.houseNumber)}`;
 
 function StatCard({ icon: Icon, label, value, sub, color, active, onClick }) {
   const Tag = onClick ? 'button' : 'div';
@@ -84,28 +97,42 @@ function MatrixCell({ value, active, onClick }) {
   );
 }
 
-function HouseRow({ house, active, onClick }) {
+function HouseRow({ house, active, onClick, routeNo, routeFull, onToggleRoute }) {
   const meta = GROUP_META[house.group];
+  const owner = house.owner !== 'startup' ? OWNER_META[house.owner] : null;
+  const canAdd = house.coords && (routeNo || !routeFull);
   return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left px-3 py-2 rounded-lg border transition flex items-start gap-2 ${active ? 'bg-brand-light border-brand-green' : 'bg-white border-gray-100 hover:border-gray-300'}`}
-    >
-      <span className="mt-1.5 w-2 h-2 rounded-full flex-none" style={{ background: meta.color }} />
-      <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-medium text-gray-800 truncate">
-          บ้านเลขที่ {house.houseNumber || '—'}
+    <div className={`rounded-lg border transition flex items-stretch ${active ? 'bg-brand-light border-brand-green' : 'bg-white border-gray-100 hover:border-gray-300'}`}>
+      <button onClick={onClick} className="min-w-0 flex-1 text-left px-3 py-2 flex items-start gap-2">
+        <span className="mt-1.5 w-2 h-2 rounded-full flex-none" style={{ background: meta.color }} />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-medium text-gray-800 truncate">
+            บ้านเลขที่ {house.houseNumber || '—'}
+            {owner && <span className="ml-1.5 text-[10px] font-semibold rounded-full px-1.5 py-0.5 text-white align-middle" style={{ background: owner.color }}>{owner.label}</span>}
+          </span>
+          <span className="block text-[11px] text-gray-500 truncate">
+            {house.rawStatus} · {formatPrice(house.price)}
+            {house.style ? ` · ${house.style}` : ''}
+            {house.area ? ` · ${house.area}` : ''}
+          </span>
         </span>
-        <span className="block text-[11px] text-gray-500 truncate">
-          {house.rawStatus} · {formatPrice(house.price)}
-          {house.style ? ` · ${house.style}` : ''}
-          {house.area ? ` · ${house.area}` : ''}
-        </span>
-      </span>
-      {house.precision !== 'exact' && (
-        <AlertTriangle size={13} className="text-amber-500 mt-1 flex-none" title="ตำแหน่งโดยประมาณ" />
-      )}
-    </button>
+        {house.precision !== 'exact' && (
+          <AlertTriangle size={13} className="text-amber-500 mt-1 flex-none" title="ตำแหน่งโดยประมาณ" />
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={onToggleRoute}
+        disabled={!canAdd}
+        aria-label={routeNo ? `จุดที่ ${routeNo} ในเส้นทาง กดเพื่อเอาออก` : 'เพิ่มในเส้นทาง'}
+        title={!house.coords ? 'ยังไม่มีพิกัด' : routeNo ? 'เอาออกจากเส้นทาง' : routeFull ? `เส้นทางครบ ${MAX_ROUTE_STOPS} จุดแล้ว` : 'เพิ่มในเส้นทาง'}
+        className="w-11 flex-none grid place-items-center border-l border-gray-100 text-brand-green disabled:text-gray-300"
+      >
+        {routeNo
+          ? <span className="w-6 h-6 rounded-full bg-brand-green text-white text-[12px] font-bold grid place-items-center">{routeNo}</span>
+          : <Plus size={17} />}
+      </button>
+    </div>
   );
 }
 
@@ -139,18 +166,38 @@ export default function StockMapPage({ siteUrl = '' }) {
   const [activeHouseKey, setActiveHouseKey] = useState(null);
   const [openZones, setOpenZones] = useState({});
   const [highlightUpdates, setHighlightUpdates] = useState({});
+  const [hiddenOwners, setHiddenOwners] = useState([]);
+  const [route, setRoute] = useState([]);
+  const [storageLoaded, setStorageLoaded] = useState(false);
   const mapSection = useRef(null);
   const handleHighlightStatus = useCallback((house, hasHighlights) => {
     const key = highlightKey(house);
     setHighlightUpdates(previous => ({ ...previous, [key]: { value: hasHighlights, at: Date.now() } }));
   }, []);
-  const selectMissingHouse = useCallback(house => {
+  // พาไปที่บ้านหลังหนึ่งบนแผนที่ — ล้างตัวกรองที่อาจซ่อนบ้านหลังนั้นอยู่ก่อน
+  const focusHouse = useCallback(house => {
+    const zone = house.zone || 'ไม่ระบุทำเล';
     setSearch(''); setStatusFilter(null); setStyleFilter(null); setSizeFilter(null);
-    setView({ zone: house.zone, project: house.project });
-    setOpenZones(previous => ({ ...previous, [house.zone]: true }));
-    setActiveHouseKey(house.rowIndex);
+    setHiddenOwners(previous => previous.filter(owner => owner !== house.owner));
+    setView({ zone, project: house.project || 'ไม่ระบุโครงการ' });
+    setOpenZones(previous => ({ ...previous, [zone]: true }));
+    setActiveHouseKey(house.uid);
     mapSection.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
+  const toggleRoute = useCallback(house => setRoute(previous => toggleRouteStop(previous, house)), []);
+  const toggleOwner = owner => setHiddenOwners(previous => (
+    previous.includes(owner) ? previous.filter(key => key !== owner) : [...previous, owner]
+  ));
+
+  useEffect(() => {
+    const owners = readStored(STORAGE_KEYS.hiddenOwners);
+    const stops = readStored(STORAGE_KEYS.route);
+    if (Array.isArray(owners)) setHiddenOwners(owners.filter(key => OWNER_META[key]));
+    if (Array.isArray(stops)) setRoute(stops.filter(isStop).slice(0, MAX_ROUTE_STOPS));
+    setStorageLoaded(true);
+  }, []);
+  useEffect(() => { if (storageLoaded) writeStored(STORAGE_KEYS.hiddenOwners, hiddenOwners); }, [storageLoaded, hiddenOwners]);
+  useEffect(() => { if (storageLoaded) writeStored(STORAGE_KEYS.route, route); }, [storageLoaded, route]);
 
   const load = useCallback(async (force) => {
     if (force) setRefreshing(true);
@@ -170,7 +217,44 @@ export default function StockMapPage({ siteUrl = '' }) {
 
   useEffect(() => { load(false); }, [load]);
 
-  const statuses = useMemo(() => statusOptions(data?.zones), [data]);
+  // เส้นทางที่จำไว้จากครั้งก่อน: อัปเดตพิกัด/ลำดับแถวให้ตรงข้อมูลล่าสุด (แถวในชีตเลื่อนได้)
+  useEffect(() => {
+    if (!data || !storageLoaded) return;
+    const latest = new Map();
+    data.zones.forEach(zone => zone.projects.forEach(project => project.houses.forEach(house => {
+      if (house.coords) latest.set(stopIdentity(house), house);
+    })));
+    setRoute(previous => previous.map(stop => {
+      const house = latest.get(stopIdentity(stop));
+      return house ? toRouteStop(house) : stop;
+    }));
+  }, [data, storageLoaded]);
+
+  const ownerCounts = useMemo(() => {
+    const counts = Object.fromEntries(OWNER_ORDER.map(key => [key, 0]));
+    data?.zones.forEach(zone => zone.projects.forEach(project => project.houses.forEach(house => {
+      counts[house.owner] = (counts[house.owner] || 0) + 1;
+    })));
+    return counts;
+  }, [data]);
+  const owners = OWNER_ORDER.filter(key => ownerCounts[key] > 0);
+
+  // ตัดบ้านของเจ้าที่ไม่ได้ติ๊กออกก่อน แล้วตัวกรอง/ยอดสรุปทั้งหมดคิดจากชุดนี้
+  const ownerData = useMemo(() => {
+    if (!data || !hiddenOwners.length) return data;
+    const hidden = new Set(hiddenOwners);
+    const zones = data.zones
+      .map(zone => ({
+        ...zone,
+        projects: zone.projects
+          .map(project => ({ ...project, houses: project.houses.filter(house => !hidden.has(house.owner)) }))
+          .filter(project => project.houses.length),
+      }))
+      .filter(zone => zone.projects.length);
+    return { ...data, zones };
+  }, [data, hiddenOwners]);
+
+  const statuses = useMemo(() => statusOptions(ownerData?.zones), [ownerData]);
   const changeStatusFilter = next => {
     setStatusFilter(next);
     setActiveHouseKey(null);
@@ -178,10 +262,10 @@ export default function StockMapPage({ siteUrl = '' }) {
 
   // กรองตามสถานะและคำค้น แล้วคำนวณยอดใหม่ให้ตรงกับสิ่งที่เห็นบนแผนที่
   const zones = useMemo(() => {
-    if (!data) return [];
+    if (!ownerData) return [];
     const term = normalize(search);
 
-    return data.zones
+    return ownerData.zones
       .map((zone) => {
         const projects = zone.projects
           .map((project) => {
@@ -214,7 +298,7 @@ export default function StockMapPage({ siteUrl = '' }) {
         };
       })
       .filter(Boolean);
-  }, [data, statusFilter, styleFilter, sizeFilter, search]);
+  }, [ownerData, statusFilter, styleFilter, sizeFilter, search]);
 
   const visible = useMemo(() => {
     const totals = GROUP_ORDER.reduce((acc, key) => ({ ...acc, [key]: 0 }), {});
@@ -234,10 +318,10 @@ export default function StockMapPage({ siteUrl = '' }) {
 
   // ตารางสรุปอิงสถานะ+คำค้นเท่านั้น ไม่อิงตัวกรองประเภท/ขนาด ไม่งั้นพอกดเซลล์แล้วตารางจะยุบเหลือช่องเดียว
   const summary = useMemo(() => {
-    if (!data) return null;
+    if (!ownerData) return null;
     const term = normalize(search);
     const houses = [];
-    data.zones.forEach((zone) => zone.projects.forEach((project) => project.houses.forEach((house) => {
+    ownerData.zones.forEach((zone) => zone.projects.forEach((project) => project.houses.forEach((house) => {
       if (!matchesStatus(house, statusFilter)) return;
       if (term
         && !normalize(project.name).includes(term)
@@ -270,7 +354,7 @@ export default function StockMapPage({ siteUrl = '' }) {
         byStyle: Object.fromEntries(styles.map((s) => [s, count((h) => h.zoneName === name && h.styleCategory === s)])),
       })),
     };
-  }, [data, statusFilter, search]);
+  }, [ownerData, statusFilter, search]);
 
   const handleViewChange = useCallback((next) => {
     setView(next);
@@ -363,7 +447,7 @@ export default function StockMapPage({ siteUrl = '' }) {
                   <MapPin size={20} className="flex-none" /> แผนที่สต๊อกบ้าน
                 </h1>
                 <p className="text-white/70 text-[12px] md:text-[13px] mt-1">
-                  ข้อมูลจาก Master Stock · ผู้ดูแลสามารถเพิ่มจุดเด่นของบ้านบนแผนที่ได้
+                  ข้อมูลจาก Master Stock รวมบ้านพาร์ทเนอร์ · กดบ้านเพื่อจัดเส้นทางไปดูบ้านใน Google Maps
                 </p>
               </div>
             </div>
@@ -386,10 +470,16 @@ export default function StockMapPage({ siteUrl = '' }) {
           </div>
         </header>
 
-        <main className="max-w-[1500px] mx-auto px-4 py-5">
+        <main className={`max-w-[1500px] mx-auto px-4 pt-5 ${route.length ? 'pb-[28rem]' : 'pb-5'}`}>
           {error && (
             <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-[13px] flex items-start gap-2">
               <AlertTriangle size={16} className="mt-0.5 flex-none" /> {error}
+            </div>
+          )}
+          {data?.partnerErrors?.length > 0 && (
+            <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-[13px] flex items-start gap-2">
+              <AlertTriangle size={16} className="mt-0.5 flex-none" />
+              <span>โหลดสต๊อกพาร์ทเนอร์บางเจ้าไม่สำเร็จ บ้านของเจ้านั้นจะยังไม่ขึ้นบนแผนที่ — กด “ดึงข้อมูลใหม่” อีกครั้ง ({data.partnerErrors.join(' · ')})</span>
             </div>
           )}
 
@@ -433,6 +523,33 @@ export default function StockMapPage({ siteUrl = '' }) {
               </div>
 
               <fieldset className="mt-4 bg-white rounded-2xl border border-gray-200 px-4 pb-4">
+                <legend className="px-2 text-sm font-semibold text-brand-green">แสดงบ้านของ</legend>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1 mb-3 text-[12px]">
+                  <span className="text-gray-500">ติ๊กเลือกได้ว่าจะให้บ้านของใครขึ้นบนแผนที่</span>
+                  <button type="button" onClick={() => setHiddenOwners([])} className="text-brand-green underline min-h-10">แสดงทุกเจ้า</button>
+                  <button type="button" onClick={() => setHiddenOwners(owners.filter(key => key !== 'startup'))} className="text-gray-600 underline min-h-10">เฉพาะ Startup Up</button>
+                </div>
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                  {owners.map(key => {
+                    const meta = OWNER_META[key];
+                    const checked = !hiddenOwners.includes(key);
+                    return (
+                      <label
+                        key={key}
+                        className={`flex items-center gap-2 min-h-11 px-3 py-2 rounded-xl border cursor-pointer text-[13px] ${checked ? 'font-medium' : 'border-gray-200 text-gray-400'}`}
+                        style={checked ? { borderColor: meta.color, color: meta.color, background: `${meta.color}12` } : undefined}
+                      >
+                        <input type="checkbox" checked={checked} onChange={() => toggleOwner(key)} className="w-4 h-4 shrink-0" style={{ accentColor: meta.color }} />
+                        <span className="w-2.5 h-2.5 rounded-full flex-none" style={{ background: meta.color, opacity: checked ? 1 : 0.4 }} />
+                        <span>{meta.label}</span>
+                        <span className="ml-auto text-[12px]" aria-label={`${ownerCounts[key]} หลัง`}>{ownerCounts[key]}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
+              <fieldset className="mt-4 bg-white rounded-2xl border border-gray-200 px-4 pb-4">
                 <legend className="px-2 text-sm font-semibold text-brand-green">กรองสถานะบ้าน</legend>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1 mb-3 text-[12px]">
                   <span className="text-gray-500">ติ๊กเลือกได้หลายสถานะพร้อมกัน</span>
@@ -456,7 +573,7 @@ export default function StockMapPage({ siteUrl = '' }) {
                 </p>
               </fieldset>
 
-              {data && <HighlightsSummary data={data} updates={highlightUpdates} onStatusChange={handleHighlightStatus} onSelect={selectMissingHouse} />}
+              {data && <HighlightsSummary data={data} updates={highlightUpdates} onStatusChange={handleHighlightStatus} onSelect={focusHouse} />}
 
               {summary && (
                 <div className="mt-3 bg-white rounded-2xl border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-x-2 gap-y-2">
@@ -554,6 +671,9 @@ export default function StockMapPage({ siteUrl = '' }) {
                     onViewChange={handleViewChange}
                     activeHouseKey={activeHouseKey}
                     onHighlightStatusChange={handleHighlightStatus}
+                    route={route}
+                    onToggleRoute={toggleRoute}
+                    onSelectRouteStop={focusHouse}
                   />
                 </section>
 
@@ -656,12 +776,15 @@ export default function StockMapPage({ siteUrl = '' }) {
                                       <div className="pl-4 py-2 space-y-1.5">
                                         {project.houses.map((house) => (
                                           <HouseRow
-                                            key={house.rowIndex}
+                                            key={house.uid}
                                             house={house}
-                                            active={activeHouseKey === house.rowIndex}
+                                            active={activeHouseKey === house.uid}
                                             onClick={() => setActiveHouseKey(
-                                              activeHouseKey === house.rowIndex ? null : house.rowIndex
+                                              activeHouseKey === house.uid ? null : house.uid
                                             )}
+                                            routeNo={route.findIndex((stop) => stop.uid === house.uid) + 1}
+                                            routeFull={route.length >= MAX_ROUTE_STOPS}
+                                            onToggleRoute={() => toggleRoute(house)}
                                           />
                                         ))}
                                       </div>
@@ -682,7 +805,7 @@ export default function StockMapPage({ siteUrl = '' }) {
 
               {summary && summary.total > 0 && (
                 <div className="grid lg:grid-cols-2 gap-4 mt-4">
-                  <section className="bg-white rounded-2xl border border-gray-200 p-4">
+                  <section className="min-w-0 bg-white rounded-2xl border border-gray-200 p-4">
                     <h2 className="text-[14px] font-semibold text-gray-800">ประเภทบ้าน × ขนาด</h2>
                     <p className="text-[12px] text-gray-400 mt-0.5">
                       หน่วยเป็น ตร.ว. · กดที่ตัวเลขเพื่อกรองดูเฉพาะกลุ่มนั้น
@@ -747,7 +870,7 @@ export default function StockMapPage({ siteUrl = '' }) {
                     )}
                   </section>
 
-                  <section className="bg-white rounded-2xl border border-gray-200 p-4">
+                  <section className="min-w-0 bg-white rounded-2xl border border-gray-200 p-4">
                     <h2 className="text-[14px] font-semibold text-gray-800">ประเภทบ้าน × ทำเล</h2>
                     <p className="text-[12px] text-gray-400 mt-0.5">
                       กดที่ตัวเลขเพื่อซูมไปทำเลนั้นพร้อมกรองประเภท
@@ -802,10 +925,11 @@ export default function StockMapPage({ siteUrl = '' }) {
                   </p>
                   <div className="mt-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     {unlocated.map((house) => (
-                      <div key={house.rowIndex} className="text-[12px] border border-gray-100 rounded-lg px-3 py-2">
+                      <div key={house.uid} className="text-[12px] border border-gray-100 rounded-lg px-3 py-2">
                         <span className="font-medium text-gray-800">{house.project}</span>
                         <span className="text-gray-500"> · {house.houseNumber || '—'}</span>
                         <span className="block text-gray-400">
+                          {house.owner !== 'startup' && `${OWNER_META[house.owner]?.label} · `}
                           {house.zone || 'ไม่ระบุทำเล'} · {house.rawStatus}
                         </span>
                       </div>
@@ -816,7 +940,7 @@ export default function StockMapPage({ siteUrl = '' }) {
 
               {data && (
                 <footer className="mt-6 text-center text-[12px] text-gray-400 pb-6">
-                  ที่มา: Google Sheet “Stockบ้าน” · พิกัดจากลิงก์ Location ในชีต เสริมด้วยพิกัดบ้านจากเว็บหลัก ·{' '}
+                  ที่มา: Google Sheet “Stockบ้าน” และชีต Stock ของพาร์ทเนอร์ (Naphat, เจ๊หมวย, ใบชา, Notting) · พิกัดจากลิงก์ Location ในชีต เสริมด้วยพิกัดบ้านจากเว็บหลัก ·{' '}
                   <a href={data.sheetUrl} target="_blank" rel="noreferrer" className="text-brand-green hover:underline inline-flex items-center gap-1">
                     เปิดชีตต้นทาง <ExternalLink size={11} />
                   </a>
@@ -825,6 +949,7 @@ export default function StockMapPage({ siteUrl = '' }) {
             </>
           )}
         </main>
+        <RoutePlanner stops={route} onChange={setRoute} onSelect={focusHouse} />
       </div>
     </>
   );

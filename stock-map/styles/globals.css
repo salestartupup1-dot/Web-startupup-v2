@@ -44,6 +44,21 @@ html, body {
 .map-pill.wip    { background: #b45309; border-color: #ffffff; color: #ffffff; }
 .map-pill.hold   { background: #1d4ed8; border-color: #ffffff; color: #ffffff; }
 .map-pill.approx { border-style: dashed; opacity: 0.85; }
+/* บ้านพาร์ทเนอร์: วงกลมสีเจ้าของมีขอบขาวให้เห็นชัดบนพื้นสีสถานะ */
+.map-pill.partner .dot { box-shadow: 0 0 0 2px #ffffff; }
+.map-pill .route-no {
+  min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px;
+  background: #ffffff; color: #0b3d1b; font-size: 11px; font-weight: 700;
+  display: inline-grid; place-items: center;
+}
+.route-pin {
+  width: 26px; height: 26px; border-radius: 999px;
+  background: #ffffff; color: #0b3d1b; border: 3px solid #0b3d1b;
+  font: 700 12px/1 'Prompt', sans-serif;
+  display: grid; place-items: center;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+  cursor: pointer;
+}
 
 .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
 .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5d1; border-radius: 999px; }

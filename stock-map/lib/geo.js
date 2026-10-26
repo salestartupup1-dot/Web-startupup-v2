@@ -78,18 +78,46 @@ export const average = (points) => {
  *  project – ค่าเฉลี่ยพิกัดบ้านหลังอื่นในโครงการเดียวกันจากเว็บหลัก
  *  (ที่เหลือ) – ปล่อยว่างไว้ ให้ชั้นบนเติมด้วยจุดกึ่งกลางของโครงการ/ทำเล
  */
+// ~2 กม. — ใช้ตรวจว่าพิกัดที่จับคู่ด้วยบ้านเลขที่อยู่ในโครงการเดียวกันจริง
+const NEAR_DEG = 0.02;
+const isNear = (a, b) => Math.abs(a[0] - b[0]) < NEAR_DEG && Math.abs(a[1] - b[1]) < NEAR_DEG;
+
 export function locateHouses(houses, lookupMapUrl, firestore) {
   return houses.map((house) => {
     const fromSheet = house.mapUrl ? lookupMapUrl(house.mapUrl) : null;
     if (fromSheet) return { ...house, coords: fromSheet, precision: 'exact', source: 'sheet' };
 
+    const projectPoints = firestore.byProject.get(normalizeKey(house.project)) || [];
     const fromHouse = firestore.byHouse.get(normalizeKey(house.houseNumber));
-    if (fromHouse) return { ...house, coords: fromHouse, precision: 'exact', source: 'website' };
+    // เว็บหลักเก็บพิกัดตามบ้านเลขที่อย่างเดียว บ้านพาร์ทเนอร์เลขซ้ำกับบ้านโครงการอื่นได้
+    // จึงยอมรับเฉพาะเมื่อพิกัดนั้นอยู่ใกล้โครงการเดียวกันในเว็บหลัก
+    const trusted = fromHouse && (house.owner === 'startup' || projectPoints.some((point) => isNear(point, fromHouse)));
+    if (trusted) return { ...house, coords: fromHouse, precision: 'exact', source: 'website' };
 
-    const fromProject = average(firestore.byProject.get(normalizeKey(house.project)) || []);
+    const fromProject = average(projectPoints);
     if (fromProject) return { ...house, coords: fromProject, precision: 'project', source: 'website' };
 
     return { ...house, coords: null, precision: 'unknown', source: null };
+  });
+}
+
+/**
+ * บ้านที่ยังไม่มีพิกัด ใช้จุดกึ่งกลางบ้านโครงการเดียวกันที่รู้พิกัดแน่นอนจากชีตอื่น
+ * (เช่นบ้าน Naphat ที่ไม่มีลิงก์แผนที่ แต่โครงการเดียวกันมีบ้าน Startup Up อยู่)
+ */
+export function fillFromSameProject(houses) {
+  const exact = new Map();
+  houses.forEach((house) => {
+    if (house.precision !== 'exact') return;
+    const key = normalizeKey(house.project);
+    if (!exact.has(key)) exact.set(key, []);
+    exact.get(key).push(house.coords);
+  });
+
+  return houses.map((house) => {
+    if (house.coords) return house;
+    const coords = average(exact.get(normalizeKey(house.project)) || []);
+    return coords ? { ...house, coords, precision: 'project', source: 'stock' } : house;
   });
 }
 

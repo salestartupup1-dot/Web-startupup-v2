@@ -1,7 +1,9 @@
 import {
-  fetchStockRows, selectOwnedActive, GROUP_ORDER, SHEET_URL, makeZoneComparator, zoneAreaTotals
+  fetchStockRows, fetchPartnerRows, selectAllActive, GROUP_ORDER, SHEET_URL, makeZoneComparator, zoneAreaTotals
 } from '../../lib/stock';
-import { loadWebsiteCoords, resolveMapUrls, locateHouses, spreadOverlapping, average } from '../../lib/geo';
+import {
+  loadWebsiteCoords, resolveMapUrls, locateHouses, fillFromSameProject, spreadOverlapping, average
+} from '../../lib/geo';
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const LIVE_MIN_INTERVAL_MS = 60 * 60 * 1000;
@@ -15,16 +17,16 @@ const addCount = (counts, group) => {
 };
 
 async function buildPayload({ liveCoords = false } = {}) {
-  const rows = await fetchStockRows();
-  const owned = selectOwnedActive(rows);
+  const [rows, partners] = await Promise.all([fetchStockRows(), fetchPartnerRows()]);
+  const active = selectAllActive(rows, partners.rows);
 
   const [lookupMapUrl, firestore] = await Promise.all([
-    resolveMapUrls(owned.map((row) => row.mapUrl)),
+    resolveMapUrls(active.map((row) => row.mapUrl)),
     loadWebsiteCoords({ live: liveCoords })
       .catch(() => ({ byHouse: new Map(), byProject: new Map(), source: 'none', builtAt: '' })),
   ]);
 
-  const houses = locateHouses(owned, lookupMapUrl, firestore);
+  const houses = fillFromSameProject(locateHouses(active, lookupMapUrl, firestore));
 
   // จัดกลุ่ม ทำเล -> โครงการ -> บ้าน
   const zoneMap = new Map();
@@ -90,6 +92,8 @@ async function buildPayload({ liveCoords = false } = {}) {
     // พิกัดสำรองมาจากไหน: snapshot = ไฟล์ที่ build ไว้ (ไม่กินโควตา Firestore), firestore = อ่านสด
     coordsSource: firestore.source || 'none',
     coordsBuiltAt: firestore.builtAt || '',
+    // ชีตพาร์ทเนอร์ที่อ่านไม่สำเร็จรอบนี้ (บ้านของเจ้านั้นจะหายไปจากแผนที่ชั่วคราว)
+    partnerErrors: partners.errors,
     totals: {
       ...totals,
       houses: houses.length,
