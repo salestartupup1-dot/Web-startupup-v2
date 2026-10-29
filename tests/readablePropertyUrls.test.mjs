@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPropertyCanonicalLinks, PROPERTY_SLUGS } from '../lib/propertyCanonicalLinks.js';
-import { propertySlugLabel, propertyPath, canonicalPropertyPath } from '../lib/propertyRoutes.js';
+import { propertySlugLabel, propertyShareLabel, propertyPath, propertySharePath, canonicalPropertyPath } from '../lib/propertyRoutes.js';
 import { loadSitePage } from '../lib/serverPageData.js';
 import { buildPageSeo, buildPropertyJsonLd } from '../lib/seo.js';
 import { getShortShareUrl } from '../lib/propertyShareClient.js';
@@ -48,6 +48,21 @@ test('concurrent reservations are stable, collisions are disambiguated and delet
   assert.equal(await f.links.resolve('no-such-house'),null);
 });
 
+test('share links use the ASCII house number; duplicates get the short-code suffix and keep their owner',async()=>{
+  assert.equal(propertyShareLabel({house_number:' 16/10413 '}),'16-10413');
+  assert.equal(propertyShareLabel({house_number:'12/3A'}),'12-3a');
+  for(const house_number of ['99','12 ม.3','','/']) assert.equal(propertyShareLabel({house_number}),null);
+  const f=fixture();f.add('houseA');f.add('houseB');
+  assert.equal(await f.links.share(house),'/38-59');
+  assert.equal(await f.links.create(house),encoded);
+  const twin=await f.links.share({...house,id:'houseB',project_name:'อีกโครงการ'});
+  assert.equal(twin,'/38-59-b456de');
+  f.remove('houseA');
+  assert.equal(await f.links.share({...house,id:'houseB'}),twin);
+  assert.equal(await f.links.resolve('38-59'),'houseA');
+  assert.equal(await f.links.share({...house,house_number:'99'}),'/a123bc');
+});
+
 test('renaming keeps the old alias and resolves both names to the same house',async()=>{
   const f=fixture();f.add('houseA');
   await f.links.create(house);
@@ -74,9 +89,9 @@ test('short codes and previous names redirect once; readable canonical serves fr
   const res=()=>({setHeader(){}});
   let current=house;
   const deps={readProperty:(id,options)=>{assert.equal(options.documentId,'houseA');return {promise:Promise.resolve(current)};},
-    canonicalize:async p=>({...p,canonicalPath:await f.links.create(p)}),resolveShort:async()=>house.id,
+    canonicalize:async p=>({...p,canonicalPath:await f.links.create(p),sharePath:await f.links.share(p)}),resolveShort:async()=>house.id,
     resolveSlug:slug=>f.links.resolve(slug),readCatalogue:async()=>({properties:[]}),enrichProperty:async p=>p};
-  for(const old of ['/a123bc','/h/houseA',propertyPath(house)]) {
+  for(const old of ['/a123bc','/38-59','/h/houseA',propertyPath(house)]) {
     const result=await loadSitePage({query:{},resolvedUrl:old+'?utm_source=line',res:res()},deps);
     assert.deepEqual(result.redirect,{permanent:true,destination:encoded+'?utm_source=line'});
   }
@@ -87,8 +102,10 @@ test('short codes and previous names redirect once; readable canonical serves fr
   assert.equal(data.selectedProperty.price,3990000);
   t.mock.method(globalThis,'fetch',()=>{throw new Error('Seeded copy must not fetch');});
   const copied=await getShortShareUrl(data.selectedProperty);
-  assert.equal(copied,'https://www.startupup-real-estate.com'+encoded);
-  assert.equal(buildPageSeo(data).canonicalUrl,copied);assert.equal(buildPropertyJsonLd(data.selectedProperty).url,copied);
+  assert.equal(copied,'https://www.startupup-real-estate.com/38-59');
+  assert.equal(propertySharePath(data.selectedProperty),'/38-59');
+  const readable='https://www.startupup-real-estate.com'+encoded;
+  assert.equal(buildPageSeo(data).canonicalUrl,readable);assert.equal(buildPropertyJsonLd(data.selectedProperty).url,readable);
   current={...current,project_name:'ชื่อใหม่'};
   const renamed=await loadSitePage(context,deps);assert.equal(renamed.redirect.destination,'/'+encodeURIComponent('ชื่อใหม่-38-59'));
   assert.deepEqual(await loadSitePage({...context,resolvedUrl:'/missing-house'},deps),{notFound:true});

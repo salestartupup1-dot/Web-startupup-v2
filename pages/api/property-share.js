@@ -1,4 +1,4 @@
-import { withCanonicalPropertyPath } from '../../lib/propertyCanonicalLinks';
+import { withPropertyLinks } from '../../lib/propertyCanonicalLinks';
 import { privateResponse, readSeoProperty } from '../../lib/serverPageData';
 
 export default async function handler(req, res) {
@@ -12,8 +12,8 @@ export default async function handler(req, res) {
     if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) return res.status(400).json({ error: 'Invalid property' });
     const property = await readSeoProperty(id, { documentId: id }).promise;
     if (!property) return res.status(404).json({ error: 'Property not found' });
-    const { canonicalPath: path } = await withCanonicalPropertyPath(property);
-    return res.status(200).json({ path });
+    const { sharePath, canonicalPath } = await withPropertyLinks(property);
+    return res.status(200).json({ path: sharePath || canonicalPath });
   } catch (error) {
     const status = [400, 404].includes(error.status) ? error.status : 503;
     if (status === 503) res.setHeader('Retry-After', '60');
