@@ -422,10 +422,13 @@ export default function useSiteData({ basePath = '/', initialData } = {}) {
       const seed = seedAvailable.current && initialData?.version
         && (!includeCatalogue || Array.isArray(initialData.properties)) ? initialData : null;
       seedAvailable.current = false;
-      const load = () => loadPublicCatalogue({ includeProperties: includeCatalogue });
+      const load = version => loadPublicCatalogue({ includeProperties: includeCatalogue, version });
+      // The CDN may hand out HTML up to five minutes old. Such a page checks the small public
+      // revision straight away (one read, no Vercel CPU) and reloads only if it changed.
+      const seedIsFresh = Date.now() - Number(seed?.renderedAt || 0) < 30000;
       return subscribePublicData({
         initialVersion: seed?.version,
-        observe: (_options, onValue, onError) => observePublicDocument('site_settings/public_version', onValue, onError, { initial: !seed?.version }),
+        observe: (_options, onValue, onError) => observePublicDocument('site_settings/public_version', onValue, onError, { initial: !seed?.version || !seedIsFresh }),
         load,
         onData: data => { setPublicDataError(false); applyPublicData(data); },
         onError: error => {

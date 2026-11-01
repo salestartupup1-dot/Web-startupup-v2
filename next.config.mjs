@@ -169,6 +169,12 @@ const nextConfig = {
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
         ],
       },
+      {
+        // LINE's in-app browser re-requests the site icons on every view (12k+ a day), which
+        // counts against Vercel's CDN request allowance. A day is safe: a new icon only needs a new name.
+        source: '/:icon(favicon.ico|icon-192.png|apple-touch-icon.png)',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }],
+      },
     ];
   },
 };

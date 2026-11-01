@@ -56,7 +56,7 @@ test('canonical houses are fully seeded and read a fresh price for each request'
   assert.equal(next.props.initialData.selectedProperty.price, 2690000);
   assert.equal(reads, 2);
   assert.equal(context.res.headers['Cache-Control'], 'public, max-age=0, must-revalidate');
-  assert.equal(context.res.headers['Vercel-CDN-Cache-Control'], 'max-age=30, stale-while-revalidate=30');
+  assert.equal(context.res.headers['Vercel-CDN-Cache-Control'], 'max-age=240, stale-while-revalidate=60');
   const seo = buildPageSeo({ selectedProperty: next.props.initialData.selectedProperty });
   assert.ok(seo.title.includes('2,690,000'));
   assert.ok(seo.canonicalUrl.endsWith(propertyPath(house)));

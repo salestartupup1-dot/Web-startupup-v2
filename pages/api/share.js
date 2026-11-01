@@ -1,4 +1,4 @@
-import { readSeoProperty, privateResponse } from '../../lib/serverPageData';
+import { readSeoProperty, privateResponse, sharedResponse } from '../../lib/serverPageData';
 import { getPropertyPath } from '../../lib/seo';
 import { withCanonicalPropertyPath } from '../../lib/propertyCanonicalLinks';
 
@@ -13,8 +13,12 @@ export default async function handler(req, res) {
     const params = new URLSearchParams(req.url.split('?')[1] || '');
     params.delete('property');
     const suffix = params.toString();
-    return res.redirect(308, getPropertyPath(await withCanonicalPropertyPath(property)) + (suffix ? `?${suffix}` : ''));
+    const destination = getPropertyPath(await withCanonicalPropertyPath(property)) + (suffix ? `?${suffix}` : '');
+    // The same old link always leads to the same page; let the CDN answer repeat clicks.
+    sharedResponse(res);
+    return res.redirect(308, destination);
   } catch {
+    privateResponse(res);
     res.setHeader('Retry-After', '60');
     return res.status(503).send('Property data temporarily unavailable. Please retry.');
   }
