@@ -51,7 +51,7 @@ const SECTION_ICONS = { renovation_details: Hammer, nearby_places: MapPinned };
 /** หัวข้อข้อมูลบ้านแต่ละเรื่อง: การ์ดเดียวกับจุดเด่น มีไอคอนและหัวข้อตัวหนา */
 function InfoCard({ icon: Icon, title, children }) {
   return (
-    <section className="sp4-block sp4-card reveal-on-scroll">
+    <section className="sp4-block sp4-info reveal-on-scroll">
       <h2><span className="sp4-feat-icon" aria-hidden="true"><Icon size={20} strokeWidth={1.8} /></span>{title}</h2>
       {children}
     </section>
@@ -536,7 +536,7 @@ export default function SalePageV4({
           </div>}
 
           {!detailsPending && factSummary && <InfoCard icon={House} title={`ข้อมูลบ้าน${property.project_name ? ` ${property.project_name}` : ''}`}>
-            <p className="sp4-card-text">{factSummary}</p>
+            <p className="sp4-info-text">{factSummary}</p>
           </InfoCard>}
           {!detailsPending && featureSections.length > 0 && <section className="sp4-block sp4-feat reveal-on-scroll" aria-labelledby="sp4-feat-title">
             <h2 id="sp4-feat-title">จุดเด่นของบ้านหลังนี้</h2>
@@ -551,7 +551,7 @@ export default function SalePageV4({
             </div>
           </section>}
           {!detailsPending && otherSections.map(section => <InfoCard key={section.key} icon={SECTION_ICONS[section.key] || ClipboardList} title={section.heading}>
-            <p className="sp4-card-text" style={{ whiteSpace: 'pre-line' }}>{section.text}</p>
+            <p className="sp4-info-text" style={{ whiteSpace: 'pre-line' }}>{section.text}</p>
           </InfoCard>)}
           {blocks.length > 0 && (
             <InfoCard icon={ClipboardList} title="รายละเอียด">
@@ -1038,21 +1038,21 @@ const css = `
 }
 
 /* การ์ดหัวข้อข้อมูลบ้าน (ข้อมูลบ้าน / รายละเอียด / สิ่งอำนวยความสะดวก / งานรีโนเวท / ใกล้เคียง) */
-.sp4-block.sp4-card { margin-top: var(--s4); }
-.sp4-card {
+.sp4-block.sp4-info { margin-top: var(--s4); }
+.sp4-info {
   padding: 20px 22px; border-radius: var(--r2); background: var(--card);
   border: 1px solid rgba(11,61,27,.12); border-left: 4px solid var(--forest); box-shadow: var(--shadow);
 }
-.sp4-block.sp4-card > h2 {
+.sp4-block.sp4-info > h2 {
   margin: 0 0 14px; padding: 0; border: 0; gap: 12px;
   font-size: 19px; font-weight: 600; line-height: 1.3;
 }
-.sp4-block.sp4-card > h2::before { content: none; }
-.sp4-card-text { margin: 0; color: var(--ink); font-size: 15.5px; line-height: 1.7; }
+.sp4-block.sp4-info > h2::before { content: none; }
+.sp4-info-text { margin: 0; color: var(--ink); font-size: 15.5px; line-height: 1.7; }
 @container (max-width: 700px) {
-  .sp4-card { padding: 16px 16px 18px; }
-  .sp4-block.sp4-card > h2 { font-size: 17px; }
-  .sp4-card-text { font-size: 15px; }
+  .sp4-info { padding: 16px 16px 18px; }
+  .sp4-block.sp4-info > h2 { font-size: 17px; }
+  .sp4-info-text { font-size: 15px; }
 }
 
 .sp4-hl { display: grid; gap: 10px; }
