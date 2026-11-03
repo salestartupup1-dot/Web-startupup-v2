@@ -26,6 +26,7 @@ import { propertySharePath } from '../../lib/propertyRoutes';
 import { copyShortShareUrl } from '../../lib/propertyShareClient';
 import {
   ChevronLeft, ChevronRight, MapPin, Phone, Calendar, Sofa, Trees, Route, Sparkles,
+  House, ClipboardList, BadgeCheck, Hammer, MapPinned, Check,
 } from 'lucide-react';
 
 import {
@@ -45,6 +46,17 @@ const FEATURE_ICONS = { interior_features: Sofa, exterior_features: Trees, acces
 // One item per line; drop bullets the editor may have typed ("-", "•").
 const featureLines = text => String(text || '').split(/\r?\n/)
   .map(line => line.trim().replace(/^[-–—•·*]+\s*/u, '')).filter(Boolean);
+const SECTION_ICONS = { renovation_details: Hammer, nearby_places: MapPinned };
+
+/** หัวข้อข้อมูลบ้านแต่ละเรื่อง: การ์ดเดียวกับจุดเด่น มีไอคอนและหัวข้อตัวหนา */
+function InfoCard({ icon: Icon, title, children }) {
+  return (
+    <section className="sp4-block sp4-card reveal-on-scroll">
+      <h2><span className="sp4-feat-icon" aria-hidden="true"><Icon size={20} strokeWidth={1.8} /></span>{title}</h2>
+      {children}
+    </section>
+  );
+}
 
 /** ทิศไทย -> องศาเข็มทิศ และคำอธิบายแดดที่คนซื้อบ้านถามจริง */
 const DIR_DEG = {
@@ -523,10 +535,9 @@ export default function SalePageV4({
             <SalePromotionCard key={promotion.images.join('|')} promotion={promotion} onExpand={openLightbox} />
           </div>}
 
-          {!detailsPending && factSummary && <section className="sp4-block">
-            <h2>ข้อมูลบ้าน{property.project_name ? ` ${property.project_name}` : ''}</h2>
-            <p>{factSummary}</p>
-          </section>}
+          {!detailsPending && factSummary && <InfoCard icon={House} title={`ข้อมูลบ้าน${property.project_name ? ` ${property.project_name}` : ''}`}>
+            <p className="sp4-card-text">{factSummary}</p>
+          </InfoCard>}
           {!detailsPending && featureSections.length > 0 && <section className="sp4-block sp4-feat reveal-on-scroll" aria-labelledby="sp4-feat-title">
             <h2 id="sp4-feat-title">จุดเด่นของบ้านหลังนี้</h2>
             <div className="sp4-feat-grid">
@@ -539,32 +550,29 @@ export default function SalePageV4({
               })}
             </div>
           </section>}
-          {!detailsPending && otherSections.map(section => <section className="sp4-block" key={section.key}>
-            <h2>{section.heading}</h2>
-            <p style={{ whiteSpace: 'pre-line' }}>{section.text}</p>
-          </section>)}
+          {!detailsPending && otherSections.map(section => <InfoCard key={section.key} icon={SECTION_ICONS[section.key] || ClipboardList} title={section.heading}>
+            <p className="sp4-card-text" style={{ whiteSpace: 'pre-line' }}>{section.text}</p>
+          </InfoCard>)}
           {blocks.length > 0 && (
-            <section className="sp4-block reveal-on-scroll">
-              <h2>รายละเอียด</h2>
+            <InfoCard icon={ClipboardList} title="รายละเอียด">
               <div className="sp4-hl">
                 {blocks.map((b, i) => (b.type === 'list' ? (
                   <ul className="sp4-hl-list" key={i}>
-                    {b.items.map((it, k) => <li key={k}><span>{it}</span></li>)}
+                    {b.items.map((it, k) => <li key={k}>{it}</li>)}
                   </ul>
-                ) : b.type === 'heading' ? <h3 key={i} style={{ fontWeight: 600, marginTop: 20 }}>{b.text}</h3> : (
+                ) : b.type === 'heading' ? <h3 key={i} className="sp4-hl-sub">{b.text}</h3> : (
                   <p key={i}>{b.text}</p>
                 )))}
               </div>
-            </section>
+            </InfoCard>
           )}
 
           {Array.isArray(property.facilitiesList) && property.facilitiesList.length > 0 && (
-            <section className="sp4-block reveal-on-scroll">
-              <h2>สิ่งอำนวยความสะดวก</h2>
-              <div className="sp4-tags">
-                {property.facilitiesList.map((f, i) => <span key={i}>{f}</span>)}
-              </div>
-            </section>
+            <InfoCard icon={BadgeCheck} title="สิ่งอำนวยความสะดวก">
+              <ul className="sp4-tags">
+                {property.facilitiesList.map((f, i) => <li key={i}><Check size={14} strokeWidth={2.4} aria-hidden="true" />{f}</li>)}
+              </ul>
+            </InfoCard>
           )}
 
           {youtubeId && (
@@ -1029,18 +1037,42 @@ const css = `
   .sp4-feat-card li { font-size: 15px; }
 }
 
-.sp4-hl { display: grid; gap: 14px; max-width: 62ch; }
-.sp4-hl p { margin: 0; color: var(--ink-soft); white-space: pre-line; }
-.sp4-hl-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
-.sp4-hl-list li { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; color: var(--ink-soft); }
-.sp4-hl-list li::before { content: "•"; color: var(--forest); font-size: 17px; line-height: 1.55; }
-
-.sp4-tags { display: flex; flex-wrap: wrap; gap: var(--s1); }
-.sp4-tags span {
-  font-size: 13px; color: var(--ink-soft); border-radius: var(--r4);
-  border: 1px solid var(--line-green); padding: 7px 16px; transition: background .24s, color .24s;
+/* การ์ดหัวข้อข้อมูลบ้าน (ข้อมูลบ้าน / รายละเอียด / สิ่งอำนวยความสะดวก / งานรีโนเวท / ใกล้เคียง) */
+.sp4-block.sp4-card { margin-top: var(--s4); }
+.sp4-card {
+  padding: 20px 22px; border-radius: var(--r2); background: var(--card);
+  border: 1px solid rgba(11,61,27,.12); border-left: 4px solid var(--forest); box-shadow: var(--shadow);
 }
-.sp4-tags span:hover { border-color: rgba(11,61,27,.3); color: var(--forest); }
+.sp4-block.sp4-card > h2 {
+  margin: 0 0 14px; padding: 0; border: 0; gap: 12px;
+  font-size: 19px; font-weight: 600; line-height: 1.3;
+}
+.sp4-block.sp4-card > h2::before { content: none; }
+.sp4-card-text { margin: 0; color: var(--ink); font-size: 15.5px; line-height: 1.7; }
+@container (max-width: 700px) {
+  .sp4-card { padding: 16px 16px 18px; }
+  .sp4-block.sp4-card > h2 { font-size: 17px; }
+  .sp4-card-text { font-size: 15px; }
+}
+
+.sp4-hl { display: grid; gap: 10px; }
+.sp4-hl p { margin: 0; color: var(--ink); line-height: 1.7; white-space: pre-line; }
+.sp4-hl-sub { margin: 6px 0 0; font-size: 16px; font-weight: 600; color: var(--forest); }
+.sp4-hl-sub:first-child { margin-top: 0; }
+.sp4-hl-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.sp4-hl-list li { position: relative; padding-left: 22px; color: var(--ink); font-size: 15.5px; line-height: 1.6; }
+.sp4-hl-list li::before {
+  content: ""; position: absolute; left: 4px; top: .62em; width: 7px; height: 7px;
+  border-radius: 999px; background: var(--forest); opacity: .75;
+}
+
+.sp4-tags { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s1); }
+.sp4-tags li {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 14px; color: var(--forest); border-radius: var(--r4);
+  background: rgba(11,61,27,.06); border: 1px solid rgba(11,61,27,.14); padding: 7px 14px 7px 11px;
+}
+.sp4-tags li svg { flex: 0 0 auto; opacity: .8; }
 
 .sp4-video, .sp4-map {
   border: 1px solid var(--line); border-radius: var(--r2); overflow: hidden; background: var(--paper-soft);
