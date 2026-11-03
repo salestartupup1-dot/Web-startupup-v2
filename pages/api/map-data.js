@@ -1,3 +1,4 @@
+import { propertyHighlightsText } from '../../lib/propertyEditorial';
 import { getPublicProperties } from '../../lib/publicDataCache';
 
 // Stock Map consumes the same verified catalogue as the website. Never include
@@ -9,7 +10,7 @@ export default async function handler(req, res) {
     const properties = await getPublicProperties();
     return res.json({ properties: properties.map(p => ({ id: p.id,
       slug: String(p.custom_id || p.id), project: String(p.project_name || ''),
-      houseNumber: String(p.house_number || ''), highlights: String(p.highlights || ''),
+      houseNumber: String(p.house_number || ''), highlights: propertyHighlightsText(p),
       lat: p.lat ?? null, lng: p.lng ?? null })), checkedAt: new Date().toISOString() });
   } catch (error) {
     return res.status(503).json({ error: 'Map source unavailable',

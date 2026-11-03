@@ -1,3 +1,4 @@
+import { propertyHighlightsText } from '../../lib/propertyEditorial';
 import { monthlyMortgage } from '../../lib/mortgage';
 import { SITE_LOGO_URL } from '../../lib/siteNavigation';
 import ListingPagination from './ListingPagination';
@@ -1601,7 +1602,7 @@ function SalePage({ property, companyInfo, onBack, properties, onSelectProp, vis
                </div>
 
                <h3 className="text-base font-medium text-brand-green mb-3">รายละเอียด</h3>
-               <p className="text-gray-600 leading-relaxed font-light whitespace-pre-line mb-6 text-sm">{property.highlights || 'ไม่มีรายละเอียดเพิ่มเติม'}</p>
+               <p className="text-gray-600 leading-relaxed font-light whitespace-pre-line mb-6 text-sm">{propertyHighlightsText(property) || 'ไม่มีรายละเอียดเพิ่มเติม'}</p>
 
                {Array.isArray(property.facilitiesList) && property.facilitiesList.length > 0 && (
                    <>

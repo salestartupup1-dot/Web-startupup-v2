@@ -58,7 +58,7 @@ export default function AdminPanel({ userRole, userEmail, properties, users, com
     const [isUploadingPortfolio, setIsUploadingPortfolio] = useState({ state: false, year: null });
 
     // Forms
-    const initialForm = { custom_id: '', project_name: '', property_owner: DEFAULT_PROPERTY_OWNER, category: 'ทาวน์เฮาส์', price: '', status: 'available', badge: '', house_number: '', soi: '', zipcode: '', subdistrict: '', district: '', province: '', area_wah: '', area_sqm: '', floors: '', bedrooms: '', bathrooms: '', parking: '', direction: '', lat: '', lng: '', highlights: '', facilitiesList: [], images: [], youtubeUrl: '', main_location: '', sub_location: '' };
+    const initialForm = { custom_id: '', project_name: '', property_owner: DEFAULT_PROPERTY_OWNER, category: 'ทาวน์เฮาส์', price: '', status: 'available', badge: '', house_number: '', soi: '', zipcode: '', subdistrict: '', district: '', province: '', area_wah: '', area_sqm: '', floors: '', bedrooms: '', bathrooms: '', parking: '', direction: '', lat: '', lng: '', highlights: '', interior_features: '', exterior_features: '', access_details: '', facilitiesList: [], images: [], youtubeUrl: '', main_location: '', sub_location: '' };
     const [formData, setFormData] = useState(initialForm);
     const [imagesPreview, setImagesPreview] = useState([]);
     const [addressOptions, setAddressOptions] = useState([]);
@@ -797,7 +797,6 @@ export default function AdminPanel({ userRole, userEmail, properties, users, com
                                                     {BADGES.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
                                                 </select>
                                             </div>
-                                            <div className="sm:col-span-2"><label className="label">รายละเอียด (จุดเด่น)</label><textarea rows="4" className="input-modern" value={formData.highlights} onChange={e=>setFormData({...formData, highlights: e.target.value})}/></div>
                                             <PropertyEditorialFields value={formData} onChange={setFormData} />
                                             <div className="sm:col-span-2"><label className="label">ลิงก์ YouTube (Optional)</label><input className="input-modern" placeholder="https://youtube.com/..." value={formData.youtubeUrl} onChange={e=>setFormData({...formData, youtubeUrl: e.target.value})}/></div>
                                         </div>

@@ -2,7 +2,7 @@ import { db, appId } from '../../lib/firebaseClient';
 import Head from 'next/head';
 import { primaryPropertyLocation, relatedAvailableProperties } from '../../lib/websiteInventory';
 import { locationPath } from '../../lib/seoLocations';
-import { propertyEditorialSections, propertyFactSummary, propertyHighlightBlocks } from '../../lib/propertyEditorial';
+import { PROPERTY_HIGHLIGHT_FIELDS, propertyEditorialSections, propertyFactSummary, propertyHighlightBlocks } from '../../lib/propertyEditorial';
 /**
  * SalePageV4 — หน้าบ้านรายหลัง ดีไซน์ใหม่สำหรับ /v4
  *
@@ -25,7 +25,7 @@ import { gtagSendEvent } from '../../lib/googleAdsConversion';
 import { propertySharePath } from '../../lib/propertyRoutes';
 import { copyShortShareUrl } from '../../lib/propertyShareClient';
 import {
-  ChevronLeft, ChevronRight, MapPin, Phone, Calendar,
+  ChevronLeft, ChevronRight, MapPin, Phone, Calendar, Sofa, Trees, Route, Sparkles,
 } from 'lucide-react';
 
 import {
@@ -38,6 +38,13 @@ import VideoThumbnail from './VideoThumbnail';
 import { cardPayment, PAYMENT_NOTE } from './HouseCard';
 import useSalePromotion from './useSalePromotion';
 import { promotionAppliesTo } from '../../lib/salePromotion';
+
+// The three highlight fields from the back office are shown together as this house's selling points.
+const FEATURE_KEYS = new Set(PROPERTY_HIGHLIGHT_FIELDS.map(field => field.key));
+const FEATURE_ICONS = { interior_features: Sofa, exterior_features: Trees, access_details: Route };
+// One item per line; drop bullets the editor may have typed ("-", "•").
+const featureLines = text => String(text || '').split(/\r?\n/)
+  .map(line => line.trim().replace(/^[-–—•·*]+\s*/u, '')).filter(Boolean);
 
 /** ทิศไทย -> องศาเข็มทิศ และคำอธิบายแดดที่คนซื้อบ้านถามจริง */
 const DIR_DEG = {
@@ -330,6 +337,9 @@ export default function SalePageV4({
   if (!property) return null;
 
   const blocks = propertyHighlightBlocks(property.highlights);
+  const editorialSections = propertyEditorialSections(property);
+  const featureSections = editorialSections.filter(section => FEATURE_KEYS.has(section.key));
+  const otherSections = editorialSections.filter(section => !FEATURE_KEYS.has(section.key));
   const factSummary = propertyFactSummary(property);
   const badge = property.badge;
   const isSold = badge === 'Sold Out' || property.inventoryState === 'sold';
@@ -517,7 +527,19 @@ export default function SalePageV4({
             <h2>ข้อมูลบ้าน{property.project_name ? ` ${property.project_name}` : ''}</h2>
             <p>{factSummary}</p>
           </section>}
-          {!detailsPending && propertyEditorialSections(property).map(section => <section className="sp4-block" key={section.key}>
+          {!detailsPending && featureSections.length > 0 && <section className="sp4-block sp4-feat reveal-on-scroll" aria-labelledby="sp4-feat-title">
+            <h2 id="sp4-feat-title">จุดเด่นของบ้านหลังนี้</h2>
+            <div className="sp4-feat-grid">
+              {featureSections.map(section => {
+                const Icon = FEATURE_ICONS[section.key] || Sparkles;
+                return <article className="sp4-feat-card" key={section.key}>
+                  <h3><span className="sp4-feat-icon" aria-hidden="true"><Icon size={20} strokeWidth={1.8} /></span>{section.heading}</h3>
+                  <ul>{featureLines(section.text).map((line, k) => <li key={k}>{line}</li>)}</ul>
+                </article>;
+              })}
+            </div>
+          </section>}
+          {!detailsPending && otherSections.map(section => <section className="sp4-block" key={section.key}>
             <h2>{section.heading}</h2>
             <p style={{ whiteSpace: 'pre-line' }}>{section.text}</p>
           </section>)}
@@ -978,6 +1000,34 @@ const css = `
 }
 .sp4-block > h2::before { content: ""; width: 20px; height: 2px; flex: 0 0 auto; background: var(--forest); border-radius: 2px; }
 @container (max-width: 700px) { .sp4-block > h2 { font-size: 19px; } }
+
+/* จุดเด่นของบ้าน: สามหัวข้อจากหลังบ้าน แสดงเป็นการ์ดให้เห็นชัดว่าเป็นจุดขายของหลังนี้ */
+.sp4-feat-grid { display: grid; gap: var(--s2); }
+.sp4-feat-card {
+  padding: 20px 22px; border-radius: var(--r2); background: var(--card);
+  border: 1px solid rgba(11,61,27,.12); border-left: 4px solid var(--forest); box-shadow: var(--shadow);
+}
+.sp4-feat-card h3 {
+  margin: 0 0 14px; display: flex; align-items: center; gap: 12px;
+  font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--forest);
+}
+.sp4-feat-icon {
+  display: inline-grid; place-items: center; width: 38px; height: 38px; flex: 0 0 auto;
+  border-radius: 999px; background: rgba(11,61,27,.08); color: var(--forest);
+}
+.sp4-feat-card ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.sp4-feat-card li {
+  position: relative; padding-left: 22px; color: var(--ink); font-size: 15.5px; line-height: 1.6;
+}
+.sp4-feat-card li::before {
+  content: ""; position: absolute; left: 4px; top: .62em; width: 7px; height: 7px;
+  border-radius: 999px; background: var(--forest); opacity: .75;
+}
+@container (max-width: 700px) {
+  .sp4-feat-card { padding: 16px 16px 18px; }
+  .sp4-feat-card h3 { font-size: 17px; }
+  .sp4-feat-card li { font-size: 15px; }
+}
 
 .sp4-hl { display: grid; gap: 14px; max-width: 62ch; }
 .sp4-hl p { margin: 0; color: var(--ink-soft); white-space: pre-line; }

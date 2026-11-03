@@ -1,0 +1,23 @@
+// Local fixture only. Firebase write exports are intercepted in the test snapshot.
+import { useEffect, useState } from 'react';
+import AdminPanel from '../components/site/AdminPanel';
+import SalePageV4 from '../components/site/SalePageV4';
+import { DEFAULT_COMPANY_INFO } from '../components/site/SiteApp';
+import { db, appId } from '../lib/firebaseClient';
+
+const original = { id: 'fixture', project_name: 'บ้านทดสอบ', house_number: '99/118', price: 2090000,
+  property_owner: 'Startup Up', category: 'ทาวน์เฮาส์', inventoryState: 'available',
+  images: ['/featured/singlehouse.jpg'], highlights: 'จุดเด่นโครงการ\n- ตลาดหน้าโครงการ',
+  access_details: 'ถนนเดิมที่ตรวจสอบแล้ว', renovation_details: 'เปลี่ยนพื้นแล้ว', nearby_places: 'ตลาดเดิม' };
+export default function Fixture() {
+  const [house, setHouse] = useState(original), [preview, setPreview] = useState(false);
+  useEffect(() => {
+    window.__testSaveProperty = data => { window.savedProperty = data; setHouse({ ...data, id: 'fixture' }); };
+    window.__testPreview = () => setPreview(true);
+    return () => { delete window.__testSaveProperty; delete window.__testPreview; };
+  }, []);
+  return preview ? <SalePageV4 property={house} properties={[]} companyInfo={DEFAULT_COMPANY_INFO} onBack={() => setPreview(false)} />
+    : <AdminPanel userRole="host" userEmail="fixture@example.test" properties={[house]} users={[]} companyInfo={DEFAULT_COMPANY_INFO}
+        locations={[]} db={db} appId={appId} onClose={() => setPreview(true)} onLogout={() => {}}
+        showAlert={(title, message) => { window.testAlert = { title, message }; }} showConfirm={() => {}} />;
+}

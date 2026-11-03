@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { propertyEditorialSections, propertyFactSummary, propertyHighlightBlocks } from '../lib/propertyEditorial.js';
+import { propertyEditorialSections, propertyFactSummary, propertyHighlightBlocks, propertyHighlightsText } from '../lib/propertyEditorial.js';
+import { selectListingProperties } from '../lib/listingPagination.js';
 import { locationMarket } from '../lib/locationMarket.js';
 import { locationFaq } from '../lib/locationFaq.js';
 import { SEO_LOCATIONS } from '../lib/seoLocations.js';
@@ -18,6 +19,24 @@ test('existing descriptions keep facts, order and bullets; only explicit heading
   const blocks = propertyHighlightBlocks('จุดเด่น\r\n- ครัวหลังบ้าน\n- จอดรถ 1 คัน\n\nสถานที่ใกล้เคียง:\nตลาดตัวอย่าง\n👉จุดเด่น มีห้องนอนชั้นล่าง');
   assert.deepEqual(blocks, [{ type: 'heading', text: 'จุดเด่น' }, { type: 'list', items: ['ครัวหลังบ้าน', 'จอดรถ 1 คัน'] },
     { type: 'heading', text: 'สถานที่ใกล้เคียง' }, { type: 'text', text: 'ตลาดตัวอย่าง' }, { type: 'text', text: '👉จุดเด่น มีห้องนอนชั้นล่าง' }]);
+});
+
+test('three highlight fields retain order, old travel data and legacy text without inventing facts', () => {
+  const property = { interior_features: ' ครัวในบ้าน\nห้องเก็บของ ', exterior_features: ' จอดรถ 2 คัน ', access_details: ' ถนนเดิม ', highlights: 'จุดเด่นโครงการ\n- ตลาดหน้าโครงการ' };
+  assert.deepEqual(propertyEditorialSections(property).map(s => [s.heading, s.text]), [
+    ['ฟังก์ชันภายใน', 'ครัวในบ้าน\nห้องเก็บของ'], ['ฟังก์ชันภายนอก', 'จอดรถ 2 คัน'], ['การเดินทาง', 'ถนนเดิม'],
+  ]);
+  assert.equal(propertyHighlightsText(property), 'ฟังก์ชันภายใน\nครัวในบ้าน\nห้องเก็บของ\n\nฟังก์ชันภายนอก\nจอดรถ 2 คัน\n\nการเดินทาง\nถนนเดิม\n\nจุดเด่นโครงการ\n- ตลาดหน้าโครงการ');
+  assert.deepEqual(propertyEditorialSections({ highlights: property.highlights }), []);
+  assert.equal(propertyHighlightsText({ highlights: property.highlights }), property.highlights);
+  assert.deepEqual(propertyEditorialSections({ ...property, interior_features: '', exterior_features: ' ', access_details: '' }), []);
+});
+
+test('keyword search includes each new highlight section', () => {
+  for (const field of ['interior_features', 'exterior_features', 'access_details']) {
+    const house = { id: 'one', property_owner: 'Startup Up', inventoryState: 'available', [field]: 'คำค้นทดสอบ' };
+    assert.deepEqual(selectListingProperties([house], { type: 'keyword', value: 'คำค้นทดสอบ' }), [house]);
+  }
 });
 
 test('market range excludes other locations, sold, unknown, invalid prices and duplicate IDs', () => {

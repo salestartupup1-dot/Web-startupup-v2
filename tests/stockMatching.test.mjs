@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { propertyStockStatus, getPropertyStockAlert } from '../lib/stockMatching.js';
+import { propertyStockStatus, getPropertyStockAlert, matchingStockRows } from '../lib/stockMatching.js';
 import { fetchMasterStockIndex, MASTER_STOCK_SOURCES } from '../lib/masterStock.js';
 
 const property = (owner = 'Notting', project = 'ทรัพย์ไพศาล', number = '107/122') => ({ property_owner: owner, project_name: project, house_number: number });
@@ -34,6 +34,25 @@ test('aliases require an unambiguous project and only one abbreviated number', (
   assert.equal(propertyStockStatus(stock([row()]), property('Notting', 'ทรัพย์ไพศาล', '108/122')).type, 'missing');
   assert.equal(propertyStockStatus(stock([row('Notting', 'พฤกษา 12', '1/2')]), property('Notting', 'พฤกษา 1', '1/2')).type, 'mismatch');
   assert.equal(propertyStockStatus(stock([row(), row('Notting', 'บ้านทรัพย์ไพศาล', '107/122', true)]), property()).type, 'ambiguous');
+});
+
+test('indexed candidates preserve exact-number priority, owner boundaries and snapshot refreshes', () => {
+  const rows = [row('Naphat', 'บ้านทรัพย์ไพศาล', '122'), row(), row('Notting', 'บ้านทรัพย์ไพศาล', '122')];
+  assert.deepEqual(matchingStockRows(rows, property('Notting', 'ทรัพย์ไพศาล', '122'), 'Notting'), [rows[2]]);
+  assert.deepEqual(matchingStockRows(rows, property('Notting', 'ทรัพย์ไพศาล', '122')), [rows[0], rows[2]]);
+  assert.equal(propertyStockStatus(stock(rows), property()).type, 'available');
+  const refreshed = rows.map(r => ({ ...r, sold: true }));
+  assert.equal(propertyStockStatus(stock(refreshed), property()).type, 'sold');
+});
+
+test('matching a house does not normalize unrelated projects in a large sheet', () => {
+  let projectReads = 0;
+  const rows = Array.from({ length: 2000 }, (_,i) => ({ ...row(), key: `99/${i+1}`,
+    get project() { projectReads++; return 'บ้านทรัพย์ไพศาล'; } }));
+  const match = propertyStockStatus(stock(rows), property('Notting', 'ทรัพย์ไพศาล', '99/118'));
+  assert.equal(match.type, 'available');
+  assert.equal(match.hit.key, '99/118');
+  assert.ok(projectReads < 10, `read ${projectReads} projects for one house`);
 });
 
 test('all five source readers preserve duplicate numbers and report coverage per owner', async () => {
