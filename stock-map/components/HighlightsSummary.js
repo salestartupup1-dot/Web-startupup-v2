@@ -9,7 +9,7 @@ export default function HighlightsSummary({ data, updates, onStatusChange, onSel
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true); setError('');
-    fetch('/api/highlights-status', { signal: controller.signal }).then(async response => {
+    fetch(`/api/highlights-status${retry ? '?refresh=1' : ''}`, { signal: controller.signal }).then(async response => {
       if (!response.ok) throw new Error();
       return response.json();
     }).then(setResult).catch(e => {

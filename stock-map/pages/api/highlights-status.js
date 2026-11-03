@@ -13,7 +13,8 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).setHeader('Allow', 'GET').end();
   res.setHeader('Cache-Control', 'no-store');
   try {
-    return res.status(200).json(await readCachedStatus());
+    // ?refresh=1 comes from the "check again" button: re-read sheet and saved highlights now.
+    return res.status(200).json(await readCachedStatus({ force: req.query.refresh === '1' }));
   } catch {
     return res.status(503).json({ error: 'ตรวจสอบจุดเด่นไม่สำเร็จ กรุณาลองใหม่' });
   }

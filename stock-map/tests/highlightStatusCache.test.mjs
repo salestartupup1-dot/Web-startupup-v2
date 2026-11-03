@@ -17,3 +17,16 @@ test('failed refresh rejects instead of turning unknown houses into missing hous
   const read = createHighlightStatusCache({ store: { get: async () => undefined }, load: async () => { throw new Error('quota'); } });
   await assert.rejects(read(), /quota/); await assert.rejects(read(), /quota/);
 });
+test('"check again" re-reads highlights saved after the last check, but not on rapid repeat clicks', async () => {
+  const values = new Map(); let scans = 0, time = 1;
+  const store = { get: async key => values.get(key), set: async (key, data) => values.set(key, data) };
+  const read = createHighlightStatusCache({ now: () => time, store, load: async () => ({ statuses: { a: ++scans } }) });
+  const other = createHighlightStatusCache({ now: () => time, store, load: async () => ({ statuses: { a: ++scans } }) });
+  assert.equal((await read()).statuses.a, 1);
+  time += 10 * 60_000;
+  assert.equal((await read()).statuses.a, 1, 'a normal page load still uses the hour-long summary');
+  assert.equal((await read({ force: true })).statuses.a, 2, 'the button reads again');
+  time += 5_000;
+  assert.equal((await other({ force: true })).statuses.a, 2, 'a second click within 15 s reuses the fresh result');
+  assert.equal(scans, 2);
+});
