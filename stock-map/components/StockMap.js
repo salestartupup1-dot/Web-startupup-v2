@@ -44,7 +44,7 @@ const housePopup = (house) => {
     : '';
 
   return `
-    <div class="w-60">
+    <div class="w-full">
       <div class="text-[11px] tracking-wide" style="color:${meta.color}">${escapeHtml(house.rawStatus === meta.label ? meta.label : `${meta.label} · ${house.rawStatus}`)}</div>
       ${owner && house.owner !== 'startup' ? `<div class="mt-1 inline-block text-[11px] font-semibold rounded-full px-2 py-0.5 text-white" style="background:${owner.color}">บ้าน ${escapeHtml(owner.label)}</div>` : ''}
       <div class="font-semibold text-[15px] text-gray-900 mt-0.5">${escapeHtml(house.project)}</div>
@@ -197,11 +197,18 @@ export default function StockMap({
         popupContent.appendChild(highlights);
         L.DomEvent.disableClickPropagation(popupContent);
         L.DomEvent.disableScrollPropagation(popupContent);
-        const popupHeight = () => Math.max(220, Math.min(460, map.getSize().y - 100));
-        marker.bindPopup(popupContent, { minWidth: 280, maxWidth: 320, maxHeight: popupHeight() });
+        // ป๊อปอัปกว้างขึ้น (สูงสุด 480px) และสูงขึ้น (สูงสุด 680px) ให้พิมพ์ "จุดเด่นของบ้าน" ได้สะดวก — จอเล็กหดตามขนาดแผนที่
+        const popupWidth = () => Math.max(260, Math.min(480, map.getSize().x - 60));
+        const popupHeight = () => Math.max(240, Math.min(680, map.getSize().y - 80));
+        marker.bindPopup(popupContent, { minWidth: popupWidth(), maxWidth: popupWidth(), maxHeight: popupHeight() });
         const popupState = { house, element: highlights, routeElement: routeControls, resize: () => {
           const current = marker.getPopup();
-          if (current) { current.options.maxHeight = popupHeight(); current.update(); }
+          if (current) {
+            current.options.minWidth = popupWidth();
+            current.options.maxWidth = popupWidth();
+            current.options.maxHeight = popupHeight();
+            current.update();
+          }
         } };
         marker.on('popupopen', () => setPopup(popupState));
         marker.on('popupclose', () => setPopup(current => current === popupState ? null : current));
