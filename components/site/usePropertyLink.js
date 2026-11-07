@@ -103,6 +103,8 @@ export default function usePropertyLink({
         // Firestore updates prices directly; derived stock metadata comes from the server.
         inventoryState: property.project_name === current.project_name && property.house_number === current.house_number
           && property.property_owner === current.property_owner ? current.inventoryState : 'unknown',
+        // The Promotion badge follows Focus in Master Stock (server-side); only a new Sold Out wins live.
+        badge: property.badge === 'Sold Out' ? property.badge : current.badge,
       } : current),
       onMissing: () => {
         setSelectedProperty(current => current?.id === selectedId ? null : current);
