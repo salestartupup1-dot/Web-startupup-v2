@@ -14,7 +14,7 @@ test('Focus follows the All in One formula: ticked, or 180+ days in stock with 1
   assert.equal(stockRowFocus(cells({ 'จำนวนวันของบ้าน': '400', 'เหลือเวลา': '191' }), rule), false);
   assert.equal(stockRowFocus(cells({ 'จำนวนวันของบ้าน': '400', 'เหลือเวลา': 'ฝากขาย' }), rule), false, 'both counters must be numbers');
   assert.equal(stockRowFocus(cells({ Focus: 'TRUE' }), {}), null, 'tabs without the Focus rule are unknown');
-  assert.equal(stockRowFocus(cells({}), { status: 'เร่งขาย' }), true, 'a เร่งขาย status counts in any tab');
+  assert.equal(stockRowFocus(cells({}), { status: 'เร่งขาย' }), null, 'a partner เร่งขาย status is not Focus in the app');
 });
 
 const property = { id: 'one', house_number: '1/2', project_name: 'ทดสอบ', property_owner: 'Startup Up' };
