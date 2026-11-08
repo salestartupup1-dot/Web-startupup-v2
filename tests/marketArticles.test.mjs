@@ -24,7 +24,7 @@ const slugs = Object.keys(MARKET_ARTICLE_BUILDERS);
 test('market articles are listed and only render with stock', () => {
   for (const slug of slugs) {
     const meta = ARTICLE_CATALOGUE.find(article => article.slug === slug);
-    assert.ok(meta?.market && meta.category === 'ราคาบ้านและทำเล', slug);
+    assert.ok(meta?.market && ['ราคาบ้านและทำเล', 'สินเชื่อ'].includes(meta.category), slug);
     assert.ok(meta.seoTitle.length <= 60 && meta.description.length <= 155, slug);
     assert.equal(getArticle(slug), null, 'no article without stock data');
     assert.equal(getArticle(slug, []), null, 'no article without houses');
@@ -35,7 +35,7 @@ test('market articles follow the AEO brief with numbers from stock only', () => 
   for (const slug of slugs) {
     const article = getArticle(slug, stock, now);
     const text = articleText(article);
-    assert.match(article.introduction[0], /ข้อมูล ณ 8 พ\.ย\. 2569/, slug);
+    assert.match(article.introduction.join(' '), /ณ 8 พ\.ย\. 2569/, slug);
     assert.ok(article.sections.some(section => section.dataTable), `${slug}: table`);
     assert.equal(article.faq.length, 3, slug);
     assert.equal(article.author.displayName, 'ทีมงาน Startup Up Real Estate');
@@ -84,4 +84,33 @@ test('article C groups canal 3 projects and merges spacing variants', () => {
   assert.equal(houses.links.length, 5);
   assert.match(houses.paragraphs[0], /พฤกษา 4 หลัง จาก 3 โครงการ/);
   assert.match(article.faq[1].answer, /^มี 4 หลัง/);
+});
+
+test('article D compares townhouses with detached houses from stock', () => {
+  const article = getArticle('ทาวน์เฮาส์-vs-บ้านเดี่ยว-มือสอง-ปทุมธานี', stock, now);
+  assert.match(article.introduction[0], /มี 6 หลัง ราคา 1\.69–2\.79 ล้านบาท ที่ดิน 16–30 ตร\.ว\. ส่วนบ้านเดี่ยวมี 2 หลัง ราคา 3\.49–3\.99 ล้านบาท ที่ดิน 50–62\.8 ตร\.ว\./);
+  const table = article.sections.find(section => section.id === 'compare').dataTable;
+  assert.deepEqual(table.headers, ['เทียบ', 'ทาวน์เฮาส์', 'บ้านแฝด', 'บ้านเดี่ยว']);
+  assert.deepEqual(table.rows.find(row => row[0] === 'จำนวน'), ['จำนวน', '6 หลัง', '1 หลัง', '2 หลัง']);
+  assert.match(article.faq[2].answer, /^ทาวน์เฮาส์ 1,990,000 บาท ผ่อนประมาณ 7,124 บาท บ้านเดี่ยว 3,490,000 บาท ผ่อนประมาณ 12,494 บาทต่อเดือน/);
+  assert.equal(getArticle('ทาวน์เฮาส์-vs-บ้านเดี่ยว-มือสอง-ปทุมธานี', stock.filter(house => house.category !== 'บ้านเดี่ยว'), now), null);
+});
+
+test('article E payment table and worked example use the stated formula', () => {
+  const article = getArticle('ผ่อนบ้านมือสอง-เดือนละเท่าไร', stock, now);
+  assert.match(article.introduction[0], /^บ้านมือสองราคา 2 ล้านบาท ผ่อนประมาณ 7,160 บาทต่อเดือน ถ้าดอกเบี้ย 3% ระยะ 40 ปี หรือประมาณ 9,548 บาท/);
+  const rows = article.sections.find(section => section.id === 'table').dataTable.rows;
+  assert.deepEqual(rows.map(row => row[1]), ['6,050', '7,160', '8,950', '10,740', '12,529', '14,319']);
+  assert.match(article.sections.find(section => section.id === 'method').paragraphs[1], /≈ 7,160 บาท$/);
+  assert.deepEqual(article.faq.map(item => item.answer), [
+    'ประมาณ 6,050 บาท (ดอกเบี้ย 3% 40 ปี) หรือ 8,068 บาท (4% 30 ปี) ยอดจริงขึ้นกับธนาคารที่อนุมัติ',
+    'ประมาณ 10,740 บาท (ดอกเบี้ย 3% 40 ปี) หรือ 14,322 บาท (4% 30 ปี) ยอดจริงขึ้นกับธนาคารที่อนุมัติ',
+    'ช่วย ทีมงานช่วยเตรียมเอกสารและยื่นสินเชื่อบ้าน และดูแลจนถึงวันโอน']);
+});
+
+test('article F lists Lam Luk Ka houses up to 2 million by canal', () => {
+  const article = getArticle('บ้านมือสอง-ลำลูกกา-ไม่เกิน-2-ล้าน', stock, now);
+  assert.match(article.introduction[0], /ราคาไม่เกิน 2 ล้านบาท 2 หลัง \(ข้อมูล ณ 8 พ\.ย\. 2569\) ทั้งหมดอยู่คลอง 2 \(2 หลัง\)/);
+  assert.equal(article.sections.find(section => section.id === 'houses').links.length, 2);
+  assert.equal(article.faq[1].question, 'ผ่อนบ้านลำลูกกา 1.69 ล้านเดือนละเท่าไร?');
 });

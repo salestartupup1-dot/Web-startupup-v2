@@ -9,8 +9,8 @@ import { SEO_LANDINGS } from '../lib/seoLandings.js';
 const article=getArticle(ARTICLE_CATALOGUE[0].slug);
 test('all twenty editorial articles are complete, unique, linked and renderable without stock reads',()=>{
   const editorial=ARTICLE_CATALOGUE.filter(a=>!a.market);
-  assert.equal(editorial.length,20); assert.equal(ARTICLE_CATALOGUE.length,23);
-  assert.equal(new Set(ARTICLE_CATALOGUE.map(a=>a.slug)).size,23);
+  assert.equal(editorial.length,20); assert.equal(ARTICLE_CATALOGUE.length,26);
+  assert.equal(new Set(ARTICLE_CATALOGUE.map(a=>a.slug)).size,26);
   const landingPaths=new Set([...SEO_LOCATIONS,...SEO_LANDINGS].map(a=>'/'+a.slug));
   for(const meta of editorial){
     const a=getArticle(meta.slug),count=articleWordCount(a);
