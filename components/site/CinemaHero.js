@@ -1069,7 +1069,8 @@ export default function CinemaHero({
               <CineText tag="h2" field="cineRoom1Title" copy={copy} onChange={updateVisualContent} isEditMode={isEditMode} />
               <CineText tag="p" field="cineRoom1Desc" copy={copy} onChange={updateVisualContent} isEditMode={isEditMode} />
               <div className="fh-wrap" ref={featuredRef}>
-                {media.featured && <FeaturedHomes
+                {<FeaturedHomes
+                  showImages={media.featured}
                   isEditMode={isEditMode}
                   hrefFor={(cat) => searchResultHref('category', cat)}
                   onSelectCategory={(e, cat) => {

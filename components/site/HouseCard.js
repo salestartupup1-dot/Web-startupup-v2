@@ -83,7 +83,8 @@ export default function HouseCard({ property: p, index = 0, heading: CardHeading
         {p.badge && p.badge !== 'Sold Out' && <span className={`absolute top-3 right-3 px-3 py-1.5 rounded-full font-medium text-xs shadow-sm text-white ${p.badge === 'Promotion' ? 'bg-red-600' : p.badge === 'New' ? 'bg-blue-600' : 'bg-brand-green'}`}>{p.badge}</span>}
       </div>
       <div className="p-4 sm:p-5 flex flex-col flex-grow gap-2 pointer-events-none">
-        <CardHeading className="font-bold text-gray-800 text-[18px] line-clamp-1 leading-snug">{p.project_name}</CardHeading>
+        {/* House number keeps two listings in one project apart (SEO work order task 9). */}
+        <CardHeading className="font-bold text-gray-800 text-[18px] line-clamp-1 leading-snug">{p.project_name}{p.house_number && <span className="font-medium text-gray-500"> {String(p.house_number).trim()}</span>}</CardHeading>
         <div className="text-[13px] text-gray-500 flex items-center gap-1.5"><MapPin size={15} className="flex-shrink-0 text-gray-400" /><span className="truncate">{p.main_location || p.district}{p.sub_location || p.subdistrict ? ` - ${p.sub_location || p.subdistrict}` : ''}</span></div>
         <div className="flex items-end justify-between gap-3 mt-1">
           <span className="text-[22px] font-bold text-brand-green leading-none"><span className="text-[16px] mr-1">฿</span>{price.toLocaleString('th-TH')}</span>

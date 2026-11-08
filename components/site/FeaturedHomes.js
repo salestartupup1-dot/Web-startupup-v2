@@ -38,7 +38,9 @@ export const FEATURED_HOMES = [
   },
 ];
 
-export default function FeaturedHomes({ hrefFor, onSelectCategory, isEditMode = false, directLinks = false }) {
+// showImages=false keeps the cards (links, labels, alt text) in the first HTML for search engines
+// while the photos still wait until the visitor scrolls near them (SEO work order task 9).
+export default function FeaturedHomes({ hrefFor, onSelectCategory, isEditMode = false, directLinks = false, showImages = true }) {
   /* บนจอสัมผัสไม่มี hover — แตะหนึ่งครั้งให้กางก่อน แตะซ้ำถึงจะเข้าหน้าหมวด */
   const [openKey, setOpenKey] = useState(null);
 
@@ -68,7 +70,7 @@ export default function FeaturedHomes({ hrefFor, onSelectCategory, isEditMode = 
           aria-label={`ดูบ้านหมวด${item.category} — ${item.note}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="fh-img" {...homeImage(item.img)} width={900} height={item.key === 'twinhouse' ? 1092 : 1088} sizes="(max-width: 700px) 65vw, 400px" alt={item.alt} loading="lazy" decoding="async" />
+          <img className="fh-img" {...(showImages ? homeImage(item.img) : {})} width={900} height={item.key === 'twinhouse' ? 1092 : 1088} sizes="(max-width: 700px) 65vw, 400px" alt={item.alt} loading="lazy" decoding="async" />
           <span className="fh-shade" aria-hidden="true" />
           <span className="fh-label">
             <strong>{item.category}</strong>

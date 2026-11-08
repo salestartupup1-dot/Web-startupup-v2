@@ -1,4 +1,4 @@
-import { SEO_LOCATIONS, locationPath } from '../lib/seoLocations';
+import { SEO_LOCATIONS, locationPath, matchesSeoLocation } from '../lib/seoLocations';
 import { getSeoStock, includePropertyInSitemap } from '../lib/seoStock';
 import { getPublicProperties } from '../lib/publicDataCache';
 import { withCanonicalPropertyPaths } from '../lib/propertyCanonicalLinks';
@@ -9,17 +9,18 @@ import {
   formatSitemapDate,
   getPropertyLastModified,
   getPropertyUrl,
+  getTimestampDate,
   toAbsoluteUrl,
 } from '../lib/seo';
 
-const STATIC_ROUTES = [
-  { loc: toAbsoluteUrl('/'), changefreq: 'daily', priority: '1.0' },
-  { loc: toAbsoluteUrl('/?tab=all'), changefreq: 'daily', priority: '0.9' },
-  ...SEO_LOCATIONS.map(location => ({ loc: toAbsoluteUrl(locationPath(location)), changefreq: 'daily', priority: '0.8' })),
-  { loc: toAbsoluteUrl('/?tab=promo'), changefreq: 'daily', priority: '0.8' },
-  { loc: toAbsoluteUrl('/?tab=location'), changefreq: 'weekly', priority: '0.7' },
-  { loc: toAbsoluteUrl('/?tab=calculator'), changefreq: 'monthly', priority: '0.4' },
-  { loc: toAbsoluteUrl('/?tab=portfolio'), changefreq: 'weekly', priority: '0.5' },
+// ?tab= views repeat the home page, so they stay out of the sitemap (SEO work order task 9).
+// Home and location pages carry the latest change of any house they cover (new, edited or sold).
+const latestChange = houses => houses.map(house => getTimestampDate(getPropertyLastModified(house))).filter(Boolean)
+  .sort((a, b) => b - a)[0];
+const staticRoutes = allHouses => [
+  { loc: toAbsoluteUrl('/'), lastmod: formatSitemapDate(latestChange(allHouses)), changefreq: 'daily', priority: '1.0' },
+  ...SEO_LOCATIONS.map(location => ({ loc: toAbsoluteUrl(locationPath(location)),
+    lastmod: formatSitemapDate(latestChange(allHouses.filter(house => matchesSeoLocation(house, location)))), changefreq: 'daily', priority: '0.8' })),
 ];
 
 const buildUrlNode = ({ loc, lastmod, changefreq, priority }) => [
@@ -39,10 +40,11 @@ const buildSitemapXml = (urls) => [
 ].join('\n');
 
 export async function getServerSideProps({ res }) {
-  let properties = [], stock;
+  let properties = [], stock, allHouses = [];
 
   try {
     [properties, stock] = await Promise.all([getPublicProperties(), getSeoStock()]);
+    allHouses = properties;
     properties = await withCanonicalPropertyPaths(properties.filter(property => includePropertyInSitemap(property, stock)));
   } catch (error) {
     console.error('Unable to verify sitemap inventory:', error?.code || error?.name);
@@ -64,13 +66,14 @@ export async function getServerSideProps({ res }) {
 
   // Reuse the same stock snapshot as house URLs: no extra database request.
   const landingRoutes = indexableSeoLandings(properties.map(property => withWebsiteInventory(property, stock)))
-    .map(landing => ({ loc: toAbsoluteUrl(locationPath(landing)), changefreq: 'daily', priority: '0.8' }));
+    .map(landing => ({ loc: toAbsoluteUrl(locationPath(landing)),
+      lastmod: formatSitemapDate(latestChange(allHouses.filter(house => matchesSeoLocation(house, landing)))), changefreq: 'daily', priority: '0.8' }));
   const articles = articleSitemapEntries();
   const articleRoutes = articles.length ? [
     { loc: toAbsoluteUrl(ARTICLES_PATH), changefreq: 'weekly', priority: '0.6' },
     ...articles.map(article => ({ loc: toAbsoluteUrl(article.path), lastmod: article.lastmod, changefreq: 'monthly', priority: '0.6' })),
   ] : [];
-  const routes = [...new Map([...STATIC_ROUTES, ...landingRoutes, ...propertyRoutes, ...articleRoutes].map(route => [route.loc, route])).values()];
+  const routes = [...new Map([...staticRoutes(allHouses), ...landingRoutes, ...propertyRoutes, ...articleRoutes].map(route => [route.loc, route])).values()];
   const xml = buildSitemapXml(routes);
 
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
