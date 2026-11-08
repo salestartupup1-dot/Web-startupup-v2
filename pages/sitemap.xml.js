@@ -67,7 +67,9 @@ export async function getServerSideProps({ res }) {
   // Reuse the same stock snapshot as house URLs: no extra database request.
   const landingRoutes = indexableSeoLandings(properties.map(property => withWebsiteInventory(property, stock)))
     .map(landing => ({ loc: toAbsoluteUrl(locationPath(landing)),
-      lastmod: formatSitemapDate(latestChange(allHouses.filter(house => matchesSeoLocation(house, landing)))), changefreq: 'daily', priority: '0.8' }));
+      // Landing criteria need stock status (only bookable homes belong to a landing).
+      lastmod: formatSitemapDate(latestChange(allHouses.map(house => withWebsiteInventory(house, stock))
+        .filter(house => matchesSeoLocation(house, landing)))), changefreq: 'daily', priority: '0.8' }));
   const articles = articleSitemapEntries();
   const articleRoutes = articles.length ? [
     { loc: toAbsoluteUrl(ARTICLES_PATH), changefreq: 'weekly', priority: '0.6' },
