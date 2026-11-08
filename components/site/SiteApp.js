@@ -6,6 +6,9 @@ import { SITE_LOGO_URL } from '../../lib/siteNavigation';
 import ListingPagination from './ListingPagination';
 import { emptyListing, listingHref, listingPage, selectListingProperties, LISTING_PAGE_SIZE } from '../../lib/listingPagination';
 import HouseCard, { PAYMENT_NOTE, areaHeadline } from './HouseCard';
+
+// One brand name on the page (SEO work order task 8): stored texts written as "StartupUp" show the full name.
+const brandText = text => typeof text === 'string' ? text.replace(/StartupUp(?![\w.-])/g, 'Startup Up Real Estate') : text;
 /*
  * === คำแนะนำการตั้งค่า Tailwind CSS ===
  * เพื่อให้สีและฟอนต์ (brand-green, brand-light) แสดงผลได้สมบูรณ์แบบ
@@ -34,7 +37,7 @@ import { groupPropertyMapZones, propertyMapZone } from '../../lib/propertyMap';
 
 
 const DEFAULT_COMPANY_INFO = {
-  name: 'STARTUP UP',
+  name: 'Startup Up',
   address: '39/43 หมู่ 5 ต.คลองสาม อ.คลองหลวง จ.ปทุมธานี 12120',
   phone: '0624782426',
   email: 'startup.up.real.estate@gmail.com',
@@ -82,7 +85,7 @@ const DEFAULT_VISUAL_CONTENT = {
   navPortfolio: 'ผลงาน',
   contactTitle: 'ติดต่อเรา',
   followTitle: 'ติดตามเรา',
-  whyUsTitle: 'ซื้อบ้านกับ StartupUp ดีอย่างไร?',
+  whyUsTitle: 'ซื้อบ้านกับ Startup Up Real Estate ดีอย่างไร?',
   whyUs1Title: 'One-Stop-Service',
   whyUs1Desc: 'เราดูแลตั้งแต่นัดชมบ้าน จนสิ้นสุดกระบวนการ เมื่อได้ส่งมอบบ้านถึงมือลูกค้า',
   whyUs2Title: 'นัดชมบ้าน',
@@ -639,7 +642,7 @@ function HeroSection({ visualContent, updateVisualContent, isEditMode }) {
                   <SmartImage 
                       key={heroImg}
                       src={getOptimizedImg(heroImg, 1600)} 
-                      alt={`ภาพบ้านและบรรยากาศ STARTUP UP ภาพที่ ${currentIndex + 1}`}
+                      alt={`ภาพบ้านและบรรยากาศ Startup Up Real Estate ภาพที่ ${currentIndex + 1}`}
                       width={1600}
                       height={900}
                       sizes="100vw"
@@ -1214,7 +1217,7 @@ function HomeSection({ properties, loading, onSelectProp, setActiveTab, onSelect
 
         <div className="bg-gray-50 py-16 mt-8 mb-12 md:py-20 md:mt-12 md:mb-16 rounded-[30px] md:rounded-[40px] px-6 md:px-12 max-w-7xl mx-auto shadow-sm border border-gray-100 reveal-on-scroll">
             <div className="text-center mb-10 md:mb-12">
-                <EditableText tag="h2" fieldKey="whyUsTitle" content={visualContent} updateContent={updateVisualContent} isEditMode={isEditMode} className="text-2xl md:text-3xl font-bold text-brand-green inline-block" />
+                <EditableText tag="h2" fieldKey="whyUsTitle" content={isEditMode ? visualContent : { ...visualContent, whyUsTitle: brandText(visualContent?.whyUsTitle) }} updateContent={updateVisualContent} isEditMode={isEditMode} className="text-2xl md:text-3xl font-bold text-brand-green inline-block" />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                 <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm hover:shadow-md transition hover:-translate-y-1">

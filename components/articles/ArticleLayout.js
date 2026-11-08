@@ -9,7 +9,7 @@ export default function ArticleLayout({ children }) {
     <ArticleHeader />
     <main id="article-main" tabIndex={-1} className={styles.main}>{children}</main>
     <footer className={styles.footer}>
-      <div><strong>STARTUP UP</strong><p>จุดเริ่มต้นของคนอยากมีบ้าน</p><p>ต.คลองสาม อ.คลองหลวง จ.ปทุมธานี</p></div>
+      <div><strong>Startup Up Real Estate</strong><p>จุดเริ่มต้นของคนอยากมีบ้าน</p><p>ต.คลองสาม อ.คลองหลวง จ.ปทุมธานี</p></div>
       <nav aria-label="ติดต่อ Startup Up"><a href="/line/go?via=website">ทัก LINE</a><a href="tel:0624782426">โทร 062-478-2426</a><a href={ARTICLES_PATH}>บทความทั้งหมด</a></nav>
     </footer>
   </div>;

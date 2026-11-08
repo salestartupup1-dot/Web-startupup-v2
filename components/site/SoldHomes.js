@@ -15,7 +15,7 @@ export default function SoldHomes({ properties = [], listing, eagerCount = 3 }) 
   const schema = {
     '@context': 'https://schema.org', '@type': 'CollectionPage',
     url: toAbsoluteUrl(hrefForPage(page)), name: 'ผลงานและบ้านที่ขายแล้ว',
-    description: 'รูปบ้านที่ขายแล้วจากรายการบนเว็บไซต์ STARTUP UP',
+    description: 'รูปบ้านที่ขายแล้วจากรายการบนเว็บไซต์ Startup Up Real Estate',
     breadcrumb: { '@type': 'BreadcrumbList', itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'หน้าหลัก', item: toAbsoluteUrl('/') },
       { '@type': 'ListItem', position: 2, name: 'ผลงาน', item: toAbsoluteUrl(PORTFOLIO_PATH) },

@@ -339,7 +339,7 @@ export default function CinemaHero({
   onSelectLocation,
   onSelectCategory,
   onSearch,
-  companyName = 'STARTUP UP',
+  companyName = 'Startup Up',
   tagline = 'จุดเริ่มต้นของคนอยากมีบ้าน',
   visualContent,
   updateVisualContent,
@@ -952,7 +952,7 @@ export default function CinemaHero({
                 width={1920}
                 height={904}
                 fetchPriority="high"
-                alt="บรรยากาศบ้านและสวน STARTUP UP"
+                alt="บรรยากาศบ้านและสวน Startup Up Real Estate"
               />
               </picture>
 
@@ -996,7 +996,7 @@ export default function CinemaHero({
             */}
             <div className="hero-stack">
               <div className="hero-title">
-                <span className="hero-title-main">{companyName}</span>
+                <span className="hero-title-main">{companyName}</span>{' '}
                 <span className="hero-title-sub">Real Estate</span>
               </div>
 
