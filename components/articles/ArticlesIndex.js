@@ -5,6 +5,7 @@ import { ARTICLE_CATALOGUE, ARTICLES_PATH, articlePath, isArticlePublishable } f
 import { toAbsoluteUrl, safeJsonLd } from '../../lib/seo';
 import styles from './Articles.module.css';
 const CATEGORIES=[
+ {name:'ราคาบ้านและทำเล',id:'prices',intro:'ราคา จำนวนบ้าน และค่าผ่อน จากบ้านที่เปิดขายบนเว็บ อัปเดตอัตโนมัติ'},
  {name:'สินเชื่อ',id:'mortgage',intro:'เตรียมรายได้ เอกสาร และงบผ่อนให้พร้อมก่อนยื่นกู้'},
  {name:'ขั้นตอนซื้อบ้าน',id:'buying',intro:'ค่อย ๆ เข้าใจตั้งแต่วันจอง ค่าใช้จ่าย ไปจนถึงรับกุญแจ'},
  {name:'ตรวจบ้านและรีโนเวท',id:'renovation',intro:'ดูให้ลึกกว่าความสวย เลือกบ้านที่ใช้งานได้ตรงใจ'},

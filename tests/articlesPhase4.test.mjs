@@ -7,11 +7,12 @@ import { SEO_LOCATIONS } from '../lib/seoLocations.js';
 import { SEO_LANDINGS } from '../lib/seoLandings.js';
 
 const article=getArticle(ARTICLE_CATALOGUE[0].slug);
-test('all twenty articles are complete, unique, linked and renderable without stock reads',()=>{
-  assert.equal(ARTICLE_CATALOGUE.length,20);
-  assert.equal(new Set(ARTICLE_CATALOGUE.map(a=>a.slug)).size,20);
+test('all twenty editorial articles are complete, unique, linked and renderable without stock reads',()=>{
+  const editorial=ARTICLE_CATALOGUE.filter(a=>!a.market);
+  assert.equal(editorial.length,20); assert.equal(ARTICLE_CATALOGUE.length,23);
+  assert.equal(new Set(ARTICLE_CATALOGUE.map(a=>a.slug)).size,23);
   const landingPaths=new Set([...SEO_LOCATIONS,...SEO_LANDINGS].map(a=>'/'+a.slug));
-  for(const meta of ARTICLE_CATALOGUE){
+  for(const meta of editorial){
     const a=getArticle(meta.slug),count=articleWordCount(a);
     assert.ok(count>=1200&&count<=1800,`${meta.slug}: ${count}`);
     assert.ok(a.seoTitle.length<=60,meta.slug);assert.ok(a.description.length<=155,meta.slug);
@@ -23,7 +24,7 @@ test('all twenty articles are complete, unique, linked and renderable without st
     const links=a.sections.flatMap(s=>s.links||[]);
     assert.ok(new Set(links.filter(l=>landingPaths.has(l.href)).map(l=>l.href)).size>=2,meta.slug);
     const schema=articleStructuredData(a).find(s=>s['@type']==='Article');
-    assert.equal(schema.author['@type'],'Organization');assert.equal(schema.publisher.name,'Startup Up');
+    assert.equal(schema.author['@type'],'Organization');assert.equal(schema.publisher.name,'Startup Up Real Estate');
     assert.doesNotMatch(articleText(a),/TODO|TBD|\[ใส่|รอยืนยัน|เหลือ\s*\d+\s*หลัง/);
     if(a.keyword){
       const normal=text=>text.replace(/[\s,–—-]/g,'');
@@ -71,9 +72,9 @@ test('fee comparison calculates 200 + 200 baht, 59,600 reduction, without claimi
 });
 test('all existing articles inherit the team byline and Organization schema, with ISO dates',()=>{
   assert.ok(isArticlePublishable(article));
-  assert.equal(resolveArticleAuthor(article).displayName,'ทีมงาน Startup Up');
+  assert.equal(resolveArticleAuthor(article).displayName,'ทีมงาน Startup Up Real Estate');
   const schema=articleStructuredData(article).find(item=>item['@type']==='Article');
-  const organization={'@type':'Organization',name:'Startup Up',url:'https://www.startupup-real-estate.com'};
+  const organization={'@type':'Organization',name:'Startup Up Real Estate',url:'https://www.startupup-real-estate.com'};
   assert.deepEqual(schema.author,organization); assert.deepEqual(schema.publisher,organization);
   assert.equal(schema.url,schema.mainEntityOfPage['@id']);
   for (const key of ['datePublished','dateModified']) {
