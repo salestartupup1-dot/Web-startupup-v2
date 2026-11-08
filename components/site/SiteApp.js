@@ -3,7 +3,7 @@ import { locationMarket } from '../../lib/locationMarket';
 import { pathumIntro } from '../../lib/pathumCopy';
 import { locationAnswer } from '../../lib/locationCopy';
 import { monthlyMortgage } from '../../lib/mortgage';
-import { SITE_LOGO_URL } from '../../lib/siteNavigation';
+import { DEFAULT_COMPANY_INFO } from '../../lib/companyInfo';
 import ListingPagination from './ListingPagination';
 import { emptyListing, listingHref, listingPage, selectListingProperties, LISTING_PAGE_SIZE } from '../../lib/listingPagination';
 import HouseCard, { PAYMENT_NOTE, areaHeadline } from './HouseCard';
@@ -37,18 +37,7 @@ import { groupPropertyMapZones, propertyMapZone } from '../../lib/propertyMap';
 
 
 
-const DEFAULT_COMPANY_INFO = {
-  name: 'Startup Up',
-  address: '39/43 หมู่ 5 ต.คลองสาม อ.คลองหลวง จ.ปทุมธานี 12120',
-  phone: '0624782426',
-  email: 'startup.up.real.estate@gmail.com',
-  line: 'https://line.me/R/ti/p/@SURE141',
-  facebook: 'https://www.facebook.com/startupuprealestate/',
-  description: 'จุดเริ่มต้นของคนอยากมีบ้าน',
-  // Match the saved company logo on the first server-rendered frame as well.
-  logoUrl: SITE_LOGO_URL,
-  portfolio_years: []
-};
+
 
 const DEFAULT_LOCATIONS_DATA = [
   { area: 'ลำลูกกา', sub_areas: ['คลองหนึ่ง', 'คลองสอง', 'คลองสาม', 'คลองสี่', 'คลองห้า', 'คลองหก', 'คลองเจ็ด', 'คลองแปด', 'คลองเก้า', 'คลองสิบ', 'คลองสิบเอ็ด'], img: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' },

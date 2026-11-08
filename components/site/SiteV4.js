@@ -15,17 +15,17 @@
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { SITE_NAV_TABS as NAV_TABS } from '../../lib/siteNavigation';
-import { lineContactHref } from '../../lib/lineAttribution';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Settings, Search, CircleUserRound, Menu, X, Loader, Save, Layout, Type,
-  ChevronLeft, ChevronRight, MessageCircle, Video,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
 import useSiteData from './useSiteData';
 import PublicDataNotice from './PublicDataNotice';
 import PromotionPopup from './PromotionPopup';
-import SeoBrowse, { LandingLinks } from './SeoBrowse';
+import SeoBrowse from './SeoBrowse';
+import SiteFooter from './SiteFooter';
 import { seoLocationFromSearch } from '../../lib/seoLocations';
 import StickyContact from './StickyContact';
 import useRevealOnScroll from './useRevealOnScroll';
@@ -47,16 +47,6 @@ const SoldHomes = dynamic(() => import('./SoldHomes'));
 // The back office is only opened by admins; visitors never download it.
 const AdminPanel = dynamic(() => import('./AdminPanel'), { ssr: false });
 
-const Facebook = ({ size = 26 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
-);
-const Instagram = ({ size = 26 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
-);
-const Youtube = ({ size = 26 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.42a2.78 2.78 0 0 0-1.94 2C1 8.13 1 12 1 12s0 3.87.54 5.58a2.78 2.78 0 0 0 1.94 2C5.12 20 12 20 12 20s6.88 0 8.6-.42a2.78 2.78 0 0 0 1.94-2C23 15.87 23 12 23 12s0-3.87-.54-5.58z" /><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" /></svg>
-);
-
 // Open the cinematic home on every screen; keep the static accessibility fallback.
 const SIMPLE_HOME_QUERY = '(prefers-reduced-motion: reduce)';
 const subscribeHomeLayout = callback => {
@@ -66,13 +56,6 @@ const subscribeHomeLayout = callback => {
 };
 const getHomeLayout = () => window.matchMedia(SIMPLE_HOME_QUERY).matches;
 const getServerHomeLayout = () => false;
-
-/**
- * ลิงก์แผนที่ออฟฟิศ — ใช้ลิงก์ที่ปักหมุดไว้แล้ว ไม่ใช่ค้นหาจากข้อความที่อยู่
- * ของเดิมส่งข้อความที่อยู่ไปให้ Google ค้นเอา ซึ่งบางทีได้หมุดผิดตำแหน่ง
- * ถ้าย้ายออฟฟิศ ให้แก้ที่บรรทัดนี้ (ตัวข้อความที่อยู่แก้จากหลังบ้านได้ตามเดิม)
- */
-const OFFICE_MAP_URL = 'https://maps.app.goo.gl/e3AGFWQjtbVMiBYS9';
 
 function Waiting() {
   return (
@@ -197,18 +180,6 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
   }, [activeTab, selectedProperty, loading, isCinemaView]);
 
   useEffect(() => { setIsMenuOpen(false); }, [activeTab, selectedProperty]);
-
-  // Load the footer photo only when the footer comes within ~1 screen of the viewport.
-  const footerRef = useRef(null);
-  const [footerPhoto, setFooterPhoto] = useState(false);
-  useEffect(() => {
-    const footer = footerRef.current;
-    if (!footer || footerPhoto) return;
-    if (typeof IntersectionObserver !== 'function') { setFooterPhoto(true); return; }
-    const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) setFooterPhoto(true); }, { rootMargin: '800px 0px' });
-    observer.observe(footer);
-    return () => observer.disconnect();
-  }, [footerPhoto]);
 
   // Warm detail code when a listing is actually in use; the cinematic intro
   // should not download an unrelated house page during its first paint.
@@ -594,37 +565,13 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
         </main>
 
         {/* ---------- ท้ายเว็บ ---------- */}
-        <footer className={`v4-footer${footerPhoto ? ' has-bg' : ''}`} ref={footerRef}>
-          <div className="v4-footer-inner">
-            <div>
-              <h3>{companyInfo?.name || 'STARTUP UP'}</h3>
-              <p>{companyInfo?.description || 'จุดเริ่มต้นของคนอยากมีบ้าน'}</p>
-            </div>
-            <div className="v4-foot-contact">
-              <h4>{label('contactTitle', 'ติดต่อเรา')}</h4>
-              <a
-                href={OFFICE_MAP_URL}
-                target="_blank" rel="noopener noreferrer"
-              >{companyInfo?.address}</a>
-              <a className="v4-phone" href={`tel:${companyInfo?.phone}`} data-phone-property-id={selectedProperty?.id} data-phone-property-name={[selectedProperty?.project_name, selectedProperty?.house_number].filter(Boolean).join(' ')} data-phone-property-slug={selectedProperty ? generatePropSlug(selectedProperty) : undefined}>โทร {companyInfo?.phone}</a>
-              <span>{companyInfo?.email}</span>
-            </div>
-            <div>
-              <h4>{label('followTitle', 'ติดตามเรา')}</h4>
-              <div className="v4-social">
-                <a href={companyInfo?.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook"><Facebook /></a>
-                <a href="https://youtube.com/@startupupofficial" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><Youtube /></a>
-                <a href={lineContactHref(selectedProperty)} data-contact-property-id={selectedProperty?.id} data-contact-property-name={[selectedProperty?.project_name, selectedProperty?.house_number].filter(Boolean).join(' ')} data-contact-property-slug={selectedProperty ? generatePropSlug(selectedProperty) : undefined} target="_blank" rel="noopener noreferrer" aria-label="LINE"><MessageCircle size={26} /></a>
-                <a href="https://www.instagram.com/startupuprealestate/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><Instagram /></a>
-                <a href="https://www.tiktok.com/@startupupofficial" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><Video size={26} /></a>
-              </div>
-            </div>
-          </div>
-          <LandingLinks footer />
-          <div className="v4-footer-base">
-            © {new Date().getFullYear()} {companyInfo?.name || 'Startup Up Real Estate'}. All Rights Reserved.
-          </div>
-        </footer>
+        <SiteFooter
+          companyInfo={companyInfo}
+          selectedProperty={selectedProperty}
+          propertySlug={selectedProperty ? generatePropSlug(selectedProperty) : undefined}
+          contactTitle={label('contactTitle', 'ติดต่อเรา')}
+          followTitle={label('followTitle', 'ติดตามเรา')}
+        />
         {showStickyContact && <><div className="md:hidden h-[76px]" aria-hidden="true" /><StickyContact phone={companyInfo.phone} isEditMode={isVisualEditMode} /></>}
 
         {/* ---------- แถบโหมดแก้ไขหน้าเว็บ ---------- */}
@@ -947,110 +894,6 @@ const v4Css = `
 .v4-popup-foot button {
   border: 0; cursor: pointer; font: inherit; font-size: 14px;
   padding: 8px 20px; border-radius: 999px; background: var(--brand); color: var(--paper);
-}
-
-/* ---------- ท้ายเว็บ ---------- */
-/**
- * พื้นหลังท้ายเว็บ — ภาพครอบครัวเล่นในสนามหลังบ้าน ซ้อนใต้ม่านสีเขียวเข้ม
- * ม่านจำเป็น ไม่ใช่แค่ความสวย ถ้าไม่มี ตัวหนังสือครีมจะจมหายไปกับหญ้าที่โดนแดด
- * ไล่เฉดเข้มหัว-ท้าย อ่อนตรงกลาง ภาพจึงยังเห็นเป็นภาพ ไม่ใช่แค่พื้นเขียวด่าง
- *
- * ต้นฉบับเป็น PNG 2.4 MB หนักเกินไปสำหรับพื้นหลัง แปลงเป็น webp เหลือ 153 KB
- * แล้วทำตัวเล็ก 900px (48 KB) ไว้ให้มือถือ ซึ่งจอไม่กว้างพอจะเห็นความต่างอยู่แล้ว
- */
-.v4-footer {
-  margin-top: auto; color: var(--paper); position: relative; z-index: 30;
-  background-color: #0b1f12;
-  background-image:
-    linear-gradient(180deg,
-      rgba(6, 20, 10, 0.72) 0%,
-      rgba(6, 20, 10, 0.64) 38%,
-      rgba(6, 20, 10, 0.88) 72%,
-      rgba(6, 20, 10, 0.94) 100%),
-    var(--footer-photo, none);
-  background-position: center top;
-  background-repeat: no-repeat;
-  /**
-   * กว้างเต็มจอ สูงตามสัดส่วนจริงของภาพ ไม่ตัดอะไรทิ้งเลย
-   * แล้วบังคับความสูงกล่องให้เท่ากับภาพพอดี ภาพจึงเต็มใบไม่มีขอบเขียวโผล่
-   *
-   * ใช้ cqw ไม่ใช่ vw เพราะ vw นับรวมความกว้างแถบเลื่อนด้วย
-   * กล่องจะสูงเกินภาพไปสิบกว่าพิกเซล เห็นเป็นแถบเขียวบาง ๆ ที่ก้น
-   */
-  container-type: inline-size;
-  background-size: 100% auto;
-  min-height: calc(100cqw / 2.3801);
-  /**
-   * ดันเนื้อหาลงไปชิดก้น ไม่ใช่จัดกึ่งกลาง
-   * กล่องสูงกว่าตัวข้อความเกือบสามเท่า ถ้าจัดกึ่งกลางจะเหลือที่ว่างค้างใต้ข้อความเป็นท่อน
-   * ดันลงล่างแล้วที่ว่างไปกองอยู่ด้านบนแทน ซึ่งเป็นส่วนที่มีเต็นท์กับกลุ่มคนอยู่พอดี
-   * ม่านจึงจางที่หัวให้เห็นภาพ แล้วค่อยเข้มที่ก้นตรงที่ตัวหนังสือทับอยู่
-   */
-  display: flex; flex-direction: column; justify-content: flex-end;
-}
-/**
- * จอแคบกลับไปใช้ cover ตามเดิม
- * ภาพกว้าง 2.38:1 ถ้าโชว์เต็มใบบนมือถือจะเหลือแถบสูงแค่ราว 160px
- * ขณะที่ข้อความท้ายเว็บสูงกว่า 500px กลายเป็นภาพแปะหัวแล้วเขียวโล่งทั้งท่อน
- */
-@media (max-width: 900px) {
-  .v4-footer {
-    background-image:
-      linear-gradient(180deg, rgba(6, 20, 10, 0.93) 0%, rgba(6, 20, 10, 0.8) 42%, rgba(6, 20, 10, 0.92) 100%),
-      var(--footer-photo, none);
-    background-size: cover;
-    background-position: center 35%;
-    min-height: 0;
-  }
-}
-
-/* The footer photo is attached only when the footer is near the screen (SiteV4 adds .has-bg),
-   so it never competes with the first house photo for bandwidth. */
-.v4-footer.has-bg { --footer-photo: url('/footer-bg.webp'); }
-@media (max-width: 900px) { .v4-footer.has-bg { --footer-photo: url('/footer-bg-sm.webp'); } }
-/**
- * width: 100% ขาดไม่ได้
- * พอ .v4-footer กลายเป็น flex คอลัมน์ ลูกทั้งสองก้อนก็เป็น flex item
- * margin: 0 auto ของ flex item คือ auto margin ตามแกนขวาง ซึ่งลบล้าง stretch ทิ้ง
- * กล่องจึงหดเหลือเท่าเนื้อหา คอลัมน์ในตารางเลยกว้างไม่เท่ากันและกองอยู่กลางจอ
- */
-.v4-footer-inner {
-  width: 100%; max-width: 1400px; margin: 0 auto; padding: 64px 28px 40px;
-  text-align: center;
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 40px;
-}
-.v4-footer h3 {
-  margin: 0 0 16px; font-size: 36px; font-weight: 300; letter-spacing: 0.2em;
-  /* letter-spacing เติมช่องว่างท้ายตัวอักษรตัวสุดท้ายด้วย พอจัดกึ่งกลางจะเห็นเยื้องไปทางซ้าย
-     ดัน text-indent เท่ากันกลับเข้าไป บรรทัดจึงอยู่กลางจริง */
-  text-indent: 0.2em;
-  font-family: var(--display); text-transform: uppercase;
-}
-.v4-footer h4 {
-  margin: 0 0 18px; font-size: 17px; font-weight: 500; text-indent: 0.16em;
-  letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.75;
-}
-.v4-footer p, .v4-footer span, .v4-footer a {
-  display: block; color: rgba(253, 241, 225, 0.78); font-size: 18px;
-  line-height: 1.7; text-decoration: none; margin-bottom: 6px;
-}
-.v4-footer a:hover { color: #fff; text-decoration: underline; }
-.v4-footer .v4-phone { font-size: 25px; color: var(--paper); margin: 12px 0; }
-/**
- * ช่องติดต่อชิดซ้าย ไม่ตามคอลัมน์อื่นที่จัดกึ่งกลาง
- * ที่อยู่ยาวจนตกบรรทัด ถ้าจัดกึ่งกลางจะได้ขอบซ้ายเป็นฟันปลา อ่านสะดุด
- * ก้อนทั้งก้อนยังถูกจัดกึ่งกลางในคอลัมน์อยู่ กว้างเท่าบรรทัดที่ยาวที่สุดเท่านั้น
- * จึงไม่ลอยไปติดขอบคอลัมน์จนดูหลุดจากอีกสองช่อง
- */
-.v4-foot-contact { text-align: left; width: fit-content; margin: 0 auto; }
-.v4-foot-contact h4 { text-indent: 0; }
-.v4-social { display: flex; justify-content: center; gap: 18px; margin-top: 6px; }
-.v4-social a { margin: 0; opacity: 0.8; transition: opacity 200ms ease, transform 200ms ease; }
-.v4-social a:hover { opacity: 1; transform: translateY(-2px); }
-.v4-footer-base {
-  width: 100%; max-width: 1400px; margin: 0 auto; padding: 20px 28px 32px;
-  border-top: 1px solid rgba(253, 241, 225, 0.18);
-  text-align: center; font-size: 15px; letter-spacing: 0.05em; opacity: 0.65;
 }
 
 /* ---------- แถบโหมดแก้ไข ---------- */
