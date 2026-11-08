@@ -55,7 +55,7 @@ test('article A summarises price by area, type and payment', () => {
   assert.match(article.introduction[0], /มี 9 หลัง ราคา 1\.69–3\.99 ล้านบาท ส่วนใหญ่เป็นทาวน์เฮาส์ 6 หลัง ราคา 1\.69–2\.79 ล้านบาท/);
   assert.match(article.introduction[0], /ครึ่งหนึ่งของบ้านที่เปิดขายราคาไม่เกิน 2\.49 ล้านบาท ผ่อนประมาณ 8,914 บาทต่อเดือน/);
   const area = article.sections.find(section => section.id === 'by-area');
-  assert.deepEqual(area.dataTable.rows[0].slice(0, 2), ['คลองหลวง', '6 หลัง']);
+  assert.deepEqual(area.dataTable.rows[0], ['คลองหลวง (6 หลัง)', '4 หลัง · 1.99–2.79 ล้าน', '1 หลัง · 2.69 ล้าน', '1 หลัง · 3.49 ล้าน']);
   assert.match(area.after[0], /คลองหลวงมีบ้านมากที่สุด 6 หลัง ส่วนใหญ่อยู่คลอง 3 \(5 หลัง\)/);
   const pay = article.sections.find(section => section.id === 'payment').dataTable.rows;
   assert.deepEqual(pay.find(row => row[0] === '2,000,000 บาท').slice(1), ['7,160', '9,548', '11,356']);
