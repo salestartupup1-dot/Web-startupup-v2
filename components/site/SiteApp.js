@@ -1,6 +1,7 @@
 import { propertyHighlightsText } from '../../lib/propertyEditorial';
 import { locationMarket } from '../../lib/locationMarket';
 import { pathumIntro } from '../../lib/pathumCopy';
+import { locationAnswer } from '../../lib/locationCopy';
 import { monthlyMortgage } from '../../lib/mortgage';
 import { SITE_LOGO_URL } from '../../lib/siteNavigation';
 import ListingPagination from './ListingPagination';
@@ -1745,6 +1746,7 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
     : searchParams?.type === 'category' ? `หมวดหมู่: ${searchParams.value}`
     : searchParams?.type === 'keyword' ? `ผลการค้นหา: "${searchParams.value}"`
     : searchParams?.value ? `ทำเล: ${searchParams.area ? `${searchParams.area} - ` : ''}${searchParams.value}` : 'รายการทั้งหมด');
+  const answerBox = locationLanding && !locationLanding.kind ? locationAnswer(locationLanding, locationMarket(locationLanding, properties)) : '';
   const hrefForPage = page => listingHref({ activeTab, searchParams, location: locationLanding, listing: state, page, basePath });
 
   return (
@@ -1762,7 +1764,10 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
       {hasUnverifiedLocation && <p role="status" className="mb-4 text-sm text-gray-600">บางรายการอยู่ระหว่างยืนยันสถานะ จึงยังไม่รวมในจำนวนบ้านที่เปิดรับจอง กรุณาสอบถามทีมงานหากไม่พบหลังที่สนใจ</p>}
       {!locationLanding && ['all', 'promo'].includes(activeTab) && areaHeadline(properties) && <p className="mb-1 text-sm font-medium text-[#98691d]">{areaHeadline(properties)}</p>}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-5 md:mb-10 gap-3 md:gap-4">
+          <div>
           <Heading className="text-2xl font-light text-brand-green">{title} <span className="text-sm text-gray-400 ml-2">{hasUnverifiedLocation && displayProps.length === 0 ? 'กำลังยืนยันรายการ' : `(${displayProps.length} ${locationLanding?.countUnit || 'รายการ'})`}</span></Heading>
+          {answerBox && <p data-answer-box suppressHydrationWarning className="mt-3 max-w-3xl rounded-2xl border border-[#e8dcc4] bg-[#fbf7ef] px-4 py-3 text-sm leading-relaxed text-gray-700">{answerBox}</p>}
+          </div>
           
           <div className="flex items-center gap-2 flex-wrap">
           {/* ตัวกรอง : ติ๊กเลือกทำเลและประเภทบ้านพร้อมกันได้ */}

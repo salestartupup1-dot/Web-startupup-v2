@@ -51,6 +51,6 @@ test('mortgage formula supports zero interest and invalid inputs without NaN',()
 test('FAQ prices exclude reserved listings and do not invent a minimum for empty stock',()=>{
   const location=SEO_LOCATIONS.find(x=>x.name==='คลองหลวง');
   const faq=locationFaq(location,[{...property,inventoryState:'available'}, {...property,id:'reserved',inventoryState:'reserved',price:1}]);
-  assert.equal(faq.length,5); assert.ok(faq[0][1].includes('2,000,000'));
+  assert.equal(faq.length,4); assert.ok(faq[0][1].includes('2,000,000')); assert.ok(faq[0][1].includes('มี 1 หลัง'));
   assert.ok(!locationFaq(location,[])[0][1].includes('เริ่มต้น'));
 });
