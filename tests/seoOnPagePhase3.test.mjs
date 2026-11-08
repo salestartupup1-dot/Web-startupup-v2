@@ -75,9 +75,11 @@ test('old sold page redirects permanently to portfolio without reading stock', a
 test('RealEstateAgent uses a structured office address, service areas and a fixed description',async()=>{
   const { buildLocalBusinessJsonLd } = await import('../lib/seo.js');
   const schema=buildLocalBusinessJsonLd({description:'จุดเริ่มต้นของคนอยากมีบ้าน',address:'free text'});
-  assert.deepEqual(schema.address,{'@type':'PostalAddress',streetAddress:'39/43,39/44 หมู่ 5',addressLocality:'คลองหลวง',
+  assert.deepEqual(schema.address,{'@type':'PostalAddress',streetAddress:'39/43, 39/44 หมู่ 5',addressLocality:'ต.คลองสาม อ.คลองหลวง',
     addressRegion:'ปทุมธานี',postalCode:'12120',addressCountry:'TH'});
-  assert.deepEqual(schema.areaServed.map(area=>area.name),['คลองหลวง','ธัญบุรี','ลำลูกกา','ปทุมธานี']);
+  assert.deepEqual(schema.areaServed.map(area=>area.name),['รังสิต','คลองหลวง','ธัญบุรี','ลำลูกกา','ปทุมธานี']);
+  assert.equal(schema.name,'Startup Up Real Estate'); assert.equal(schema.alternateName,'Startup Up');
+  assert.equal(buildLocalBusinessJsonLd({phone:'062-478-2426'}).telephone,'+66-62-478-2426');
   for (const word of ['บ้านมือสองรีโนเวท','รังสิต','คลองหลวง','ปทุมธานี']) assert.ok(schema.description.includes(word),word);
   assert.equal(schema.geo,undefined); assert.equal(schema.openingHoursSpecification,undefined);
 });
