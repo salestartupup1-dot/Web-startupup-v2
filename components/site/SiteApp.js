@@ -1,4 +1,6 @@
 import { propertyHighlightsText } from '../../lib/propertyEditorial';
+import { locationMarket } from '../../lib/locationMarket';
+import { pathumIntro } from '../../lib/pathumCopy';
 import { monthlyMortgage } from '../../lib/mortgage';
 import { SITE_LOGO_URL } from '../../lib/siteNavigation';
 import ListingPagination from './ListingPagination';
@@ -1751,11 +1753,13 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
           <li aria-current="page">{locationLanding.name}</li>
         </ol>
       </nav>}
-      {locationLanding && <p className="mb-4 text-brand-green">{locationLanding.intro}</p>}
+      {locationLanding && (locationLanding.copy === 'pathum'
+        ? <div className="mb-4 space-y-2 text-brand-green">{pathumIntro(locationMarket(locationLanding, properties)).map(text => <p key={text.slice(0, 24)}>{text}</p>)}</div>
+        : <p className="mb-4 text-brand-green">{locationLanding.intro}</p>)}
       {hasUnverifiedLocation && <p role="status" className="mb-4 text-sm text-gray-600">บางรายการอยู่ระหว่างยืนยันสถานะ จึงยังไม่รวมในจำนวนบ้านที่เปิดรับจอง กรุณาสอบถามทีมงานหากไม่พบหลังที่สนใจ</p>}
       {!locationLanding && ['all', 'promo'].includes(activeTab) && areaHeadline(properties) && <p className="mb-1 text-sm font-medium text-[#98691d]">{areaHeadline(properties)}</p>}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-5 md:mb-10 gap-3 md:gap-4">
-          <Heading className="text-2xl font-light text-brand-green">{title} <span className="text-sm text-gray-400 ml-2">{hasUnverifiedLocation && displayProps.length === 0 ? 'กำลังยืนยันรายการ' : `(${displayProps.length} รายการ)`}</span></Heading>
+          <Heading className="text-2xl font-light text-brand-green">{title} <span className="text-sm text-gray-400 ml-2">{hasUnverifiedLocation && displayProps.length === 0 ? 'กำลังยืนยันรายการ' : `(${displayProps.length} ${locationLanding?.countUnit || 'รายการ'})`}</span></Heading>
           
           <div className="flex items-center gap-2 flex-wrap">
           {/* ตัวกรอง : ติ๊กเลือกทำเลและประเภทบ้านพร้อมกันได้ */}

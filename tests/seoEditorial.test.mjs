@@ -45,8 +45,10 @@ test('market range excludes other locations, sold, unknown, invalid prices and d
   const properties = [house, house, { ...house, id: 'b', price: 2790000 },
     { ...house, id: 'c', price: 100, inventoryState: 'sold' }, { ...house, id: 'd', price: 200, inventoryState: 'unknown' },
     { ...house, id: 'e', price: 300, district: 'ลำลูกกา', main_location: 'ลำลูกกา' }, { ...house, id: 'f', price: 'Infinity' }];
-  assert.deepEqual(locationMarket(location, properties), { count: 3, pricedCount: 2, min: 1790000, max: 2790000 });
+  const counts = ({ count, pricedCount, min, max }) => ({ count, pricedCount, min, max });
+  assert.deepEqual(counts(locationMarket(location, properties)), { count: 3, pricedCount: 2, min: 1790000, max: 2790000 });
+  assert.equal(locationMarket(location, properties).houses.length, 3);
   assert.match(locationFaq(location, properties)[0][1], /1,790,000 ถึง 2,790,000/);
-  assert.deepEqual(locationMarket(location, []), { count: 0, pricedCount: 0, min: null, max: null });
+  assert.deepEqual(counts(locationMarket(location, [])), { count: 0, pricedCount: 0, min: null, max: null });
   assert.doesNotMatch(locationFaq(location, [properties[3]])[0][1], /100 บาท|มี 0 หลัง/);
 });
