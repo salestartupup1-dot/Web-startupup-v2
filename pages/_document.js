@@ -61,8 +61,10 @@ export default function Document(props) {
         <script id="home-reload-start" dangerouslySetInnerHTML={{ __html: HOME_RELOAD_START }} />
         <link rel="preconnect" href="https://firestore.googleapis.com" crossOrigin="" />
         <link rel="preconnect" href="https://res.cloudinary.com" />
-        <link rel="preload" as="font" href="/fonts/prompt/prompt-400-thai.woff2" type="font/woff2" crossOrigin="anonymous" />
-        {/* Prompt is self-hosted (styles/fonts.css); the old Google Fonts stylesheet blocked first paint. */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link rel="preload" as="font" href="https://cdn.jsdelivr.net/npm/@fontsource/prompt@5.3.0/files/prompt-thai-400-normal.woff2" type="font/woff2" crossOrigin="anonymous" />
+        {/* Prompt font files come from jsDelivr (styles/fonts.css) so they do not count as Vercel CDN requests;
+            the old Google Fonts stylesheet blocked first paint, plain @font-face rules do not. */}
 
         {/*
           ประกาศไอคอนไว้ที่นี่ให้ครบทุกหน้า ไม่ใช่เฉพาะหน้าแรก

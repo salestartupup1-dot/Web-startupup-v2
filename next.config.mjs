@@ -24,7 +24,7 @@ const contentSecurityPolicy = [
     "https://analytics.tiktok.com"
   ].filter(Boolean).join(' '),
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com data:",
+  "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:",
   [
     "img-src",
     "'self'",
@@ -173,6 +173,11 @@ const nextConfig = {
         // LINE's in-app browser re-requests the site icons on every view (12k+ a day), which
         // counts against Vercel's CDN request allowance. A day is safe: a new icon only needs a new name.
         source: '/:icon(favicon.ico|icon-192.png|apple-touch-icon.png)',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }],
+      },
+      {
+        // Same reason for the LINE images on /line/go and /line/connect (they were max-age=0).
+        source: '/brand/:path*',
         headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }],
       },
     ];

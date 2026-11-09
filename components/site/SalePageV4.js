@@ -39,6 +39,7 @@ import VideoThumbnail from './VideoThumbnail';
 import { cardPayment, PAYMENT_NOTE } from './HouseCard';
 import useSalePromotion from './useSalePromotion';
 import { promotionAppliesTo } from '../../lib/salePromotion';
+import { LINE_ICON_SRC } from '../../lib/lineIcon';
 
 // The three highlight fields from the back office are shown together as this house's selling points.
 const FEATURE_KEYS = new Set(PROPERTY_HIGHLIGHT_FIELDS.map(field => field.key));
@@ -648,7 +649,7 @@ export default function SalePageV4({
                 target="_blank" rel="noopener noreferrer"
                 onClick={() => trackContact('contact_line')}
               >
-                <img src="/brand/line-48.png" alt="" width="18" height="18" className="sp4-lineico" /> ทักไลน์
+                <img src={LINE_ICON_SRC} alt="" width="18" height="18" className="sp4-lineico" /> ทักไลน์
               </a>
               <button type="button" className="sp4-act line" disabled={detailsPending} aria-expanded={bookOpen} onClick={() => setBookOpen((v) => !v)}>
                 <Calendar size={16} /> นัดเข้าชมบ้าน
@@ -706,7 +707,7 @@ export default function SalePageV4({
                 )}
 
                 <button type="button" className="sp4-book-send" disabled={detailsPending || !bookReady || isEditMode} onClick={sendBooking}>
-                  <img src="/brand/line-48.png" alt="" width="18" height="18" className="sp4-lineico" />
+                  <img src={LINE_ICON_SRC} alt="" width="18" height="18" className="sp4-lineico" />
                   ส่งนัดผ่านไลน์
                 </button>
               </div>
