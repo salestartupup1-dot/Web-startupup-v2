@@ -401,7 +401,7 @@ export default function SalePageV4({
         </div>
       </div>
 
-      {/* ── ชื่อบ้าน อยู่ก่อนรูปเหมือน SalePage เดิม ── */}
+      {/* ── เส้นทางนำทางก่อนรูปหลัก ── */}
       <div className="sp4-masthead">
         <nav aria-label="เส้นทางนำทาง" className="sp4-breadcrumb">
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- Native navigation resets the cinematic home state and works without JavaScript. */}
@@ -409,28 +409,6 @@ export default function SalePageV4({
           <a href={areaPage ? locationPath(areaPage) : '/?tab=all'}>{areaPage ? `บ้านมือสอง${areaPage.name}` : 'บ้านทั้งหมด'}</a>
           <span aria-hidden="true"> › </span><span aria-current="page">{property.project_name} {property.house_number}</span>
         </nav>
-        <h1 className="sp4-title">{property.project_name?.trim() || 'รายละเอียดบ้าน'}</h1>
-        <div className="sp4-idents">
-          {houseAndSoi.hn && (
-            <span className="sp4-ident">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-              บ้านเลขที่ <b>{houseAndSoi.hn}</b>
-            </span>
-          )}
-          {houseAndSoi.soi && (
-            <span className="sp4-ident">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19V5" /><path d="M20 19V5" /><path d="M4 12h16" /></svg>
-              <b>{houseAndSoi.soi}</b>
-            </span>
-          )}
-          <span className="sp4-ident is-loc">
-            <MapPin size={15} />
-            <b>
-              {property.main_location || property.district}
-              {(property.sub_location || property.subdistrict) ? ` — ${property.sub_location || property.subdistrict}` : ''}
-            </b>
-          </span>
-        </div>
       </div>
 
       {/* ── ภาพหลัก แถบเต็มความกว้าง รูปไม่ถูกครอบ ── */}
@@ -486,6 +464,23 @@ export default function SalePageV4({
       {/* ── เนื้อหาสองคอลัมน์ ── */}
       <main className="sp4-record">
         <div>
+          <header className="sp4-identity">
+            <h1 className="sp4-title">{property.project_name?.trim() || 'รายละเอียดบ้าน'}</h1>
+            <div className="sp4-idents">
+              {houseAndSoi.hn && (
+                <span className="sp4-ident">บ้านเลขที่ <b>{houseAndSoi.hn}</b></span>
+              )}
+              {houseAndSoi.soi && (
+                <span className="sp4-ident"><b>{houseAndSoi.soi}</b></span>
+              )}
+              {(property.main_location || property.district || property.sub_location || property.subdistrict) && (
+                <span className="sp4-ident is-loc">
+                  <MapPin size={15} aria-hidden="true" />
+                  <b>{[property.main_location || property.district, property.sub_location || property.subdistrict].filter(Boolean).join(' — ')}</b>
+                </span>
+              )}
+            </div>
+          </header>
           <div className="sp4-price-block reveal-on-scroll">
             <p className="sp4-price-key">ราคาขาย</p>
             {detailsPending
@@ -828,7 +823,7 @@ const css = `
 .sp4-fav.is-on { color: #b8384a; border-color: rgba(184,56,74,.4); background: rgba(184,56,74,.07); }
 .sp4-fav.is-on svg { fill: #b8384a; }
 
-.sp4-masthead { max-width: var(--shell); margin: 0 auto; padding: 0 var(--gutter) var(--s3); }
+.sp4-masthead { max-width: var(--shell); margin: 0 auto; padding: 0 var(--gutter) var(--s2); }
 .sp4-eyebrow {
   margin: 0 0 var(--s2); display: inline-block;
   border: 1px solid var(--line-green); border-radius: var(--r4); padding: 5px 14px;
@@ -839,18 +834,26 @@ const css = `
   margin: 0 0 4px; font-size: 16px; font-weight: 500; color: var(--forest);
 }
 .sp4-title {
-  margin: 0; font-size: clamp(23px, 4.2cqw, 56px); font-weight: 300;
-  line-height: 1.2; letter-spacing: -.002em; text-wrap: balance; color: var(--ink);
+  margin: 0; font-size: clamp(26px, 3.2cqw, 36px); font-weight: 600;
+  line-height: 1.45; letter-spacing: -.002em; text-wrap: balance; overflow-wrap: anywhere; color: var(--ink);
 }
-.sp4-idents { margin: var(--s3) 0 0; display: flex; flex-wrap: wrap; gap: var(--s1) 10px; }
+.sp4-identity { padding-bottom: var(--s3); margin-bottom: var(--s3); border-bottom: 1px solid var(--line-firm); }
+.sp4-idents { margin: 10px 0 0; display: flex; align-items: center; flex-wrap: wrap; gap: var(--s1) 0; }
 .sp4-ident {
-  display: inline-flex; align-items: center; gap: 8px; padding: 8px 15px;
-  border-radius: var(--r4); border: 1px solid var(--line-green); background: var(--card);
-  font-size: 14px; color: var(--ink-soft);
+  display: inline-flex; align-items: center; gap: var(--s1); max-width: 100%;
+  font-size: 14px; color: var(--ink-soft); overflow-wrap: anywhere;
 }
-.sp4-ident b { font-weight: 500; color: var(--ink); }
+.sp4-ident + .sp4-ident::before {
+  content: ''; align-self: center; flex: 0 0 1px; height: 16px;
+  margin: 0 10px; background: var(--line-green);
+}
+.sp4-ident b { min-width: 0; font-weight: 500; color: var(--ink); }
 .sp4-ident svg { color: var(--forest); flex: 0 0 auto; }
-.sp4-ident.is-loc b { color: var(--forest); font-weight: 500; }
+.sp4-ident.is-loc b { color: var(--forest); font-weight: 400; }
+@container (max-width: 620px) {
+  .sp4-idents { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .sp4-ident + .sp4-ident::before { display: none; }
+}
 
 .sp4-stage {
   width: 100%; margin: 0; background: var(--paper-soft);
@@ -1198,7 +1201,7 @@ const css = `
 .sp4-calc .input-modern.bg-gray-50,
 .sp4-calc .bg-gray-50 { background-color: #fff !important; border: 1px solid var(--line-firm) !important; }
 
-.sp4-breadcrumb { font-size:14px; line-height:1.8; margin-bottom:20px; }
+.sp4-breadcrumb { font-size:14px; line-height:1.8; }
 .sp4-breadcrumb a, .sp4-block a { text-decoration:underline; text-underline-offset:4px; }
 .sp4-breadcrumb a:focus-visible { outline:2px solid currentColor; outline-offset:4px; }
 .sp4-related { max-width: var(--shell); margin: 0 auto; padding: var(--s6) var(--gutter); }
