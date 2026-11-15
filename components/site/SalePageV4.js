@@ -851,6 +851,7 @@ const css = `
 .sp4-ident svg { color: var(--forest); flex: 0 0 auto; }
 .sp4-ident.is-loc b { color: var(--forest); font-weight: 400; }
 @container (max-width: 620px) {
+  .sp4-masthead { display: none; }
   .sp4-idents { flex-direction: column; align-items: flex-start; gap: 6px; }
   .sp4-ident + .sp4-ident::before { display: none; }
 }
