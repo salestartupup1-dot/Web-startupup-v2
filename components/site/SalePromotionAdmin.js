@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import LoadingSkeleton, { InlineSkeleton, SkeletonImage } from './Skeleton';
 import useSalePromotion from './useSalePromotion';
 import { MAX_PROMOTION_IMAGES, normalizeSalePromotion, validateSalePromotion } from '../../lib/salePromotion';
 import styles from '../../styles/sale-promotion.module.css';
 
 export default function SalePromotionAdmin({ db, appId, ...props }) {
   const { promotion, loading, error } = useSalePromotion(db, appId);
-  if (loading) return <p role="status">กำลังโหลดโปรโมชั่นหน้าบ้าน...</p>;
+  if (loading) return <LoadingSkeleton variant="form" label="กำลังโหลดโปรโมชั่นหน้าบ้าน…" />;
   if (error) return <div role="alert">โหลดโปรโมชั่นไม่สำเร็จ กรุณาปิดแล้วเปิดเมนูนี้ใหม่</div>;
   return <SalePromotionEditor {...props} initial={promotion} />;
 }
@@ -67,7 +68,7 @@ export function SalePromotionEditor({ initial, properties, popupImage, onSave, o
       <p className={styles.hint}>ใช้ไฟล์ภาพขนาดไม่เกิน 5 MB ต่อรูป รูปแรกเป็นรูปหลัก กดบันทึกเมื่อจัดรูปเสร็จ</p>
       <div className={styles.imageList}>
         {form.images.map((image, index) => <div key={image}>
-          <img src={image} alt={`รูปโปรโมชั่น ${index + 1}`} />
+          <SkeletonImage src={image} alt={`รูปโปรโมชั่น ${index + 1}`} />
           <span>{index === 0 ? 'รูปหลัก' : `รูปที่ ${index + 1}`}</span>
           <div>
             {index > 0 && <button type="button" aria-label={`ใช้รูปที่ ${index + 1} เป็นรูปหลัก`} onClick={() => change({ images: [image, ...form.images.filter(url => url !== image)] })}>ใช้เป็นรูปหลัก</button>}
@@ -93,7 +94,7 @@ export function SalePromotionEditor({ initial, properties, popupImage, onSave, o
       </div>}
       <label>วันสิ้นสุดโปรโมชั่น (ไม่บังคับ)<input type="date" value={form.endDate} onChange={e => change({ endDate: e.target.value })} /></label>
       <p className={styles.hint}>แสดงจนสิ้นสุดวันที่เลือกตามเวลาไทย แล้วซ่อนอัตโนมัติ เว้นว่างหากไม่กำหนดวันสิ้นสุด</p>
-      <button className={styles.save} type="submit">{busy === 'save' ? 'กำลังบันทึก...' : busy === 'upload' ? 'กำลังอัปโหลด...' : 'บันทึกโปรโมชั่นหน้าบ้าน'}</button>
+      <button className={styles.save} type="submit">{busy ? <InlineSkeleton label={busy === 'save' ? 'กำลังบันทึก…' : 'กำลังอัปโหลด…'} width="12rem" /> : 'บันทึกโปรโมชั่นหน้าบ้าน'}</button>
     </fieldset>
     {error && <p role="alert" className={styles.error}>{error}</p>}
     {notice && <p role="status" className={styles.notice}>{notice}</p>}

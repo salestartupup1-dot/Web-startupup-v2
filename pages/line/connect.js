@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import LoadingSkeleton, { InlineSkeleton } from '../../components/site/Skeleton';
 import Image from 'next/image';
 import Script from 'next/script';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -91,9 +92,9 @@ export default function LineConnect({ liffId, ready, inLineBrowser = false }) {
     <section className={`${styles.gatewayCard} ${visual.card}`} aria-labelledby="line-connect-heading">
       <div className={visual.lineIcon}><Image src="/brand/line.png" width={52} height={52} alt="LINE" /></div>
       <span className={styles.eyebrow}>คุยเรื่องบ้านกับ STARTUP UP</span>
-      <h1 id="line-connect-heading">{automaticHandoff && !showChatFallback ? 'กำลังเข้าห้องแชท…' : destination ? 'พร้อมคุยกับทีมงานแล้ว' : error ? 'เปิด LINE ไม่สำเร็จ' : appUrl ? 'เปิดแอป LINE เพื่อคุยกัน' : 'กำลังเปิด LINE…'}</h1>
-      {ready && !error && !appUrl && !showChatFallback && <div className={visual.progress} aria-hidden="true"><span /></div>}
-      {error ? <p role="alert" className={styles.error}>{error}</p> : <p role="status">{automaticHandoff && !showChatFallback ? 'กำลังเชื่อมต่อกับทีม STARTUP UP' : destination ? 'หากแชทยังไม่เปิด แตะปุ่มด้านล่าง' : appUrl ? 'แตะปุ่มด้านล่างเพื่อเชื่อมบัญชีและติดต่อ @SURE141' : 'กรุณารอสักครู่ เราจะพาคุณไปที่ @SURE141 อัตโนมัติ'}</p>}
+      <h1 id="line-connect-heading">{automaticHandoff && !showChatFallback ? <InlineSkeleton label="กำลังเข้าห้องแชท…" width="12rem" height="1.5rem" /> : destination ? 'พร้อมคุยกับทีมงานแล้ว' : error ? 'เปิด LINE ไม่สำเร็จ' : appUrl ? 'เปิดแอป LINE เพื่อคุยกัน' : <InlineSkeleton label="กำลังเปิด LINE…" width="12rem" height="1.5rem" />}</h1>
+      {ready && !error && !appUrl && !showChatFallback && <LoadingSkeleton variant="panel" label="กำลังเชื่อมต่อ LINE…" />}
+      {error ? <p role="alert" className={styles.error}>{error}</p> : <p role="status">{automaticHandoff && !showChatFallback ? <InlineSkeleton label="กำลังเชื่อมต่อกับทีม STARTUP UP" width="14rem" /> : destination ? 'หากแชทยังไม่เปิด แตะปุ่มด้านล่าง' : appUrl ? 'แตะปุ่มด้านล่างเพื่อเชื่อมบัญชีและติดต่อ @SURE141' : <InlineSkeleton label="กำลังเปิดแชท LINE อัตโนมัติ" width="14rem" />}</p>}
       {appUrl && !destination && <>
         <a className={styles.primary} href={appUrl} rel="noreferrer">เปิดแอป LINE</a>
         <details><summary>หากแอป LINE ไม่เปิด</summary><p>ลองแตะปุ่มค้างแล้วเลือก “เปิดใน LINE” หรือกลับไปสแกน QR ด้วยตัวสแกนภายในแอป LINE</p><button className={styles.secondary} onClick={() => window.liff.login({ redirectUri: loginRedirect })}>เข้าสู่ระบบ LINE ผ่านเบราว์เซอร์</button></details>

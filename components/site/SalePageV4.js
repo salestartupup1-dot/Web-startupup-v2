@@ -1,5 +1,6 @@
 import { db, appId } from '../../lib/firebaseClient';
 import Head from 'next/head';
+import LoadingSkeleton, { InlineSkeleton } from './Skeleton';
 import { primaryPropertyLocation, relatedAvailableProperties } from '../../lib/websiteInventory';
 import { locationPath } from '../../lib/seoLocations';
 import { PROPERTY_HIGHLIGHT_FIELDS, propertyEditorialSections, propertyFactSummary, propertyHighlightBlocks } from '../../lib/propertyEditorial';
@@ -485,7 +486,7 @@ export default function SalePageV4({
           <div className="sp4-price-block reveal-on-scroll">
             <p className="sp4-price-key">ราคาขาย</p>
             {detailsPending
-              ? <p className="sp4-price-pending" role="status">กำลังตรวจสอบราคาล่าสุด…</p>
+              ? <div className="sp4-price-pending"><LoadingSkeleton variant="price" label="กำลังตรวจสอบราคาล่าสุด…" /></div>
               : <p className="sp4-price">฿ {baht(property.price)}</p>}
             {!detailsPending && payment > 0 && !isSold && <>
               <div className="sp4-pay">
@@ -500,19 +501,19 @@ export default function SalePageV4({
             <div className="sp4-specs">
               <div className="sp4-spec">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
-                <b>{property.area_wah || '-'}</b><span>ตร.ว.</span>
+                <b>{detailsPending ? <InlineSkeleton label="กำลังโหลดขนาดที่ดิน…" width="2.5rem" /> : property.area_wah || '-'}</b><span>ตร.ว.</span>
               </div>
               <div className="sp4-spec">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4v16" /><path d="M2 8h18a2 2 0 0 1 2 2v10" /><path d="M2 17h20" /><path d="M6 8v9" /></svg>
-                <b>{property.bedrooms || '-'}</b><span>ห้องนอน</span>
+                <b>{detailsPending ? <InlineSkeleton label="กำลังโหลดจำนวนห้องนอน…" width="2rem" /> : property.bedrooms || '-'}</b><span>ห้องนอน</span>
               </div>
               <div className="sp4-spec">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-3 1V17a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-5H2" /><line x1="6" y1="19" x2="5" y2="21" /><line x1="18" y1="19" x2="19" y2="21" /></svg>
-                <b>{property.bathrooms || '-'}</b><span>ห้องน้ำ</span>
+                <b>{detailsPending ? <InlineSkeleton label="กำลังโหลดจำนวนห้องน้ำ…" width="2rem" /> : property.bathrooms || '-'}</b><span>ห้องน้ำ</span>
               </div>
               <div className="sp4-spec">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M5 17h14v-5l-2-5H7l-2 5v5z" /><circle cx="7.5" cy="17.5" r="1.5" /><circle cx="16.5" cy="17.5" r="1.5" /></svg>
-                <b>{property.parking || '-'}</b><span>ที่จอดรถ</span>
+                <b>{detailsPending ? <InlineSkeleton label="กำลังโหลดจำนวนที่จอดรถ…" width="2rem" /> : property.parking || '-'}</b><span>ที่จอดรถ</span>
               </div>
             </div>
 
@@ -532,6 +533,7 @@ export default function SalePageV4({
             <SalePromotionCard key={promotion.images.join('|')} promotion={promotion} onExpand={openLightbox} />
           </div>}
 
+          {detailsPending && <div style={{ marginTop: 40 }}><LoadingSkeleton variant="panel" label="กำลังโหลดข้อมูลและจุดเด่นของบ้าน…" /></div>}
           {!detailsPending && factSummary && <InfoCard icon={House} title={`ข้อมูลบ้าน${property.project_name ? ` ${property.project_name}` : ''}`}>
             <p className="sp4-info-text">{factSummary}</p>
           </InfoCard>}
@@ -716,7 +718,7 @@ export default function SalePageV4({
           <div className="sp4-card sp4-calculator-card">
             <div className="sp4-calc">
               <h3>คำนวณสินเชื่อ</h3>
-              {detailsPending ? <p className="sp4-details-pending">กำลังตรวจสอบข้อมูลบ้านล่าสุด…</p> : <CalculatorSection
+              {detailsPending ? <LoadingSkeleton variant="form" label="กำลังตรวจสอบข้อมูลบ้านล่าสุด…" /> : <CalculatorSection
                 defaultPrice={property.price} minimalist
                 visualContent={visualContent} updateVisualContent={updateVisualContent} isEditMode={isEditMode}
               />}

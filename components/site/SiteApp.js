@@ -7,6 +7,7 @@ import { DEFAULT_COMPANY_INFO } from '../../lib/companyInfo';
 import ListingPagination from './ListingPagination';
 import { emptyListing, listingHref, listingPage, selectListingProperties, LISTING_PAGE_SIZE } from '../../lib/listingPagination';
 import HouseCard, { PAYMENT_NOTE, areaHeadline } from './HouseCard';
+import LoadingSkeleton, { InlineSkeleton, SkeletonImage } from './Skeleton';
 
 // One brand name on the page (SEO work order task 8): stored texts written as "StartupUp" show the full name.
 const brandText = text => typeof text === 'string' ? text.replace(/StartupUp(?![\w.-])/g, 'Startup Up Real Estate') : text;
@@ -26,7 +27,7 @@ const brandText = text => typeof text === 'string' ? text.replace(/StartupUp(?![
  */
 
 import React, { useState, useEffect, useRef, useMemo, useId } from 'react';
-import { Home, MapPin, Bed, Bath, Car, Maximize, Phone, MessageCircle, X, Trash2, ShieldCheck, CheckCircle, Calculator, FileText, Edit, Image as ImageIcon, ChevronLeft, ChevronRight, ChevronDown, Upload, XCircle, Loader, Check, FolderPlus, Search, AlertTriangle, AlertCircle, Star, ClipboardCheck, Compass, SlidersHorizontal } from 'lucide-react';
+import { Home, MapPin, Bed, Bath, Car, Maximize, Phone, MessageCircle, X, Trash2, ShieldCheck, CheckCircle, Calculator, FileText, Edit, Image as ImageIcon, ChevronLeft, ChevronRight, ChevronDown, Upload, XCircle, Check, FolderPlus, Search, AlertTriangle, AlertCircle, Star, ClipboardCheck, Compass, SlidersHorizontal } from 'lucide-react';
 import { lineContactHref } from '../../lib/lineAttribution';
 import { makePropertySlug } from '../../lib/firestorePublic';
 import { copyShortShareUrl } from '../../lib/propertyShareClient';
@@ -369,8 +370,7 @@ function SmartImage({
 }) {
   const safeSrc = src || 'https://placehold.co/600x400';
   // Use a plain img so Cloudinary/CDN optimized URLs load directly without Next's image proxy delay.
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={safeSrc} alt={alt} className={className} style={style} fetchPriority={priority ? 'high' : undefined} {...props} />;
+  return <SkeletonImage src={safeSrc} alt={alt} className={className} style={style} fetchPriority={priority ? 'high' : undefined} {...props} />;
 }
 
 function SoldOutRibbon({ size = 'md' }) {
@@ -721,6 +721,7 @@ const getSafeCoords = (p) => {
  * Leaflet รับลูกกลิ้งเฉพาะภายในแผนที่ ส่วนด้านนอกยังเลื่อนหน้าเว็บตามปกติ
  */
 function PropertyMap({ properties, onSelectProp, variant = 'section' }) {
+  const [mapStatus, setMapStatus] = useState('loading');
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersLayer = useRef(null);
@@ -738,6 +739,7 @@ function PropertyMap({ properties, onSelectProp, variant = 'section' }) {
               L = leaflet.default;
           } catch (error) {
               console.warn('Unable to load Leaflet map bundle:', error);
+              if (!cancelled) setMapStatus('error');
               return;
           }
 
@@ -938,6 +940,7 @@ function PropertyMap({ properties, onSelectProp, variant = 'section' }) {
           };
 
           drawMap();
+          if (!cancelled) setMapStatus('ready');
       };
       
       initMap();
@@ -947,8 +950,9 @@ function PropertyMap({ properties, onSelectProp, variant = 'section' }) {
   /* ในฉากภาพยนตร์ ความสูงต้องยืดหยุ่นตามจอ เพราะต้องแชร์พื้นที่กับหัวเรื่องด้านบน */
   if (variant === 'story') {
       return (
-          <div className="cine-map-card">
+          <div className="cine-map-card" style={{ position: 'relative' }}>
               <div ref={mapRef} className="cine-map-canvas"></div>
+              {mapStatus !== 'ready' && <div style={{ position: 'absolute', inset: 0, zIndex: 500 }}>{mapStatus === 'loading' ? <LoadingSkeleton variant="map" label="กำลังโหลดแผนที่…" /> : <p role="alert">โหลดแผนที่ไม่สำเร็จ กรุณาลองโหลดหน้าใหม่</p>}</div>}
           </div>
       );
   }
@@ -956,6 +960,7 @@ function PropertyMap({ properties, onSelectProp, variant = 'section' }) {
   return (
       <div className="w-full relative border border-gray-200 rounded-[20px] overflow-hidden shadow-sm bg-gray-50 z-0">
           <div ref={mapRef} className="w-full h-[350px] md:h-[450px] z-0"></div>
+          {mapStatus !== 'ready' && <div style={{ position: 'absolute', inset: 0, zIndex: 500 }}>{mapStatus === 'loading' ? <LoadingSkeleton variant="map" label="กำลังโหลดแผนที่…" /> : <p role="alert">โหลดแผนที่ไม่สำเร็จ กรุณาลองโหลดหน้าใหม่</p>}</div>}
       </div>
   );
 }
@@ -1011,7 +1016,7 @@ function HomeSection({ properties, loading, onSelectProp, setActiveTab, onSelect
       }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader className="animate-spin text-brand-green" size={48} /></div>;
+  if (loading) return <LoadingSkeleton label="กำลังโหลดข้อมูลบ้าน…" />;
 
   const padArray = (arr, length) => {
       const result = [...arr];
@@ -1742,6 +1747,7 @@ function PropertiesList({ properties, searchParams, onSelectProp, visualContent,
     <div className="max-w-7xl mx-auto px-4 pt-6 pb-16 md:py-16 min-h-screen flex flex-col">
       {locationLanding?.kind && <nav aria-label="เส้นทางหน้าปัจจุบัน" className="mb-5 text-sm text-brand-green">
         <ol className="flex flex-wrap items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- Native navigation resets the cinematic home state. */}
           <li><a href="/" className="underline underline-offset-4 focus-visible:outline focus-visible:outline-2">หน้าหลัก</a></li>
           <li aria-hidden="true">/</li>
           <li aria-current="page">{locationLanding.name}</li>
@@ -1988,7 +1994,7 @@ function LoginModal({ onClose, onGoogleLogin }) {
                     className="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-full font-medium hover:bg-gray-50 transition flex items-center justify-center gap-3 disabled:opacity-50 hover:-translate-y-1"
                 >
                     {loading ? (
-                        <Loader className="animate-spin" size={20} />
+                        <InlineSkeleton label="กำลังเข้าสู่ระบบด้วย Google…" width="12rem" height="1.25rem" />
                     ) : (
                         <>
                             <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">

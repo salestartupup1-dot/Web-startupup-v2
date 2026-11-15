@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
+import { SkeletonImage } from './Skeleton';
 import { HOME_H1, HOME_TAGLINE } from '../../lib/seo';
 import LocationCarousel from './LocationCarousel';
 import FeaturedHomes from './FeaturedHomes';
@@ -943,10 +944,9 @@ export default function CinemaHero({
             {/* ฉากทั้งเรื่องเป็นวิดีโอตัวเดียว เดินหน้า-ถอยหลังตามการเลื่อน */}
             <div className="scene cine-layer" ref={videoLayerRef} style={{ '--op': 1 }}>
               {/* ภาพนิ่งรองอยู่ใต้ตลอด : ยังโหลดไม่เสร็จ ซีคไปช่วงที่ยังไม่บัฟเฟอร์ หรือโหลดไม่ขึ้น ก็ไม่มีทางเห็นจอดำ */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <picture>
               <source srcSet={MEDIA.poster} type="image/avif" />
-              <img
+              <SkeletonImage
                 className={`scene-main cine-poster${videoReady && !videoFailed ? ' is-hidden' : ''}`}
                 src="/home-media/v2/hero-poster.webp"
                 width={1920}

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import LoadingSkeleton, { InlineSkeleton } from './Skeleton';
 import { HOME_H1, HOME_TAGLINE } from '../../lib/seo';
 import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowRight, Bed, Bath, Home, MapPin, Play, Search } from 'lucide-react';
@@ -80,7 +81,7 @@ export default function MobileHome({
               <a key={location.area} className={styles.location} href={searchResultHref('main_location', location.area)}
                 onClick={event => follow(event, () => onFilter('main_location', location.area))}>
                 <SmartImage src={LOCATION_IMAGES[location.area] || getOptimizedImg(location.img, 520)} alt={`บรรยากาศทำเล${location.area}`} width={400} height={250} sizes="(max-width: 700px) 50vw, 25vw" loading="lazy" />
-                <div><h3>{location.area}</h3><span>{loading ? 'กำลังโหลดบ้าน…' : `${count} หลัง`}</span><ArrowRight size={18} aria-hidden="true" /></div>
+                <div><h3>{location.area}</h3><span>{loading ? <InlineSkeleton label="กำลังโหลดจำนวนบ้าน…" width="3rem" /> : `${count} หลัง`}</span><ArrowRight size={18} aria-hidden="true" /></div>
               </a>
             );
           })}
@@ -110,7 +111,7 @@ export default function MobileHome({
         <div className={styles.sectionHead}><h2 id="home-houses-title">บ้านพร้อมขาย</h2>
           <Link prefetch={false} href="/?tab=all" onClick={event => follow(event, onShowAll)}>ดูทั้งหมด <ArrowRight size={18} aria-hidden="true" /></Link>
         </div>
-        {loading ? <p role="status">กำลังโหลดข้อมูลบ้าน…</p> : available.length === 0 ? <p>ยังไม่มีบ้านพร้อมขายในขณะนี้</p> : (
+        {loading ? <LoadingSkeleton count={3} label="กำลังโหลดข้อมูลบ้าน…" /> : available.length === 0 ? <p>ยังไม่มีบ้านพร้อมขายในขณะนี้</p> : (
           <div className={styles.houses}>
             {available.slice(0, 3).map(property => (
               <a key={property.id} className={styles.house} href={getPropertySharePath(property)} onClick={event => follow(event, () => onSelectProp(property))}>

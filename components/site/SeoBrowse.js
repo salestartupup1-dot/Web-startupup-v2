@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element -- Cloudinary applies responsive card resizing without an additional image proxy. */
+import { SkeletonImage } from './Skeleton';
 /* eslint-disable @next/next/no-html-link-for-pages -- Full document navigation refreshes SSR prices; prefetching house pages would consume database reads. */
 import { SEO_LOCATIONS, locationPath } from '../../lib/seoLocations';
 import { SEO_LANDINGS } from '../../lib/seoLandings';
@@ -31,7 +31,7 @@ export function LandingLinks({ footer = false, chips = false }) {
 export function HouseCards({ properties }) {
   return <div className={styles.grid}>{properties.map((property, index) => <article key={property.id} className={styles.card}>
     <a href={getPropertyPath(property)}>
-      {(property.images?.[0] || property.imageUrl) && <img src={cardImage(property)}
+      {(property.images?.[0] || property.imageUrl) && <SkeletonImage src={cardImage(property)}
         alt={`${property.category || 'บ้าน'} ${property.project_name} บ้านเลขที่ ${property.house_number || ''}`}
         width="640" height="420" loading={index < 3 ? 'eager' : 'lazy'} fetchPriority={index === 0 ? 'high' : 'auto'} decoding="async" />}
       <div className={styles.cardBody}><h3>{property.project_name}</h3>
@@ -73,7 +73,7 @@ export default function SeoBrowse() {
       <div className={styles.articleRail}>
         {ARTICLE_CATALOGUE.slice(0, 3).map(article => <article key={article.slug} className={styles.articleCard}>
           <a href={articlePath(article)}>
-            <img src={article.cover} alt={article.coverAlt || ''} width={960} height={640} loading="lazy" decoding="async" className={styles.articleCover} />
+            <SkeletonImage src={article.cover} alt={article.coverAlt || ''} width={960} height={640} loading="lazy" decoding="async" className={styles.articleCover} />
             <div className={styles.articleBody}>
               {article.category && <span className={styles.articleCategory}>{article.category}</span>}
               <h3>{article.title}</h3>

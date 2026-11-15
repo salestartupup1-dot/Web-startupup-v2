@@ -1,4 +1,5 @@
-/* eslint-disable @next/next/no-html-link-for-pages, @next/next/no-img-element -- Static links and local editorial photos without property prefetches. */
+import { SkeletonImage } from '../site/Skeleton';
+/* eslint-disable @next/next/no-html-link-for-pages -- Static links and local editorial photos without property prefetches. */
 import Head from 'next/head';
 import { articlePath, ARTICLES_PATH, isArticlePublishable, resolveArticleAuthor } from '../../lib/articleCatalogue';
 import { articleStructuredData, formatArticleDate, feeExample } from '../../lib/articlePresentation';
@@ -52,7 +53,7 @@ export default function ArticlePage({ article }) {
         </aside>
         <div className={styles.prose}>
           {article.cover && <figure className={styles.coverFigure}>
-            <img className={styles.articleCover} src={article.cover} alt={article.coverAlt} width="960" height="640" fetchPriority="high" />
+            <SkeletonImage className={styles.articleCover} src={article.cover} alt={article.coverAlt} width="960" height="640" fetchPriority="high" />
             {article.coverCredit && <figcaption className={styles.photoCredit}>
               {article.coverCredit.illustrative ? 'ภาพประกอบ: ' : 'ภาพ: '}<a href={article.coverCredit.url}>{article.coverCredit.name}</a>
               {article.coverCredit.licenseUrl && <> · <a href={article.coverCredit.licenseUrl}>{article.coverCredit.license}</a></>}

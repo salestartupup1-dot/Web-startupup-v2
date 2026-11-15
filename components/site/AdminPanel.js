@@ -1,7 +1,8 @@
 import { auth, HOST_EMAIL, setDoc, updateDoc, addDoc, deleteDoc } from '../../lib/firebaseClient';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { Home, X, Plus, Trash2, Users, Edit, ImageIcon, Layout, ChevronLeft, ChevronRight, ChevronDown, Upload, Briefcase, Loader, Check, Copy, AlertTriangle, LayoutTemplate } from 'lucide-react';
+import { Home, X, Plus, Trash2, Users, Edit, ImageIcon, Layout, ChevronLeft, ChevronRight, ChevronDown, Upload, Briefcase, Check, Copy, AlertTriangle, LayoutTemplate } from 'lucide-react';
+import LoadingSkeleton, { InlineSkeleton } from './Skeleton';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import PropertyEditorialFields from './PropertyEditorialFields';
 import SalePromotionAdmin from './SalePromotionAdmin';
@@ -19,7 +20,7 @@ import {
  * SiteV4 โหลดไฟล์นี้แบบ dynamic เฉพาะตอนแอดมินเปิดหลังบ้าน เนื้อหาข้างล่างย้ายมาจาก SiteApp ตรงตัว
  */
 
-const AdminLocationFields = dynamic(() => import('./AdminLocationFields'));
+const AdminLocationFields = dynamic(() => import('./AdminLocationFields'), { loading: () => <LoadingSkeleton variant="form" label="กำลังโหลดข้อมูลทำเล…" /> });
 
 
 /**
@@ -560,7 +561,7 @@ export default function AdminPanel({ userRole, userEmail, properties, users, com
 
     return (
         <div className="fixed inset-0 z-[60] bg-gray-50 flex flex-col font-sans">
-            {isSaving && <div className="absolute inset-0 z-[100] bg-black/60 flex flex-col items-center justify-center text-white backdrop-blur-sm"><Loader size={48} className="animate-spin mb-4"/><h3 className="font-light">กำลังบันทึก...</h3></div>}
+            {isSaving && <div className="absolute inset-0 z-[100] bg-black/60 flex items-center justify-center backdrop-blur-sm"><div className="bg-white p-6 rounded-2xl w-full max-w-lg"><LoadingSkeleton variant="form" label="กำลังบันทึกข้อมูล…" /></div></div>}
 
             <div className="bg-white border-b px-6 py-4 flex justify-between items-center z-10">
                 <div className="flex items-center gap-3">
@@ -614,7 +615,7 @@ export default function AdminPanel({ userRole, userEmail, properties, users, com
                                                     disabled={isStockRefreshing}
                                                     className="underline hover:text-brand-green disabled:opacity-50"
                                                 >
-                                                    {isStockRefreshing ? 'กำลังโหลด...' : 'โหลดสต๊อกใหม่'}
+                                                    {isStockRefreshing ? <InlineSkeleton label="กำลังโหลดสต๊อกใหม่…" width="7rem" /> : 'โหลดสต๊อกใหม่'}
                                                 </button>
                                             </p>
                                             {!stockIndex.coversPartners && (
@@ -917,7 +918,7 @@ export default function AdminPanel({ userRole, userEmail, properties, users, com
                                             {imagesPreview.length < MAX_PROPERTY_IMAGES && (
                                                 <label className="aspect-square border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 w-full transition relative">
                                                     {isUploadingImgs ? (
-                                                        <Loader className="animate-spin text-brand-green" size={24} />
+                                                        <InlineSkeleton label="กำลังอัปโหลดรูปบ้าน…" width="80%" height="4rem" />
                                                     ) : (
                                                         <>
                                                             <Upload size={20} className="text-gray-400 mb-1" />
@@ -955,7 +956,7 @@ export default function AdminPanel({ userRole, userEmail, properties, users, com
                                 <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
                                     <div className="w-24 h-24 rounded-xl overflow-hidden bg-[#123b2c] relative group flex-shrink-0">
                                         {isUploadingLogo ? (
-                                            <div className="absolute inset-0 flex items-center justify-center bg-gray-200"><Loader className="animate-spin text-brand-green" size={24} /></div>
+                                            <div className="absolute inset-0 p-2"><InlineSkeleton label="กำลังอัปโหลดโลโก้…" width="100%" height="5rem" /></div>
                                         ) : (
                                             <>
                                                 <SmartImage src={getOptimizedImg(companyForm.logoUrl, 300)} className="w-full h-full object-contain p-2" alt="Company logo" width={300} height={300} sizes="96px" loading="lazy" decoding="async" />
@@ -1001,7 +1002,7 @@ export default function AdminPanel({ userRole, userEmail, properties, users, com
                                         <div className="mb-4 relative">
                                             <label className={`inline-flex items-center justify-center sm:justify-start w-full sm:w-auto gap-2 px-4 py-2 bg-gray-50 border rounded-lg text-sm transition ${isUploadingPortfolio.state && isUploadingPortfolio.year === yg.year ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 cursor-pointer'}`}>
                                                 {isUploadingPortfolio.state && isUploadingPortfolio.year === yg.year ? (
-                                                    <><Loader size={16} className="animate-spin" /> กำลังอัปโหลด...</>
+                                                    <InlineSkeleton label="กำลังอัปโหลดรูปผลงาน…" width="8rem" />
                                                 ) : (
                                                     <><Upload size={16}/> เลือกรูปภาพ (เลือกได้หลายรูป)<input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handlePortfolioUpload(e, yg.year)} /></>
                                                 )}
@@ -1060,7 +1061,7 @@ export default function AdminPanel({ userRole, userEmail, properties, users, com
                                     <label className="label">รูปภาพโปรโมชั่น (แบนเนอร์)</label>
                                     <div className="w-full max-w-sm h-64 bg-gray-50 rounded-xl relative overflow-hidden group border-2 border-dashed border-gray-300 flex items-center justify-center">
                                         {isUploadingPopup ? (
-                                            <Loader className="animate-spin text-brand-green" size={32} />
+                                            <LoadingSkeleton variant="panel" label="กำลังอัปโหลดรูปโปรโมชั่น…" />
                                         ) : popupForm.imageUrl ? (
                                             <>
                                                 <SmartImage src={getOptimizedImg(popupForm.imageUrl, 600)} className="w-full h-full object-contain" alt="Promotion popup" width={600} height={600} sizes="384px" loading="lazy" decoding="async" />
@@ -1087,7 +1088,7 @@ export default function AdminPanel({ userRole, userEmail, properties, users, com
                                 )}
 
                                 <div className="pt-6 text-right border-t border-gray-100">
-                                    <button onClick={handleSavePopup} disabled={isUploadingPopup || isSaving} className="btn-primary w-full sm:w-auto disabled:opacity-50">{isUploadingPopup ? 'กำลังอัปโหลดรูปภาพ...' : isSaving ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}</button>
+                                    <button onClick={handleSavePopup} disabled={isUploadingPopup || isSaving} className="btn-primary w-full sm:w-auto disabled:opacity-50">{isUploadingPopup || isSaving ? <InlineSkeleton label={isUploadingPopup ? 'กำลังอัปโหลดรูปภาพ…' : 'กำลังบันทึก…'} width="9rem" /> : 'บันทึกการตั้งค่า'}</button>
                                 </div>
                             </div>
                         </div>

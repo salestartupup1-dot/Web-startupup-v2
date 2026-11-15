@@ -1,3 +1,4 @@
+import { SkeletonImage } from './Skeleton';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 // YouTube can return a decoded 120x90 placeholder, including with a 404.
@@ -23,8 +24,7 @@ export default function VideoThumbnail({ videoId, poster, ...props }) {
   if (!src) return <span className="sp4-video-placeholder">กดเพื่อเล่นวิดีโอแนะนำบ้าน</span>;
   return (
     // Direct CDN images keep video covers independent of the image proxy.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img {...props} ref={imageRef} src={src} alt="ภาพปกวิดีโอแนะนำบ้าน"
+    <SkeletonImage {...props} ref={imageRef} src={src} alt="ภาพปกวิดีโอแนะนำบ้าน"
       onLoad={event => checkImage(event.currentTarget)} onError={advance} />
   );
 }

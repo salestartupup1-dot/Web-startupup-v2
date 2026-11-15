@@ -1,0 +1,16 @@
+.block,.image{background:linear-gradient(100deg,#e6ede9 25%,#f4f7f5 45%,#e6ede9 65%);background-size:280% 100%;animation:skeleton-shimmer 1.6s ease-in-out infinite}
+.block{display:block;max-width:100%;flex-shrink:0;border-radius:8px}
+.image{color:transparent}
+.inline{display:inline-flex;max-width:100%;vertical-align:middle;align-items:center;min-height:1em}
+.srOnly{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.root{width:100%;max-width:1200px;margin-inline:auto;min-width:0}
+.root>div[aria-hidden]{display:grid;gap:14px}
+.listing{padding:32px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin-top:10px}
+.card{min-width:0;overflow:hidden;border-radius:16px;background:#fff;border:1px solid #e6ece8}.cover{height:auto!important;aspect-ratio:1.6;border-radius:0}.cardBody{display:grid;gap:12px;padding:20px}
+.lines{display:grid;gap:12px;min-width:0}.panel{display:grid;gap:20px;padding:24px;border:1px solid #e6ece8;border-radius:16px;background:#fff}
+.form{display:grid;gap:24px;min-width:0}.price{max-width:100%;min-height:116px}.payment{width:min(100%,420px)!important}.mapCanvas{height:100%!important;min-height:260px;border-radius:16px}.map{height:100%;min-height:260px}.map>div[aria-hidden]{height:100%}
+.hero{height:auto!important;aspect-ratio:1.7;border-radius:0}.propertyBody{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:64px;padding:40px 32px}.property{padding-bottom:32px}
+@keyframes skeleton-shimmer{from{background-position:120% 0}to{background-position:-120% 0}}
+@media(max-width:960px){.propertyBody{grid-template-columns:minmax(0,1fr);gap:24px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.listing{padding:24px 16px}.grid{grid-template-columns:minmax(0,1fr);gap:20px}.propertyBody{padding:24px 20px}.panel{padding:20px}}
+@media(prefers-reduced-motion:reduce){.block,.image{animation:none;background:#e6ede9}}

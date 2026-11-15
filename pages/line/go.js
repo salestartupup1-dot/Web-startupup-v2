@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import LoadingSkeleton, { InlineSkeleton } from '../../components/site/Skeleton';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { captureAttribution, contactAttribution, chatUrl, cleanText, cleanBookingText } from '../../lib/lineAttribution';
@@ -35,8 +36,8 @@ export default function LineGo({ bookingText, property }) {
     <section className={`${styles.gatewayCard} ${visual.card}`} aria-labelledby="line-go-heading">
       <div className={visual.lineIcon}><Image src="/brand/line.png" width={52} height={52} alt="LINE" /></div>
       <span className={styles.eyebrow}>คุยเรื่องบ้านกับ STARTUP UP</span>
-      <h1 id="line-go-heading">{error ? 'เปิด LINE ไม่สำเร็จ' : launchUrl ? 'แตะเพื่อเข้าห้องแชท' : 'กำลังเปิด LINE…'}</h1>
-      {!error && !launchUrl && <div className={visual.progress} aria-hidden="true"><span /></div>}
+      <h1 id="line-go-heading">{error ? 'เปิด LINE ไม่สำเร็จ' : launchUrl ? 'แตะเพื่อเข้าห้องแชท' : <InlineSkeleton label="กำลังเปิด LINE…" width="12rem" height="1.5rem" />}</h1>
+      {!error && !launchUrl && <LoadingSkeleton variant="panel" label="กำลังเชื่อมต่อ LINE…" />}
       {error ? <>
         <p role="alert" className={styles.error}>{error}</p>
         <button className={styles.primary} onClick={() => window.location.reload()}>ลองอีกครั้ง</button>
@@ -47,7 +48,7 @@ export default function LineGo({ bookingText, property }) {
           <Image src="/brand/line.png" width={26} height={26} alt="" />เข้าห้องแชท LINE
         </a>
         <details><summary>หากแอป LINE ไม่เปิด</summary><p>ลองแตะปุ่มค้างแล้วเลือก “เปิดใน LINE” หรือใช้ตัวสแกน QR ภายในแอป LINE หากเปิดจาก Facebook หรือ TikTok ให้เปิดหน้านี้ใน Safari แล้วลองอีกครั้ง</p></details>
-      </> : <p role="status">กรุณารอสักครู่ เราจะพาคุณไปที่ @SURE141 อัตโนมัติ</p>}
+      </> : <p className="sr-only" role="status">กรุณารอสักครู่ เราจะพาคุณไปที่ @SURE141 อัตโนมัติ</p>}
       <noscript><p>กรุณาเปิด JavaScript เพื่อเปิด LINE อัตโนมัติ</p><a className={styles.secondary} href={chatUrl(bookingText)} rel="noreferrer">เปิดแชท LINE โดยตรง</a></noscript>
       <a className={`${styles.textLink} ${visual.privacy}`} href="/line/privacy" target="_blank" rel="noreferrer">อ่านคำชี้แจงการใช้ข้อมูล <span aria-hidden="true">↗</span></a>
     </section></main>;

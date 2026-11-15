@@ -1,3 +1,4 @@
+import { InlineSkeleton, SkeletonImage } from './Skeleton';
 /**
  * LocationCarousel — แถบทำเล การ์ดกลางเด่น ทำเลอื่นเรียงลดหลั่นออกไปสองข้างจนครบทุกแห่ง
  *
@@ -204,7 +205,7 @@ export default function LocationCarousel({
                 ? `ทำเล ${loc.area} กดเพื่อดูบ้านในทำเลนี้`
                 : `เลื่อนไปที่ทำเล ${loc.area}`}
             >
-              <img
+              <SkeletonImage
                 src={imageUrl ? imageUrl(loc) : undefined}
                 alt={`บรรยากาศทำเล${loc.area}`}
                 width={768}
@@ -216,7 +217,7 @@ export default function LocationCarousel({
               />
               <span className="lg-shade" aria-hidden="true" />
               <span className="lg-body">
-                <em>{loc.count == null ? 'ดูบ้านในทำเลนี้' : `${loc.count} หลัง`}</em>
+                <em>{loc.count == null ? <InlineSkeleton label="กำลังโหลดจำนวนบ้าน…" width="3rem" /> : `${loc.count} หลัง`}</em>
                 <strong>{loc.area}</strong>
                 <i aria-hidden="true" />
               </span>

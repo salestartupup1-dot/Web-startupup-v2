@@ -1,4 +1,5 @@
-/* eslint-disable @next/next/no-html-link-for-pages, @next/next/no-img-element -- Static links and locally optimized editorial photos. */
+import { SkeletonImage } from '../site/Skeleton';
+/* eslint-disable @next/next/no-html-link-for-pages -- Static links and locally optimized editorial photos. */
 import Head from 'next/head';
 import ArticleLayout from './ArticleLayout';
 import { ARTICLE_CATALOGUE, ARTICLES_PATH, articlePath, isArticlePublishable } from '../../lib/articleCatalogue';
@@ -12,7 +13,7 @@ const CATEGORIES=[
  {name:'ทำเลและการอยู่อาศัย',id:'locations',intro:'เลือกบ้านจากการเดินทางและชีวิตประจำวันของคุณ'},
 ];
 const date=value=>new Intl.DateTimeFormat('th-TH',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Asia/Bangkok'}).format(new Date(value));
-function Cover({article,featured=false}) {return <div className={styles.coverWrap}><img src={article.cover} alt={article.coverAlt} width="960" height="640" loading={featured?'eager':'lazy'} fetchPriority={featured?'high':undefined}/><span className={styles.categoryBadge}>{article.category}</span>{article.coverCredit?.attributionRequired&&<span className={styles.coverAttribution}>ภาพ: {article.coverCredit.name} · {article.coverCredit.license}</span>}</div>;}
+function Cover({article,featured=false}) {return <div className={styles.coverWrap}><SkeletonImage src={article.cover} alt={article.coverAlt} width="960" height="640" loading={featured?'eager':'lazy'} fetchPriority={featured?'high':undefined}/><span className={styles.categoryBadge}>{article.category}</span>{article.coverCredit?.attributionRequired&&<span className={styles.coverAttribution}>ภาพ: {article.coverCredit.name} · {article.coverCredit.license}</span>}</div>;}
 export default function ArticlesIndex(){
  const canonical=toAbsoluteUrl(ARTICLES_PATH),published=ARTICLE_CATALOGUE.filter(isArticlePublishable),featured=published[0];
  return <ArticleLayout>

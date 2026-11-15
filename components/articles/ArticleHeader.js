@@ -1,4 +1,5 @@
-/* eslint-disable @next/next/no-html-link-for-pages, @next/next/no-img-element -- Native links keep articles independent of the property catalogue. */
+import { SkeletonImage } from '../site/Skeleton';
+/* eslint-disable @next/next/no-html-link-for-pages -- Native links keep articles independent of the property catalogue. */
 import { useEffect, useRef, useState } from 'react';
 import { Menu, Search, Settings, X } from 'lucide-react';
 import { SITE_LOGO_URL, SITE_NAV_TABS, siteTabHref } from '../../lib/siteNavigation';
@@ -48,7 +49,7 @@ export default function ArticleHeader() {
   return <header ref={headerRef} className={styles.header} onKeyDown={escape}>
     <div className={styles.inner}>
       <a href="/" className={styles.logo} aria-label="Startup Up กลับหน้าหลัก">
-        <img src={logoImage(120)} srcSet={[60, 120, 180].map((width, i) => `${logoImage(width)} ${i + 1}x`).join(', ')}
+        <SkeletonImage src={logoImage(120)} srcSet={[60, 120, 180].map((width, i) => `${logoImage(width)} ${i + 1}x`).join(', ')}
           alt="Startup Up" width={220} height={156} decoding="async" />
       </a>
       <nav className={styles.links} aria-label="เมนูหลัก">

@@ -13,11 +13,12 @@
  */
 
 import Head from 'next/head';
+import LoadingSkeleton, { InlineSkeleton } from './Skeleton';
 import dynamic from 'next/dynamic';
 import { SITE_NAV_TABS as NAV_TABS } from '../../lib/siteNavigation';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
-  Settings, Search, CircleUserRound, Menu, X, Loader, Save, Layout, Type,
+  Settings, Search, CircleUserRound, Menu, X, Save, Layout, Type,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
@@ -38,14 +39,14 @@ import {
 
 // Each view still renders on the server, but the browser only downloads the code of the view
 // it shows: an ad visitor on a listing never fetches the cinema scene or the house page.
-const CinemaHero = dynamic(() => import('./CinemaHero'));
-const MobileHome = dynamic(() => import('./MobileHome'));
-const SalePageV4 = dynamic(() => import('./SalePageV4'));
-const LocationListing = dynamic(() => import('./LocationListing'));
-const LocationGuide = dynamic(() => import('./LocationGuide'));
-const SoldHomes = dynamic(() => import('./SoldHomes'));
+const CinemaHero = dynamic(() => import('./CinemaHero'), { loading: () => <LoadingSkeleton variant="property" /> });
+const MobileHome = dynamic(() => import('./MobileHome'), { loading: () => <LoadingSkeleton /> });
+const SalePageV4 = dynamic(() => import('./SalePageV4'), { loading: () => <LoadingSkeleton variant="property" /> });
+const LocationListing = dynamic(() => import('./LocationListing'), { loading: () => <LoadingSkeleton /> });
+const LocationGuide = dynamic(() => import('./LocationGuide'), { loading: () => <LoadingSkeleton variant="panel" /> });
+const SoldHomes = dynamic(() => import('./SoldHomes'), { loading: () => <LoadingSkeleton /> });
 // The back office is only opened by admins; visitors never download it.
-const AdminPanel = dynamic(() => import('./AdminPanel'), { ssr: false });
+const AdminPanel = dynamic(() => import('./AdminPanel'), { ssr: false, loading: () => <div className="fixed inset-0 z-[60] bg-gray-50 p-6"><LoadingSkeleton variant="form" label="กำลังโหลดหลังบ้าน…" /></div> });
 
 // Open the cinematic home on every screen; keep the static accessibility fallback.
 const SIMPLE_HOME_QUERY = '(prefers-reduced-motion: reduce)';
@@ -57,13 +58,8 @@ const subscribeHomeLayout = callback => {
 const getHomeLayout = () => window.matchMedia(SIMPLE_HOME_QUERY).matches;
 const getServerHomeLayout = () => false;
 
-function Waiting() {
-  return (
-    <div className="v4-loading">
-      <Loader className="v4-spin" size={44} />
-      <p>กำลังเตรียมข้อมูล...</p>
-    </div>
-  );
+function Waiting({ variant = 'listing' }) {
+  return <LoadingSkeleton variant={variant} label={variant === 'property' ? 'กำลังโหลดรายละเอียดบ้าน…' : 'กำลังโหลดข้อมูล…'} />;
 }
 
 export default function SiteV4({ basePath = '/v4', initialData }) {
@@ -464,7 +460,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
                       แถบทำเลกับแผนที่หมุดถูกยกขึ้นไปอยู่ในฉากภาพยนตร์แล้ว จึงปิดทั้งคู่ตรงนี้
                       ไม่งั้นจะเห็นของซ้ำสองรอบในหน้าเดียว */}
                   {!requestedPropSlug && <SeoBrowse />}
-                  {isWaiting ? <Waiting /> : (
+                  {isWaiting ? (simpleHome && !requestedPropSlug ? null : <Waiting variant={requestedPropSlug ? 'property' : 'listing'} />) : (
                     <HomeSection
                       showLocationMarquee={false}
                       showMap={false}
@@ -487,7 +483,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
                 </>
               )}
 
-              {!isHomeScene && isWaiting && <Waiting />}
+              {!isHomeScene && isWaiting && <Waiting variant={requestedPropSlug ? 'property' : activeTab === 'calculator' ? 'form' : 'listing'} />}
 
 
               {activeTab === 'location' && !isWaiting && (
@@ -588,7 +584,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
             <div className="v4-editbar-actions">
               <button type="button" className="v4-ghost" onClick={cancelVisualEdit}>ยกเลิก</button>
               <button type="button" className="v4-save" onClick={saveVisualEdit} disabled={isSavingVisual}>
-                {isSavingVisual ? <Loader size={16} className="v4-spin" /> : <Save size={16} />} บันทึกการแก้ไข
+                {isSavingVisual ? <InlineSkeleton label="กำลังบันทึกการแก้ไข…" width="9rem" /> : <><Save size={16} /> บันทึกการแก้ไข</>}
               </button>
             </div>
           </div>
@@ -607,7 +603,7 @@ export default function SiteV4({ basePath = '/v4', initialData }) {
 
         {adminEntryPending && !authReady && (
           <div role="status" className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center">
-            <div className="bg-white rounded-xl p-6 flex items-center gap-3"><Loader size={20} className="animate-spin" /> กำลังกู้คืนการเข้าสู่ระบบ...</div>
+            <div className="bg-white rounded-xl p-6 w-full max-w-sm"><LoadingSkeleton variant="panel" label="กำลังกู้คืนการเข้าสู่ระบบ…" /></div>
           </div>
         )}
         {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} onGoogleLogin={handleGoogleLogin} />}
@@ -860,14 +856,6 @@ const v4Css = `
   border-radius: 22px;
   box-shadow: 0 22px 54px rgba(11, 61, 27, 0.16);
 }
-
-.v4-loading {
-  min-height: 70vh; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 16px; color: var(--brand);
-}
-.v4-loading p { color: rgba(17,20,17,0.5); letter-spacing: 0.08em; font-weight: 300; }
-.v4-spin { animation: v4spin 1s linear infinite; }
-@keyframes v4spin { to { transform: rotate(360deg); } }
 
 /* ---------- ป็อปอัป ---------- */
 .v4-popup-backdrop {
