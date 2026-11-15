@@ -352,6 +352,7 @@ export default function SalePageV4({
   const blocks = propertyHighlightBlocks(property.highlights);
   const editorialSections = propertyEditorialSections(property);
   const featureSections = editorialSections.filter(section => FEATURE_KEYS.has(section.key));
+  const hasFacilities = Array.isArray(property.facilitiesList) && property.facilitiesList.length > 0;
   const otherSections = editorialSections.filter(section => !FEATURE_KEYS.has(section.key));
   const factSummary = propertyFactSummary(property);
   const badge = property.badge;
@@ -534,16 +535,24 @@ export default function SalePageV4({
           {!detailsPending && factSummary && <InfoCard icon={House} title={`ข้อมูลบ้าน${property.project_name ? ` ${property.project_name}` : ''}`}>
             <p className="sp4-info-text">{factSummary}</p>
           </InfoCard>}
-          {!detailsPending && featureSections.length > 0 && <section className="sp4-block sp4-feat reveal-on-scroll" aria-labelledby="sp4-feat-title">
-            <h2 id="sp4-feat-title">จุดเด่นของบ้านหลังนี้</h2>
-            <div className="sp4-feat-grid">
+          {!detailsPending && (featureSections.length > 0 || hasFacilities) && <section className="sp4-block sp4-feat reveal-on-scroll" aria-labelledby="sp4-feat-title">
+            <h2 id="sp4-feat-title">{featureSections.length > 0 ? 'จุดเด่นของบ้านหลังนี้' : 'สิ่งอำนวยความสะดวก'}</h2>
+            <div className={`sp4-feat-grid${featureSections.length === 3 ? ' is-complete' : ''}`}>
               {featureSections.map(section => {
                 const Icon = FEATURE_ICONS[section.key] || Sparkles;
-                return <article className="sp4-feat-card" key={section.key}>
+                return <article className={`sp4-feat-card is-${section.key}`} key={section.key}>
                   <h3><span className="sp4-feat-icon" aria-hidden="true"><Icon size={20} strokeWidth={1.8} /></span>{section.heading}</h3>
-                  <ul>{featureLines(section.text).map((line, k) => <li key={k}>{line}</li>)}</ul>
+                  {section.key === 'access_details'
+                    ? <p className="sp4-feature-text">{featureLines(section.text).join('\n')}</p>
+                    : <ul className="sp4-feature-list">{featureLines(section.text).map((line, k) => <li key={k}><Check size={14} strokeWidth={1.6} aria-hidden="true" /><span>{line}</span></li>)}</ul>}
                 </article>;
               })}
+              {hasFacilities && <article className="sp4-feat-card sp4-amenities">
+                {featureSections.length > 0 && <h3><span className="sp4-feat-icon" aria-hidden="true"><BadgeCheck size={20} strokeWidth={1.8} /></span>สิ่งอำนวยความสะดวก</h3>}
+                <ul className="sp4-amenity-list">
+                  {property.facilitiesList.map((f, i) => <li key={i}><Check size={15} strokeWidth={1.6} aria-hidden="true" /><span>{f}</span></li>)}
+                </ul>
+              </article>}
             </div>
           </section>}
           {!detailsPending && otherSections.map(section => <InfoCard key={section.key} icon={SECTION_ICONS[section.key] || ClipboardList} title={section.heading}>
@@ -560,14 +569,6 @@ export default function SalePageV4({
                   <p key={i}>{b.text}</p>
                 )))}
               </div>
-            </InfoCard>
-          )}
-
-          {Array.isArray(property.facilitiesList) && property.facilitiesList.length > 0 && (
-            <InfoCard icon={BadgeCheck} title="สิ่งอำนวยความสะดวก">
-              <ul className="sp4-tags">
-                {property.facilitiesList.map((f, i) => <li key={i}><Check size={14} strokeWidth={2.4} aria-hidden="true" />{f}</li>)}
-              </ul>
             </InfoCard>
           )}
 
@@ -1014,32 +1015,67 @@ const css = `
 .sp4-block > h2::before { content: ""; width: 20px; height: 2px; flex: 0 0 auto; background: var(--forest); border-radius: 2px; }
 @container (max-width: 700px) { .sp4-block > h2 { font-size: 19px; } }
 
-/* จุดเด่นของบ้าน: สามหัวข้อจากหลังบ้าน แสดงเป็นการ์ดให้เห็นชัดว่าเป็นจุดขายของหลังนี้ */
+/* แบบ B: การ์ดแยกหมวดตามข้อมูลจริง จัดสองคอลัมน์เมื่อมีครบสามหัวข้อ */
+.sp4-feat { container-type: inline-size; }
+.sp4-block.sp4-feat > h2 {
+  padding: 0; border: 0; font-size: 23px; font-weight: 600; line-height: 1.5;
+}
+.sp4-block.sp4-feat > h2::before { content: none; }
 .sp4-feat-grid { display: grid; gap: var(--s2); }
+.sp4-feat-grid.is-complete {
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  grid-template-areas: 'inside outside' 'travel outside';
+}
+.sp4-feat-grid.is-complete > .is-interior_features { grid-area: inside; }
+.sp4-feat-grid.is-complete > .is-exterior_features { grid-area: outside; }
+.sp4-feat-grid.is-complete > .is-access_details { grid-area: travel; }
 .sp4-feat-card {
-  padding: 20px 22px; border-radius: var(--r2); background: var(--card);
-  border: 1px solid rgba(11,61,27,.12); border-left: 4px solid var(--forest); box-shadow: var(--shadow);
+  min-width: 0; padding: 21px; border-radius: 17px; background: var(--card);
+  border: 1px solid #e1e9e4; color: #293e35;
 }
 .sp4-feat-card h3 {
-  margin: 0 0 14px; display: flex; align-items: center; gap: 12px;
-  font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--forest);
+  margin: 0 0 18px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  font-size: 16px; font-weight: 500; line-height: 1.5; color: #153f2c;
 }
 .sp4-feat-icon {
   display: inline-grid; place-items: center; width: 38px; height: 38px; flex: 0 0 auto;
   border-radius: 999px; background: rgba(11,61,27,.08); color: var(--forest);
 }
-.sp4-feat-card ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
-.sp4-feat-card li {
-  position: relative; padding-left: 22px; color: var(--ink); font-size: 15.5px; line-height: 1.6;
+.sp4-feat-card .sp4-feat-icon {
+  width: 34px; height: 34px; border-radius: 10px; background: #eaf2ed; color: #315f48;
 }
-.sp4-feat-card li::before {
-  content: ""; position: absolute; left: 4px; top: .62em; width: 7px; height: 7px;
-  border-radius: 999px; background: var(--forest); opacity: .75;
+.sp4-feat-card .sp4-feat-icon svg { width: 19px; height: 19px; }
+.sp4-feature-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.sp4-feature-list li {
+  display: flex; align-items: flex-start; gap: 7px; font-size: 14px; font-weight: 400;
+  line-height: 1.8; overflow-wrap: anywhere;
 }
-@container (max-width: 700px) {
-  .sp4-feat-card { padding: 16px 16px 18px; }
-  .sp4-feat-card h3 { font-size: 17px; }
-  .sp4-feat-card li { font-size: 15px; }
+.sp4-feature-list li > svg { flex: 0 0 14px; margin-top: 5px; color: #528067; }
+.sp4-feature-list li > span { min-width: 0; }
+.sp4-feature-text { margin: 0; font-size: 14px; font-weight: 400; line-height: 1.85; white-space: pre-line; overflow-wrap: anywhere; }
+.sp4-feat-card.is-exterior_features { background: #eaf2ed; border-color: #dce8df; }
+.sp4-feat-card.is-exterior_features .sp4-feat-icon { background: #dce9df; }
+.sp4-feat-card.is-exterior_features .sp4-feature-list { gap: 15px; }
+.sp4-amenities { grid-column: 1 / -1; }
+.sp4-amenities h3 { flex-direction: row; align-items: center; margin-bottom: 20px; }
+.sp4-amenity-list {
+  list-style: none; padding: 0; margin: 0; display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr)); gap: 13px 12px;
+}
+.sp4-amenity-list li {
+  display: flex; align-items: flex-start; gap: 7px; min-width: 0;
+  font-size: 12px; font-weight: 400; line-height: 1.7; overflow-wrap: anywhere;
+}
+.sp4-amenity-list svg { flex: 0 0 15px; margin-top: 2px; color: #3b7555; }
+@container (max-width: 520px) {
+  .sp4-block.sp4-feat > h2 { font-size: 21px; }
+  .sp4-feat-grid.is-complete { grid-template-columns: minmax(0,1fr); grid-template-areas: none; }
+  .sp4-feat-grid.is-complete > .sp4-feat-card { grid-area: auto; }
+  .sp4-feat-card { padding: 22px 20px; }
+  .sp4-feat-card h3 { flex-direction: row; align-items: center; }
+  .sp4-feature-list li, .sp4-feature-text { font-size: 16px; }
+  .sp4-amenity-list { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .sp4-amenity-list li { font-size: 13px; }
 }
 
 /* การ์ดหัวข้อข้อมูลบ้าน (ข้อมูลบ้าน / รายละเอียด / สิ่งอำนวยความสะดวก / งานรีโนเวท / ใกล้เคียง) */
@@ -1070,14 +1106,6 @@ const css = `
   content: ""; position: absolute; left: 4px; top: .62em; width: 7px; height: 7px;
   border-radius: 999px; background: var(--forest); opacity: .75;
 }
-
-.sp4-tags { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s1); }
-.sp4-tags li {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 14px; color: var(--forest); border-radius: var(--r4);
-  background: rgba(11,61,27,.06); border: 1px solid rgba(11,61,27,.14); padding: 7px 14px 7px 11px;
-}
-.sp4-tags li svg { flex: 0 0 auto; opacity: .8; }
 
 .sp4-video, .sp4-map {
   border: 1px solid var(--line); border-radius: var(--r2); overflow: hidden; background: var(--paper-soft);
