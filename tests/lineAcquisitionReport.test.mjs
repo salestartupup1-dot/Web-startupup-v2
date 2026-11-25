@@ -85,3 +85,19 @@ test('paid acquisition accepts click IDs and paid campaign links, preserves webs
   assert.deepEqual((await listAcquisitions({ ...input, platform: 'facebook_ads' }, db)).leads.map(row => row.userId), [user(3)]);
   assert.equal((await listCustomerVisits(user(4), db)).visits.length, 2);
 });
+
+test('first channel uses the website entry or tagged source even without a campaign name', async () => {
+  const date = '2026-11-20T17:39:00+07:00';
+  const db = fakeDb([
+    doc(1, user(1), date, { source: 'facebook', entryPoint: 'website', evidence: 'referrer' }),
+    doc(2, user(2), date, { source: 'facebook', medium: 'qr' }),
+    doc(3, user(3), date, { source: 'google_ads', medium: 'cpc', evidence: 'utm', entryPoint: 'website' }),
+    doc(4, user(2), '2026-11-21T10:00:00+07:00', { source: 'website' }),
+  ]);
+  const report = await listAcquisitions({ ...november, mode: 'first-channel' }, db);
+  assert.equal(report.customerCounts.website, 1);
+  assert.equal(report.customerCounts.facebook, 1);
+  assert.equal(report.customerCounts.google_ads, 1);
+  assert.equal(report.customerTotal, 3);
+  assert.equal((await listAcquisitions({ ...november, mode: 'first-channel', platform: 'website' }, db)).leads[0].userId, user(1));
+});
