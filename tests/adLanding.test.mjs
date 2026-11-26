@@ -37,6 +37,6 @@ test('?near= puts that area first without filtering or entering the canonical li
   assert.equal(appendListingQuery(new URLSearchParams(), listing).has('near'), false);
 });
 
-test('card estimate uses the full price at 3% over 40 years', () => {
-  assert.equal(Math.round(monthlyMortgage(2090000, 3, 40)), 7482);
+test('card estimate uses the full price at 2.6% over 40 years', () => {
+  assert.equal(Math.round(monthlyMortgage(2090000, 2.6, 40)), 7008);
 });

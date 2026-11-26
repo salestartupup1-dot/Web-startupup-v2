@@ -4,9 +4,9 @@ import { SmartImage, getOptimizedImg, getPropertySharePath } from './SiteApp';
 import { monthlyMortgage } from '../../lib/mortgage';
 import { isSaleAvailable, primaryPropertyLocation } from '../../lib/websiteInventory';
 
-// Card estimate only: full listed price, 3% a year over 40 years (owner's choice).
+// Card estimate uses the full listed price over 40 years.
 // The calculator keeps its own adjustable assumptions.
-export const CARD_RATE = 3;
+export const CARD_RATE = 2.6;
 export const CARD_YEARS = 40;
 export const cardPayment = price => Math.round(monthlyMortgage(price, CARD_RATE, CARD_YEARS));
 export const PAYMENT_NOTE = `*ประมาณการผ่อน กู้เต็มราคา ดอกเบี้ย ${CARD_RATE}% ระยะ ${CARD_YEARS} ปี ไม่ใช่ผลอนุมัติจากธนาคาร`;
